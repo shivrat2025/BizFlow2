@@ -539,8 +539,8 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <span className={`font-mono font-black text-sm ${(t.type === 'INCOME' || t.type === 'REPAYMENT') ? 'text-green-600' : 'text-red-600'}`}>
-                        {(t.type === 'INCOME' || t.type === 'REPAYMENT') ? '+' : '-'}₹{t.amount.toLocaleString()}
+                      <span className={`font-mono font-black text-sm ${(t.type === 'INCOME') ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {(t.type === 'INCOME') ? '+' : '-'}₹{t.amount.toLocaleString()}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
@@ -578,16 +578,16 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
                       {t.incomeSource && (
                         <div className="mt-0.5">
                           <span className={`px-1 py-0.5 rounded-[4px] text-[6px] font-black uppercase ring-1 ring-inset ${t.incomeSource === 'COD' ? 'bg-indigo-50 text-indigo-600 ring-indigo-200' :
-                              t.incomeSource === 'PREPAID' ? 'bg-emerald-50 text-emerald-600 ring-emerald-200' :
-                                'bg-slate-50 text-slate-500 ring-slate-200'
+                            t.incomeSource === 'PREPAID' ? 'bg-emerald-50 text-emerald-600 ring-emerald-200' :
+                              'bg-slate-50 text-slate-500 ring-slate-200'
                             }`}>
                             {t.incomeSource}
                           </span>
                         </div>
                       )}
                     </div>
-                    <p className={`font-mono font-black text-xs ${(t.type === 'INCOME' || t.type === 'REPAYMENT') ? 'text-emerald-600' : 'text-rose-600'}`}>
-                      {(t.type === 'INCOME' || t.type === 'REPAYMENT') ? '+' : '-'}₹{t.amount.toLocaleString()}
+                    <p className={`font-mono font-black text-xs ${(t.type === 'INCOME') ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {(t.type === 'INCOME') ? '+' : '-'}₹{t.amount.toLocaleString()}
                     </p>
                   </div>
                   <div className="flex justify-between items-center mt-0.5">
