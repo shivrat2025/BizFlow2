@@ -143,7 +143,7 @@ const AccountManager: React.FC<Props> = ({ accounts, onAdd, onUpdate, onDelete, 
                   <div>
                     <h4 className="text-[11px] font-black text-slate-800 uppercase tracking-tight">{acc.name}</h4>
                     <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">
-                      {acc.type === 'OD' ? 'Overdraft Limit' : acc.type === 'CREDIT_CARD' ? 'Credit Card' : acc.type}
+                      {acc.type === 'OD' ? 'Overdraft Limit' : acc.type === 'CREDIT_CARD' ? 'Credit Card' : acc.type === 'BANK' ? 'Savings Account' : 'Current Account'}
                     </p>
                   </div>
                 </div>
@@ -172,7 +172,7 @@ const AccountManager: React.FC<Props> = ({ accounts, onAdd, onUpdate, onDelete, 
                     ₹{acc.balance.toLocaleString()}
                   </span>
                 </div>
-                {acc.limit && (
+                {acc.limit !== undefined && !['BANK', 'CURRENT'].includes(acc.type) && (
                   <div className="mt-2">
                     <div className="w-full bg-slate-50 h-1 rounded-full overflow-hidden">
                       <div
@@ -184,6 +184,12 @@ const AccountManager: React.FC<Props> = ({ accounts, onAdd, onUpdate, onDelete, 
                       <span className="text-[7px] font-black text-slate-300 uppercase tracking-widest">Limit Usage</span>
                       <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">L: ₹{acc.limit.toLocaleString()}</span>
                     </div>
+                  </div>
+                )}
+                {acc.limit !== undefined && ['BANK', 'CURRENT'].includes(acc.type) && (
+                  <div className="mt-2 flex justify-between items-center">
+                    <span className="text-[7px] font-black text-slate-300 uppercase tracking-widest">Opening Balance</span>
+                    <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">₹{acc.limit.toLocaleString()}</span>
                   </div>
                 )}
               </div>

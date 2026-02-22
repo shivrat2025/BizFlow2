@@ -208,6 +208,7 @@ const App: React.FC = () => {
 
     const computedAccounts = useMemo(() => {
         return accounts.map(acc => {
+            // For bank accounts, limit acts as the Opening Balance
             let balance = acc.limit || 0;
             transactions.forEach(t => {
                 if (t.type === 'REPAYMENT') {

@@ -22,6 +22,7 @@ export interface Account {
   type: AccountType;
   balance: number;
   limit?: number;
+  initialBalance?: number;
 }
 
 export interface Supplier {
