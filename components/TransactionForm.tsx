@@ -87,7 +87,12 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
     setSourceId(id);
     const selectedAccount = accounts.find(a => a.id === id);
     if (selectedAccount && (selectedAccount.type === 'BANK' || selectedAccount.type === 'CURRENT')) {
-      if (incomeSource === 'NONE' || !incomeSource) {
+      const name = selectedAccount.name.toUpperCase();
+      if (name.includes('IDFC')) {
+        setIncomeSource('COD');
+      } else if (name.includes('INDUSIND')) {
+        setIncomeSource('PREPAID');
+      } else if (incomeSource === 'NONE' || !incomeSource) {
         setIncomeSource('COD');
       }
     }
