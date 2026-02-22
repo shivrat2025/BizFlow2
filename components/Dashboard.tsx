@@ -109,6 +109,11 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">COD Pool</p>
           </div>
           <p className="text-lg font-black text-slate-900 tracking-tight">₹{stats.codPool.toLocaleString()}</p>
+          <div className="mt-2 pt-2 border-t border-slate-50">
+            <div className="flex justify-between items-center text-[7px] font-black text-slate-400 uppercase tracking-tight">
+              <span>{accounts.find(a => a.name.toUpperCase().includes('IDFC'))?.name || 'IDFC BANK'}</span>
+            </div>
+          </div>
         </div>
 
         <div className="bg-white/70 backdrop-blur-xl p-4 rounded-[1.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60 active:bg-white/80 transition-all group hover:scale-[1.02] duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
@@ -119,6 +124,11 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Prepaid Pool</p>
           </div>
           <p className="text-lg font-black text-slate-900 tracking-tight">₹{stats.prepaidPool.toLocaleString()}</p>
+          <div className="mt-2 pt-2 border-t border-slate-50">
+            <div className="flex justify-between items-center text-[7px] font-black text-slate-400 uppercase tracking-tight">
+              <span>{accounts.find(a => a.name.toUpperCase().includes('INDUSIND'))?.name || 'INDUSIND BANK'}</span>
+            </div>
+          </div>
         </div>
 
         <div className="bg-white/70 backdrop-blur-xl p-4 rounded-[1.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60 active:bg-white/80 transition-all group hover:scale-[1.02] duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
