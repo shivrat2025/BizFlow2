@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "accounts": [],
+    "transactions": [],
+    "aiRules": [],
+    "categories": [
+      {
+        "label": "FB Ads",
+        "id": "FB_ADS"
+      },
+      {
+        "label": "Shipping",
+        "id": "SHIPPING"
+      },
+      {
+        "id": "PRODUCT",
+        "label": "Product"
+      },
+      {
+        "label": "Other",
+        "id": "OTHER"
+      }
+    ],
+    "lastSynced": 1770377067636
+  },
+  "transactions": [],
+  "backupDate": "2026-02-13T09:53:41.793Z"
+}

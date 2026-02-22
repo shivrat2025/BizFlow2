@@ -1,0 +1,7 @@
+{
+  "name": "BizFlow",
+  "description": "A specialized business expense and income tracker for managing OD accounts as capital, credit cards, and dual-source income (COD/Prepaid) with automated profit withdrawal tracking.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
