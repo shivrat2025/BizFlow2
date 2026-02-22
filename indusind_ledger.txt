@@ -1,0 +1,73 @@
+2026-02-02 | REPAYMENT  | ₹77998.00 | Pool: PREPAID  | Credit Card Paid
+2026-02-03 | EXPENSE    | ₹1293626.41 | Pool: PREPAID  | 1293626.41
+2026-02-03 | INCOME     | ₹1740637.41 | Pool: PREPAID  | Razorpay
+2026-02-03 | INCOME     | ₹85832.20 | Pool: PREPAID  | Razorpay
+2026-02-03 | WITHDRAWAL | ₹339220.00 | Pool: PREPAID  | 
+2026-02-04 | EXPENSE    | ₹  310.00 | Pool: PREPAID  | Office Stationery
+2026-02-04 | EXPENSE    | ₹19373.00 | Pool: PREPAID  | Heera Creation
+2026-02-04 | INCOME     | ₹53466.55 | Pool: PREPAID  | Razorpay
+2026-02-05 | EXPENSE    | ₹ 1040.00 | Pool: PREPAID  | RTC
+2026-02-05 | EXPENSE    | ₹ 2625.00 | Pool: PREPAID  | RTC
+2026-02-05 | EXPENSE    | ₹13283.00 | Pool: PREPAID  | LadyLook
+2026-02-05 | INCOME     | ₹41106.69 | Pool: PREPAID  | Razorpay
+2026-02-06 | EXPENSE    | ₹  700.00 | Pool: PREPAID  | Swank
+2026-02-06 | EXPENSE    | ₹ 1100.00 | Pool: PREPAID  | Tapi Creation
+2026-02-06 | EXPENSE    | ₹ 1103.00 | Pool: PREPAID  | Sai Creation
+2026-02-06 | EXPENSE    | ₹ 1200.00 | Pool: PREPAID  | Zoya
+2026-02-06 | EXPENSE    | ₹ 1300.00 | Pool: PREPAID  | Maruti Designer
+2026-02-06 | EXPENSE    | ₹ 2500.00 | Pool: PREPAID  | Women Wastra
+2026-02-06 | EXPENSE    | ₹ 2625.00 | Pool: PREPAID  | Sai Creation
+2026-02-06 | EXPENSE    | ₹ 3308.00 | Pool: PREPAID  | Sai Creation
+2026-02-06 | EXPENSE    | ₹ 5000.00 | Pool: PREPAID  | Kunjal Omni
+2026-02-06 | EXPENSE    | ₹12315.47 | Pool: PREPAID  | Shopify Bill
+2026-02-06 | EXPENSE    | ₹21751.15 | Pool: PREPAID  | Shopify Bill
+2026-02-06 | INCOME     | ₹40104.41 | Pool: PREPAID  | Razorpay
+2026-02-07 | EXPENSE    | ₹  320.00 | Pool: PREPAID  | Office Nasta
+2026-02-07 | INCOME     | ₹57151.10 | Pool: PREPAID  | Razorpay
+2026-02-08 | EXPENSE    | ₹ 1100.00 | Pool: PREPAID  | HV 
+2026-02-08 | EXPENSE    | ₹ 1208.00 | Pool: PREPAID  | 
+2026-02-08 | EXPENSE    | ₹ 1260.00 | Pool: PREPAID  | Sai Creation
+2026-02-08 | EXPENSE    | ₹19551.00 | Pool: PREPAID  | Heera Creation
+2026-02-08 | EXPENSE    | ₹39123.00 | Pool: PREPAID  | Heera Creation
+2026-02-09 | EXPENSE    | ₹  735.00 | Pool: PREPAID  | RV CREATION
+2026-02-09 | EXPENSE    | ₹ 1155.00 | Pool: PREPAID  | 
+2026-02-09 | EXPENSE    | ₹ 1155.00 | Pool: PREPAID  | RV CREATION
+2026-02-09 | EXPENSE    | ₹ 1155.00 | Pool: PREPAID  | RV CREATION
+2026-02-09 | EXPENSE    | ₹ 2363.00 | Pool: PREPAID  | RV CREATION
+2026-02-09 | EXPENSE    | ₹ 5145.00 | Pool: PREPAID  | 
+2026-02-09 | EXPENSE    | ₹16380.00 | Pool: PREPAID  | 
+2026-02-09 | EXPENSE    | ₹18428.00 | Pool: PREPAID  | 
+2026-02-09 | EXPENSE    | ₹22943.00 | Pool: PREPAID  | 
+2026-02-09 | INCOME     | ₹29791.15 | Pool: PREPAID  | Razorpay
+2026-02-10 | EXPENSE    | ₹   23.60 | Pool: PREPAID  | Shopify
+2026-02-10 | EXPENSE    | ₹ 5000.00 | Pool: PREPAID  | Fship
+2026-02-10 | INCOME     | ₹109642.61 | Pool: PREPAID  | Prepaid Remittance
+2026-02-11 | EXPENSE    | ₹  850.00 | Pool: PREPAID  | Zoya 
+2026-02-11 | EXPENSE    | ₹ 1098.75 | Pool: PREPAID  | Shopify
+2026-02-11 | EXPENSE    | ₹ 1250.00 | Pool: PREPAID  | Aarohi Designer
+2026-02-11 | INCOME     | ₹53958.23 | Pool: PREPAID  | Prepaid Remittance
+2026-02-12 | INCOME     | ₹35655.15 | Pool: PREPAID  | Prepaid Remittance
+2026-02-13 | EXPENSE    | ₹ 1630.00 | Pool: PREPAID  | Leave Enchashment 
+2026-02-13 | EXPENSE    | ₹ 3265.00 | Pool: PREPAID  | Leave Encashment 
+2026-02-13 | EXPENSE    | ₹24597.00 | Pool: PREPAID  | Jaimish Salary 
+2026-02-13 | INCOME     | ₹35161.52 | Pool: PREPAID  | Prepaid Remittence
+2026-02-16 | EXPENSE    | ₹ 2799.00 | Pool: PREPAID  | refund
+2026-02-16 | INCOME     | ₹37393.03 | Pool: PREPAID  | Prepaid Sales
+2026-02-17 | EXPENSE    | ₹ 1450.00 | Pool: PREPAID  | 
+2026-02-17 | EXPENSE    | ₹ 5000.00 | Pool: PREPAID  | FB Payment
+2026-02-17 | EXPENSE    | ₹ 7200.00 | Pool: PREPAID  | 
+2026-02-17 | INCOME     | ₹75088.42 | Pool: PREPAID  | COD remittance
+2026-02-18 | INCOME     | ₹ 8661.99 | Pool: PREPAID  | Gpay Local
+2026-02-18 | REPAYMENT  | ₹15000.00 | Pool: PREPAID  | credit card bill
+2026-02-19 | EXPENSE    | ₹  950.00 | Pool: PREPAID  | Non Gst Bill
+2026-02-19 | EXPENSE    | ₹ 1000.00 | Pool: PREPAID  | 
+2026-02-19 | EXPENSE    | ₹ 1000.00 | Pool: PREPAID  | Followers
+2026-02-19 | EXPENSE    | ₹ 1700.00 | Pool: PREPAID  | Non Gst Bill
+2026-02-19 | INCOME     | ₹27167.21 | Pool: PREPAID  | Prepaid Remittance
+2026-02-19 | WITHDRAWAL | ₹80000.00 | Pool: PREPAID  | Profit Withdrawn
+2026-02-20 | EXPENSE    | ₹   75.00 | Pool: PREPAID  | porter
+2026-02-20 | INCOME     | ₹ 6405.75 | Pool: PREPAID  | Gpay Local
+2026-02-20 | INCOME     | ₹24023.54 | Pool: PREPAID  | Prepaid Sales
+2026-02-21 | EXPENSE    | ₹18387.22 | Pool: PREPAID  | Shopify
+2026-02-21 | INCOME     | ₹ 4353.36 | Pool: PREPAID  | Gpay Local
+2026-02-21 | INCOME     | ₹84504.65 | Pool: PREPAID  | Prepaid Sales

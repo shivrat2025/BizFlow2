@@ -1,0 +1,520 @@
+{
+  "name": "projects/bizflow-fb864/databases/(default)/documents/workspaces/SHIVRAT",
+  "fields": {
+    "aiRules": {
+      "arrayValue": {}
+    },
+    "cloudUrl": {
+      "stringValue": ""
+    },
+    "transactions": {
+      "arrayValue": {}
+    },
+    "accounts": {
+      "arrayValue": {
+        "values": [
+          {
+            "mapValue": {
+              "fields": {
+                "id": {
+                  "stringValue": "dccbcc41-7dac-4dd4-8396-07c48b0e7719"
+                },
+                "balance": {
+                  "integerValue": "0"
+                },
+                "name": {
+                  "stringValue": "IDFC Bank"
+                },
+                "type": {
+                  "stringValue": "BANK"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "balance": {
+                  "integerValue": "0"
+                },
+                "id": {
+                  "stringValue": "5abb6e32-bd50-4522-8950-8d75fecf6a14"
+                },
+                "type": {
+                  "stringValue": "BANK"
+                },
+                "name": {
+                  "stringValue": "IndusInd Bank"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "type": {
+                  "stringValue": "CREDIT_CARD"
+                },
+                "name": {
+                  "stringValue": "Credit Card"
+                },
+                "id": {
+                  "stringValue": "b83bb345-551b-4e55-b7e0-457b220c9513"
+                },
+                "balance": {
+                  "integerValue": "80000"
+                },
+                "limit": {
+                  "integerValue": "80000"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "id": {
+                  "stringValue": "d41cda10-b31e-4094-84bb-d6143ff41ee1"
+                },
+                "balance": {
+                  "integerValue": "0"
+                },
+                "name": {
+                  "stringValue": "ICICI MANISHA OD"
+                },
+                "type": {
+                  "stringValue": "BANK"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "categories": {
+      "arrayValue": {
+        "values": [
+          {
+            "mapValue": {
+              "fields": {
+                "id": {
+                  "stringValue": "FB_ADS"
+                },
+                "label": {
+                  "stringValue": "FB Ads"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "id": {
+                  "stringValue": "SHIPPING"
+                },
+                "label": {
+                  "stringValue": "Shipping"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "label": {
+                  "stringValue": "Product"
+                },
+                "id": {
+                  "stringValue": "PRODUCT"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "id": {
+                  "stringValue": "OTHER"
+                },
+                "label": {
+                  "stringValue": "Other"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "id": {
+                  "stringValue": "OFFICE_SALARY"
+                },
+                "label": {
+                  "stringValue": "Office Salary"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "label": {
+                  "stringValue": "Shopify"
+                },
+                "id": {
+                  "stringValue": "SHOPIFY"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "id": {
+                  "stringValue": "FOLLOWERS"
+                },
+                "label": {
+                  "stringValue": "followers"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "id": {
+                  "stringValue": "PORTER"
+                },
+                "label": {
+                  "stringValue": "porter"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "suppliers": {
+      "arrayValue": {
+        "values": [
+          {
+            "mapValue": {
+              "fields": {
+                "id": {
+                  "stringValue": "d8942ba1-15cb-49b6-8a3f-65bcdd9016de"
+                },
+                "name": {
+                  "stringValue": "Zoya"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "name": {
+                  "stringValue": "GST BILL"
+                },
+                "id": {
+                  "stringValue": "5507bb9d-a06b-4e5f-9ccd-d48cd54cac71"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "name": {
+                  "stringValue": "Heera Creation"
+                },
+                "id": {
+                  "stringValue": "8a188f9b-b115-4125-8f0c-a485f9e2f222"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "name": {
+                  "stringValue": "Gopinath"
+                },
+                "id": {
+                  "stringValue": "54b79325-c25e-4924-a8c1-8ccabe21a29c"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "name": {
+                  "stringValue": "HV "
+                },
+                "id": {
+                  "stringValue": "5e7a4875-c8fc-4473-a09f-3fc4f3d29d67"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "name": {
+                  "stringValue": "RTC"
+                },
+                "id": {
+                  "stringValue": "00bf6e07-8909-42e4-b740-3f45334027c4"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "name": {
+                  "stringValue": "Maruti Designer"
+                },
+                "id": {
+                  "stringValue": "27edece4-c72b-446f-95ce-c365948386c5"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "id": {
+                  "stringValue": "09ba1878-d171-442a-9727-dd498bd13a13"
+                },
+                "name": {
+                  "stringValue": "Shree Hari Fashion"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "name": {
+                  "stringValue": "Swank"
+                },
+                "id": {
+                  "stringValue": "1f6c9fd2-a71c-4329-a274-447a1a89b380"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "id": {
+                  "stringValue": "35d6c924-4016-4b7b-ae14-11e383e31b6e"
+                },
+                "name": {
+                  "stringValue": "Sai Creation"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "name": {
+                  "stringValue": "Women Wastra"
+                },
+                "id": {
+                  "stringValue": "1afa061c-bd04-4436-a9c1-b816d3ec1bac"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "id": {
+                  "stringValue": "df17c1c8-69d1-4dc4-8063-ffd8084ad4e3"
+                },
+                "name": {
+                  "stringValue": "Brand of Brothers"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "name": {
+                  "stringValue": "KK Creation"
+                },
+                "id": {
+                  "stringValue": "a4726ba6-f15e-4ffe-a310-59873bee8c87"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "id": {
+                  "stringValue": "af2661ad-091d-49c3-a791-234fd137ef01"
+                },
+                "name": {
+                  "stringValue": "LadyLook"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "id": {
+                  "stringValue": "1dc40c20-e017-4c93-b902-5a97ab581449"
+                },
+                "name": {
+                  "stringValue": "JK Creation"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "id": {
+                  "stringValue": "68e2a2f3-388d-46c0-b2c8-50f6393449b8"
+                },
+                "name": {
+                  "stringValue": "Bhanderi Enterprise"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "name": {
+                  "stringValue": "Hirva"
+                },
+                "id": {
+                  "stringValue": "7b9aabef-39b2-45e1-87c0-ec5f9b4c8f79"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "id": {
+                  "stringValue": "248cc011-86aa-4095-8a30-4438f7943fc1"
+                },
+                "name": {
+                  "stringValue": "Bewafa Designer"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "id": {
+                  "stringValue": "9c4e2087-3ced-463c-b1f0-425ea741406f"
+                },
+                "name": {
+                  "stringValue": "RV CREATION"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "id": {
+                  "stringValue": "0cde16a3-2c3b-48e8-b02c-c8166c3be81e"
+                },
+                "name": {
+                  "stringValue": "Aarohi Designer"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "id": {
+                  "stringValue": "468e5332-415d-454f-b452-cecc89ee20a2"
+                },
+                "name": {
+                  "stringValue": "Mizeoo Trade"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "id": {
+                  "stringValue": "80b85aa8-bafc-4ebb-89a4-0135d6b9f0da"
+                },
+                "name": {
+                  "stringValue": "Pal Fab"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "name": {
+                  "stringValue": "Thirteen D"
+                },
+                "id": {
+                  "stringValue": "823fb4e5-affd-4a6e-84ca-e406f65ba9a6"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "id": {
+                  "stringValue": "a834eae9-d29c-4e09-9a9c-6d4d4630b1c5"
+                },
+                "name": {
+                  "stringValue": "Stationary"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "name": {
+                  "stringValue": "Unknow"
+                },
+                "id": {
+                  "stringValue": "f1f6330d-2bcf-4962-9646-92424c447d51"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "name": {
+                  "stringValue": "ZSR"
+                },
+                "id": {
+                  "stringValue": "0a52a0d6-956f-43af-ae53-c299e6be4f8d"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "lastSynced": {
+      "integerValue": "1771786444790"
+    }
+  },
+  "createTime": "2026-01-31T07:22:10.651436Z",
+  "updateTime": "2026-02-22T18:54:04.961120Z"
+}
