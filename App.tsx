@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { LayoutDashboard, History, Wallet, Cloud, Plus, RefreshCw, ChevronRight, BarChart3, FileText, Menu, Landmark } from 'lucide-react';
+import { LayoutDashboard, History, Wallet, Cloud, Plus, RefreshCw, ChevronRight, BarChart3, FileText, Menu, Landmark, Lock, Shield, Zap } from 'lucide-react';
 import { initializeApp, getApp, getApps } from "firebase/app";
 import { getFirestore, doc, onSnapshot, setDoc, deleteDoc, updateDoc, collection, writeBatch, getDoc, getDocs, query } from "firebase/firestore";
 import { Account, Transaction, DashboardStats, ExpenseCategory, AIRule } from './types';
@@ -322,10 +322,21 @@ const App: React.FC = () => {
     };
 
     const handleDeleteAccount = (id: string) => {
+        const acc = accounts.find(a => a.id === id);
+        if (!acc) return;
+
+        // Check if any transactions are linked to this account
+        const linkedTxs = transactions.filter(t => t.sourceAccountId === id || t.destinationAccountId === id);
+
+        if (linkedTxs.length > 0) {
+            alert(`Cannot delete "${acc.name}".\n\nThis account has ${linkedTxs.length} linked transaction(s). Please remove or reassign those transactions first before deleting this account.`);
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to delete "${acc.name}"?\n\nThis action cannot be undone.`)) return;
+
         const updatedAcc = accounts.filter(a => a.id !== id);
-        const updatedTx = transactions.filter(t => t.sourceAccountId !== id && t.destinationAccountId !== id);
         setAccounts(updatedAcc);
-        setTransactions(updatedTx);
         persistAndSync(updatedAcc);
     };
 
@@ -528,23 +539,96 @@ const App: React.FC = () => {
 
     if (!isAuthenticated) {
         return (
-            <div className="min-h-screen flex items-center justify-center p-6 bg-[conic-gradient(at_top_right,_var(--tw-gradient-stops))] from-indigo-900 via-purple-900 to-slate-900 relative overflow-hidden">
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
-                <div className="absolute -top-40 -right-40 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-50 animate-blob"></div>
-                <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-50 animate-blob animation-delay-2000"></div>
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-50 animate-blob animation-delay-4000"></div>
+            <div className="login-page">
+                {/* Animated Grid Background */}
+                <div className="login-grid-bg"></div>
 
-                <div className="bg-white/10 backdrop-blur-xl border border-white/20 w-full max-w-md p-10 rounded-[3rem] shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] text-center relative z-10 animate-in fade-in zoom-in-95 duration-700">
-                    <div className="bg-gradient-to-br from-indigo-500 to-purple-600 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-8 text-white shadow-2xl shadow-indigo-500/30 ring-4 ring-white/10">
-                        <LayoutDashboard size={40} />
+                {/* Floating Particles */}
+                <div className="login-particles">
+                    <div className="login-particle"></div>
+                    <div className="login-particle"></div>
+                    <div className="login-particle"></div>
+                    <div className="login-particle"></div>
+                    <div className="login-particle"></div>
+                    <div className="login-particle"></div>
+                    <div className="login-particle"></div>
+                    <div className="login-particle"></div>
+                </div>
+
+                {/* Corner Accents */}
+                <div className="login-corner-accent top-left"></div>
+                <div className="login-corner-accent bottom-right"></div>
+
+                {/* Left Branding Panel (Desktop) */}
+                <div className="login-brand-panel">
+                    <div className="login-orbs">
+                        <div className="login-orb login-orb-1"></div>
+                        <div className="login-orb login-orb-2"></div>
+                        <div className="login-orb login-orb-3"></div>
+                        <div className="login-mesh-sphere"></div>
+                        <div className="login-mesh-ring"></div>
                     </div>
-                    <h1 className="text-3xl font-black text-white mb-2 tracking-tight drop-shadow-md">BizFlow Ledger</h1>
-                    <p className="text-indigo-200 mb-10 text-xs font-medium uppercase tracking-widest">Identify Yourself & Connect</p>
 
-                    <form onSubmit={handleLogin} className="space-y-4">
-                        <div className="space-y-3">
-                            <div className="relative group">
-                                <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-300 transition-colors">
+                    <div className="login-brand-content">
+                        <div className="login-brand-badge">
+                            <span className="dot"></span>
+                            System Online
+                        </div>
+                        <h1>BizFlow<br />Ledger</h1>
+                        <p>Elevate your business finances with real-time analytics, intelligent sync, and enterprise-grade security.</p>
+
+                        <div className="login-features">
+                            <div className="login-feature-item">
+                                <div className="login-feature-icon purple">
+                                    <BarChart3 size={18} />
+                                </div>
+                                <span className="login-feature-text">Real-time Financial Analytics</span>
+                            </div>
+                            <div className="login-feature-item">
+                                <div className="login-feature-icon blue">
+                                    <Cloud size={18} />
+                                </div>
+                                <span className="login-feature-text">Cloud-Synced Dual Ledger Engine</span>
+                            </div>
+                            <div className="login-feature-item">
+                                <div className="login-feature-icon cyan">
+                                    <Shield size={18} />
+                                </div>
+                                <span className="login-feature-text">Military-Grade Data Encryption</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right Login Card Panel */}
+                <div className="login-card-panel">
+                    <div className="login-card">
+                        <div className="login-card-glow"></div>
+
+                        {/* Mobile-only branding */}
+                        <div className="login-mobile-brand">
+                            <div className="login-logo">
+                                <LayoutDashboard size={28} />
+                            </div>
+                            <h1>BizFlow</h1>
+                            <p>Financial Intelligence</p>
+                        </div>
+
+                        {/* Desktop logo */}
+                        <div className="hidden md:block">
+                            <div className="login-logo">
+                                <LayoutDashboard size={28} />
+                            </div>
+                        </div>
+
+                        <div className="login-header">
+                            <h2>Welcome Back</h2>
+                            <p>Sign in to access your workspace</p>
+                        </div>
+
+                        <form onSubmit={handleLogin} className="login-form">
+                            <div className="login-input-group">
+                                <div className="login-input-icon">
                                     <Landmark size={18} />
                                 </div>
                                 <input
@@ -552,46 +636,64 @@ const App: React.FC = () => {
                                     placeholder="Database / Username"
                                     value={usernameInput}
                                     onChange={(e) => setUsernameInput(e.target.value)}
-                                    className="w-full pl-14 pr-6 py-4.5 bg-white/5 border border-white/10 focus:border-indigo-400 ring-indigo-500/20 rounded-2xl text-sm font-bold text-white placeholder:text-slate-400 outline-none focus:ring-4 transition-all backdrop-blur-md"
+                                    className="login-input"
                                     autoFocus
+                                    id="login-username"
                                 />
                             </div>
 
-                            <div className="relative group">
-                                <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-300 transition-colors">
-                                    <Cloud size={18} />
+                            <div className="login-input-group">
+                                <div className="login-input-icon">
+                                    <Lock size={18} />
                                 </div>
                                 <input
                                     type="password"
                                     placeholder="Password"
                                     value={passwordInput}
                                     onChange={(e) => setPasswordInput(e.target.value)}
-                                    className={`w-full pl-14 pr-6 py-4.5 bg-white/5 border ${loginError ? 'border-rose-400/50 focus:border-rose-500 ring-rose-500/20' : 'border-white/10 focus:border-indigo-400 ring-indigo-500/20'} rounded-2xl text-sm font-bold text-white placeholder:text-slate-400 outline-none focus:ring-4 transition-all backdrop-blur-md`}
+                                    className={`login-input ${loginError ? 'error' : ''}`}
+                                    id="login-password"
                                 />
                             </div>
+
+                            {loginError && (
+                                <div className="login-error">
+                                    ⛔ Access denied — Invalid credentials
+                                </div>
+                            )}
+
+                            <button type="submit" className="login-btn" id="login-submit">
+                                Sign In & Synchronize
+                                <ChevronRight size={16} />
+                            </button>
+                        </form>
+
+                        <div className="login-footer">
+                            <div className="login-footer-divider"></div>
+                            <p className="login-footer-text">
+                                Secured by Firebase • End-to-End Encrypted
+                            </p>
                         </div>
 
-                        {loginError && (
-                            <p className="text-[10px] font-black text-rose-300 uppercase tracking-widest animate-pulse">
-                                Access denied. Invalid credentials.
-                            </p>
-                        )}
-
-                        <button
-                            type="submit"
-                            className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-4.5 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group border border-white/10"
-                        >
-                            Log In & Synchronize <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                        </button>
-                    </form>
-
-                    <div className="pt-8">
-                        <p className="text-[9px] font-black text-indigo-200/50 uppercase tracking-[0.2em] leading-relaxed">
-                            BizFlow Dual-Ledger Sync Engine<br />
-                            Military Grade Encryption Active
-                        </p>
+                        <div className="login-security-badges">
+                            <div className="login-security-badge">
+                                <Shield size={12} />
+                                <span>256-bit SSL</span>
+                            </div>
+                            <div className="login-security-badge">
+                                <Lock size={12} />
+                                <span>Encrypted</span>
+                            </div>
+                            <div className="login-security-badge">
+                                <Zap size={12} />
+                                <span>Real-time</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+                {/* Version Badge */}
+                <div className="login-version-badge">BizFlow v3.0 • Enterprise Edition</div>
             </div>
         );
     }
