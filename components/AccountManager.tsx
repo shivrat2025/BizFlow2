@@ -127,13 +127,13 @@ const AccountManager: React.FC<Props> = ({ accounts, onAdd, onUpdate, onDelete, 
       ) : (
         <div className="space-y-8">
           {/* Section: Bank Accounts */}
-          {accounts.some(acc => ['BANK', 'CURRENT'].includes(acc.type)) && (
+          {accounts.some(acc => ['BANK', 'CURRENT'].includes(acc.type) && !acc.name.toUpperCase().includes('OD')) && (
             <div className="space-y-3">
               <h3 className="text-[10px] font-black text-slate-400 flex items-center gap-2 uppercase tracking-widest px-2">
                 <Landmark size={14} className="text-indigo-400" /> Basic Hubs
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {accounts.filter(acc => ['BANK', 'CURRENT'].includes(acc.type)).map(acc => (
+                {accounts.filter(acc => ['BANK', 'CURRENT'].includes(acc.type) && !acc.name.toUpperCase().includes('OD')).map(acc => (
                   <AccountCard key={acc.id} acc={acc} editingId={editingId} handleEdit={handleEdit} onDelete={onDelete} />
                 ))}
               </div>
@@ -141,14 +141,14 @@ const AccountManager: React.FC<Props> = ({ accounts, onAdd, onUpdate, onDelete, 
           )}
 
           {/* Section: Overdrafts */}
-          {accounts.some(acc => acc.type === 'OD') && (
+          {accounts.some(acc => acc.type === 'OD' || acc.name.toUpperCase().includes('OD')) && (
             <div className="space-y-3">
               <h3 className="text-[10px] font-black text-slate-400 flex items-center gap-2 uppercase tracking-widest px-2">
                 <Wallet size={14} className="text-rose-400" /> Credit Facilities (OD)
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {accounts.filter(acc => acc.type === 'OD').map(acc => (
-                  <AccountCard key={acc.id} acc={acc} editingId={editingId} handleEdit={handleEdit} onDelete={onDelete} />
+                {accounts.filter(acc => acc.type === 'OD' || acc.name.toUpperCase().includes('OD')).map(acc => (
+                  <AccountCard key={acc.id} acc={{ ...acc, type: acc.type === 'BANK' || acc.type === 'CURRENT' ? 'OD' : acc.type }} editingId={editingId} handleEdit={handleEdit} onDelete={onDelete} />
                 ))}
               </div>
             </div>

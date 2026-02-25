@@ -266,33 +266,33 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
       <div className="bg-white/70 backdrop-blur-xl rounded-[2rem] p-5 md:p-6 border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-5">
         {/* Top Row: Global Search (Compact) */}
         <div className="flex justify-center">
-          <div className="relative group w-full max-w-xl">
-            <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-all duration-300">
-              <Search size={18} strokeWidth={2.5} />
+          <div className="relative group w-full max-w-md">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-all duration-300">
+              <Search size={14} strokeWidth={2.5} />
             </div>
             <input
               type="text"
               placeholder="Quick search ledger..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-12 py-3 bg-white/50 border border-white/50 rounded-2xl text-[13px] font-bold text-slate-700 outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 focus:bg-white/80 transition-all duration-300 shadow-inner placeholder:text-slate-400 backdrop-blur-md"
+              className="w-full pl-10 pr-10 py-2.5 bg-white/50 border border-white/50 rounded-2xl text-[11px] font-bold text-slate-700 outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 focus:bg-white/80 transition-all duration-300 shadow-inner placeholder:text-slate-400 backdrop-blur-md"
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm('')}
-                className="absolute right-4 top-1/2 -translate-y-1/2 bg-slate-200 hover:bg-slate-900 p-1.5 rounded-full text-slate-500 hover:text-white transition-all duration-200 shadow-sm"
+                className="absolute right-3 top-1/2 -translate-y-1/2 bg-slate-200 hover:bg-slate-900 p-1 rounded-full text-slate-500 hover:text-white transition-all duration-200 shadow-sm"
                 title="Clear"
               >
-                <X size={12} strokeWidth={3} />
+                <X size={10} strokeWidth={3} />
               </button>
             )}
           </div>
         </div>
 
         {/* Middle Row: Category Shortcuts (Horizontal Scroll) */}
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between px-1">
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Quick Filters</span>
+            <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Quick Filters</span>
             {(activeFilter !== 'ALL' || selectedTag !== 'ALL_TAGS' || selectedAccountId !== 'ALL_ACCOUNTS') && (
               <button
                 onClick={() => {
@@ -300,7 +300,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
                   setSelectedTag('ALL_TAGS');
                   setSelectedAccountId('ALL_ACCOUNTS');
                 }}
-                className="text-[9px] font-black text-indigo-500 uppercase tracking-widest hover:underline"
+                className="text-[7px] font-black text-indigo-500 uppercase tracking-widest hover:underline"
               >
                 Clear All
               </button>
@@ -312,13 +312,13 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
                 <button
                   key={filter.id}
                   onClick={() => setActiveFilter(filter.id)}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl whitespace-nowrap transition-all border ${activeFilter === filter.id
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl whitespace-nowrap transition-all border ${activeFilter === filter.id
                     ? 'bg-gradient-to-r from-slate-900 to-slate-800 border-slate-900 text-white shadow-lg shadow-slate-900/20 scale-[1.02]'
                     : 'bg-white/50 border-white/60 text-slate-600 hover:bg-white/70 hover:border-white/80 backdrop-blur-md'
                     }`}
                 >
-                  <filter.icon size={12} className={activeFilter === filter.id ? 'text-white' : filter.color} />
-                  <span className="text-[10px] font-black uppercase tracking-tight">{filter.label}</span>
+                  <filter.icon size={10} className={activeFilter === filter.id ? 'text-white' : filter.color} />
+                  <span className="text-[8px] font-black uppercase tracking-tight">{filter.label}</span>
                 </button>
               ))}
             </div>
@@ -329,55 +329,55 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 border-t border-slate-50">
           {/* Tag Filter */}
           <div className="relative group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-              <Tag size={13} />
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+              <Tag size={12} />
             </div>
             <select
               value={selectedTag}
               onChange={(e) => setSelectedTag(e.target.value)}
-              className="w-full pl-10 pr-10 py-3.5 bg-white/50 border border-white/50 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-700 outline-none appearance-none cursor-pointer hover:bg-white/70 transition-all backdrop-blur-md"
+              className="w-full pl-8 pr-8 py-2.5 bg-white/50 border border-white/50 rounded-2xl text-[8px] font-black uppercase tracking-widest text-slate-700 outline-none appearance-none cursor-pointer hover:bg-white/70 transition-all backdrop-blur-md"
             >
               <option value="ALL_TAGS">All Tags</option>
               {allTags.map(tag => (
                 <option key={tag} value={tag}>{tag}</option>
               ))}
             </select>
-            <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>
 
           {/* Account Filter (Fund Flow) */}
           <div className="relative group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-              <Wallet size={13} />
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+              <Wallet size={12} />
             </div>
             <select
               value={selectedAccountId}
               onChange={(e) => setSelectedAccountId(e.target.value)}
-              className="w-full pl-10 pr-10 py-3.5 bg-white/50 border border-white/50 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-700 outline-none appearance-none cursor-pointer hover:bg-white/70 transition-all backdrop-blur-md"
+              className="w-full pl-8 pr-8 py-2.5 bg-white/50 border border-white/50 rounded-2xl text-[8px] font-black uppercase tracking-widest text-slate-700 outline-none appearance-none cursor-pointer hover:bg-white/70 transition-all backdrop-blur-md"
             >
               <option value="ALL_ACCOUNTS">All Accounts</option>
               {accounts.map(acc => (
                 <option key={acc.id} value={acc.id}>{acc.name}</option>
               ))}
             </select>
-            <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>
 
           {/* Date Range Picker */}
           <div className="relative group lg:col-span-1">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-              <Calendar size={14} />
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+              <Calendar size={12} />
             </div>
             <select
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="w-full pl-11 pr-10 py-3.5 bg-white/50 border border-white/50 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-700 outline-none appearance-none cursor-pointer hover:bg-white/70 transition-all backdrop-blur-md"
+              className="w-full pl-8 pr-8 py-2.5 bg-white/50 border border-white/50 rounded-2xl text-[8px] font-black uppercase tracking-widest text-slate-700 outline-none appearance-none cursor-pointer hover:bg-white/70 transition-all backdrop-blur-md"
             >
               {dateFilters.map(df => (
                 <option key={df.id} value={df.id}>{df.label}</option>
               ))}
             </select>
-            <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>
 
           {/* Custom Date Inputs (Conditional) */}

@@ -851,7 +851,7 @@ const App: React.FC = () => {
                             <div className="h-1 w-1 rounded-full bg-slate-400" />
                             <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Enterprise Ledger</span>
                         </div>
-                        <h2 className="text-3xl md:text-4xl font-black text-slate-800 capitalize tracking-tighter leading-none drop-shadow-sm">
+                        <h2 className="text-2xl md:text-3xl font-black text-slate-800 capitalize tracking-tighter leading-none drop-shadow-sm">
                             {activeTab === 'history' ? 'Transactions' : activeTab}
                         </h2>
                         <p className="text-slate-500 font-bold text-[9px] uppercase tracking-[0.2em] opacity-70">BizFlow intelligence platform.</p>
