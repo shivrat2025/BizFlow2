@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { LayoutDashboard, History, Wallet, Cloud, Plus, RefreshCw, ChevronRight, BarChart3, FileText, Menu, Landmark, Lock, Shield, Zap } from 'lucide-react';
+import { LayoutDashboard, History, Wallet, Cloud, Plus, RefreshCw, ChevronRight, BarChart3, FileText, Menu, Landmark, Lock, Shield, Zap, AlertCircle } from 'lucide-react';
 import { initializeApp, getApp, getApps } from "firebase/app";
 import { getFirestore, doc, onSnapshot, setDoc, deleteDoc, updateDoc, collection, writeBatch, getDoc, getDocs, query } from "firebase/firestore";
 import { Account, Transaction, DashboardStats, ExpenseCategory, AIRule } from './types';
@@ -67,6 +67,7 @@ const App: React.FC = () => {
     const [usernameInput, setUsernameInput] = useState(() => (localStorage.getItem('bizflow_workspace_id') || '').trim());
     const [passwordInput, setPasswordInput] = useState('');
     const [loginError, setLoginError] = useState(false);
+    const [deleteAccountState, setDeleteAccountState] = useState<{ id: string, name: string, blockedCount: number } | null>(null);
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
@@ -327,17 +328,15 @@ const App: React.FC = () => {
 
         // Check if any transactions are linked to this account
         const linkedTxs = transactions.filter(t => t.sourceAccountId === id || t.destinationAccountId === id);
+        setDeleteAccountState({ id, name: acc.name, blockedCount: linkedTxs.length });
+    };
 
-        if (linkedTxs.length > 0) {
-            alert(`Cannot delete "${acc.name}".\n\nThis account has ${linkedTxs.length} linked transaction(s). Please remove or reassign those transactions first before deleting this account.`);
-            return;
-        }
-
-        if (!confirm(`Are you sure you want to delete "${acc.name}"?\n\nThis action cannot be undone.`)) return;
-
-        const updatedAcc = accounts.filter(a => a.id !== id);
+    const confirmDeleteAccount = () => {
+        if (!deleteAccountState) return;
+        const updatedAcc = accounts.filter(a => a.id !== deleteAccountState.id);
         setAccounts(updatedAcc);
         persistAndSync(updatedAcc);
+        setDeleteAccountState(null);
     };
 
     const handleAddTransaction = async (data: Partial<Transaction>) => {
@@ -946,6 +945,43 @@ const App: React.FC = () => {
                     suppliers={suppliers}
                     onAddSupplier={handleSaveSupplier}
                 />
+            )}
+
+            {/* Custom UI overlay for Delete Confirmation */}
+            {deleteAccountState && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-100">
+                        <div className="p-6 text-center">
+                            <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center mx-auto mb-5 shadow-inner ${deleteAccountState.blockedCount > 0 ? 'bg-amber-100/50 text-amber-500 border border-amber-200' : 'bg-rose-100/50 text-rose-500 border border-rose-200'}`}>
+                                <AlertCircle size={32} strokeWidth={2.5} />
+                            </div>
+                            <h3 className="text-xl font-black text-slate-800 mb-2 tracking-tight">
+                                {deleteAccountState.blockedCount > 0 ? 'Cannot Delete Hub' : 'Delete Financial Hub?'}
+                            </h3>
+                            <p className="text-sm font-bold text-slate-500 mb-8 leading-relaxed px-2">
+                                {deleteAccountState.blockedCount > 0
+                                    ? `Cannot delete "${deleteAccountState.name}". This account has ${deleteAccountState.blockedCount} linked transaction(s). Please reassign or remove them first.`
+                                    : `Are you sure you want to delete "${deleteAccountState.name}"? This action cannot be undone.`}
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setDeleteAccountState(null)}
+                                    className="flex-1 px-4 py-3.5 bg-slate-50 hover:bg-slate-100 text-slate-600 font-black tracking-widest uppercase text-[10px] rounded-2xl transition-all border border-slate-200 focus:ring-2 focus:ring-slate-300"
+                                >
+                                    {deleteAccountState.blockedCount > 0 ? 'Understood' : 'Cancel'}
+                                </button>
+                                {deleteAccountState.blockedCount === 0 && (
+                                    <button
+                                        onClick={confirmDeleteAccount}
+                                        className="flex-1 px-4 py-3.5 bg-rose-500 hover:bg-rose-600 text-white font-black tracking-widest uppercase text-[10px] rounded-2xl shadow-lg shadow-rose-500/30 transition-all active:scale-95 focus:ring-2 focus:ring-rose-500/50"
+                                    >
+                                        Delete Hub
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
