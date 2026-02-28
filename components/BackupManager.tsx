@@ -34,7 +34,7 @@ const BackupManager: React.FC<Props> = ({ backups, onRestore, loading }) => {
                     <div className="flex items-center justify-between mb-8">
                         <div className="flex items-center gap-3">
                             <History className="text-indigo-600" size={24} strokeWidth={2.5} />
-                            <h3 className="text-xl font-black text-slate-800 tracking-tight uppercase tracking-widest text-sm">7-Day Rolling History</h3>
+                            <h3 className="text-xl font-black text-slate-800 tracking-tight uppercase tracking-widest text-sm">3-Day Rolling History</h3>
                         </div>
                         <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-lg">
                             {backups.length} Saved Points

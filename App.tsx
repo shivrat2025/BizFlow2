@@ -157,22 +157,17 @@ const App: React.FC = () => {
             snap.forEach(doc => {
                 if (doc.id.startsWith(`${workspaceId}_BACKUP_`)) {
                     const data = doc.data();
-                    if (doc.id.includes('_V')) {
-                        const slot = doc.id.split('_V')[1];
-                        manualSlots[slot] = data.snapshotDate;
-                    } else if (doc.id.includes('_AUTO_')) {
-                        history.push({
-                            id: doc.id,
-                            date: data.snapshotDate,
-                            label: new Date(data.snapshotDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-                        });
-                    }
+                    history.push({
+                        id: doc.id,
+                        date: data.snapshotDate,
+                        label: new Date(data.snapshotDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+                    });
                 }
             });
 
-            setSnapshotDates(manualSlots);
+            setSnapshotDates({});
             const sortedHistory = history.sort((a, b) => b.date - a.date);
-            setAvailableBackups(sortedHistory.slice(0, 7));
+            setAvailableBackups(sortedHistory.slice(0, 3));
 
             // Automatic Daily Backup Check
             const today = new Date().toISOString().split('T')[0];
@@ -183,9 +178,9 @@ const App: React.FC = () => {
                 console.log("Creating daily auto-backup...");
                 handleCreateSnapshot(`AUTO_${today}`, true);
 
-                // Cleanup: Delete backups older than 7 days
-                if (sortedHistory.length >= 7) {
-                    const toDelete = sortedHistory.slice(7);
+                // Cleanup: Delete backups older than 3 days
+                if (sortedHistory.length >= 3) {
+                    const toDelete = sortedHistory.slice(3);
                     toDelete.forEach(async (oldSnap) => {
                         try {
                             const oldTxsRef = collection(db, "backups", oldSnap.id, "transactions");
@@ -501,10 +496,13 @@ const App: React.FC = () => {
         }
     };
 
-    const handleCreateSnapshot = async (slot: string = '1', isAuto: boolean = false) => {
+    const handleCreateSnapshot = async (label: string = 'Protection Point', isAuto = false) => {
+        if (!workspaceId) return;
         try {
             if (!isAuto) setLoadingSync(true);
-            const backupId = `${workspaceId}_BACKUP_${slot.startsWith('AUTO_') ? '' : 'V'}${slot}`;
+            const today = new Date().toISOString().split('T')[0];
+            const timeStr = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false }).replace(':', '-');
+            const snapshotId = `${workspaceId}_BACKUP_AUTO_${today}_${timeStr}`;
 
             // 1. Get Metadata
             const docRef = doc(db, "workspaces", workspaceId);
@@ -513,58 +511,54 @@ const App: React.FC = () => {
 
             if (!meta) return;
 
-            // 2. Get All Transactions
-            const txsRef = collection(db, "workspaces", workspaceId, "transactions");
-            const txsSnap = await getDocs(txsRef);
-
-            // 3. Save Backup Metadata
-            const backupRef = doc(db, "backups", backupId);
+            // 2. Save Backup Metadata
+            const backupRef = doc(db, "backups", snapshotId);
             await setDoc(backupRef, {
                 ...meta,
                 snapshotDate: Date.now(),
-                snapshotSlot: slot,
+                label: label,
                 originalWorkspace: workspaceId
             });
 
-            // 4. Save Backup Transactions (Batch)
-            const backupTxsRef = collection(db, "backups", backupId, "transactions");
-
-            // Delete old transactions in this backup slot first
-            const oldTxsSnap = await getDocs(backupTxsRef);
-            const deleteBatch = writeBatch(db);
-            oldTxsSnap.forEach(d => deleteBatch.delete(doc(backupTxsRef, d.id)));
-            await deleteBatch.commit();
+            // 3. Save Backup Transactions (Batch)
+            const txsRef = collection(db, "workspaces", workspaceId, "transactions");
+            const txsSnap = await getDocs(txsRef);
+            const backupTxsRef = collection(db, "backups", snapshotId, "transactions");
 
             const batch = writeBatch(db);
             txsSnap.forEach(tDoc => {
                 const bTxRef = doc(backupTxsRef, tDoc.id);
                 batch.set(bTxRef, tDoc.data());
             });
-
             await batch.commit();
 
-            if (slot.startsWith('AUTO_')) {
-                setAvailableBackups(prev => [{
-                    id: backupId,
-                    date: Date.now(),
-                    label: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-                }, ...prev].slice(0, 15));
-            } else {
-                setSnapshotDates(prev => ({ ...prev, [slot]: Date.now() }));
-            }
+            // Refresh available backups
+            const backupsRef = collection(db, "backups");
+            const snap = await getDocs(backupsRef);
+            const history: any[] = [];
+            snap.forEach(d => {
+                if (d.id.startsWith(`${workspaceId}_BACKUP_`)) {
+                    const data = d.data();
+                    history.push({
+                        id: d.id,
+                        date: data.snapshotDate,
+                        label: new Date(data.snapshotDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+                    });
+                }
+            });
+            setAvailableBackups(history.sort((a, b) => b.date - a.date).slice(0, 3));
 
-            if (!isAuto) alert(`Cloud Snapshot ${slot.startsWith('AUTO') ? 'Date' : 'V' + slot} Created Successfully!`);
+            if (!isAuto) alert("Protection Point Saved Successfully!");
         } catch (e) {
             console.error("Snapshot Error:", e);
-            if (!isAuto) alert("Failed to create cloud snapshot.");
+            if (!isAuto) alert("Failed to create snapshot");
         } finally {
             if (!isAuto) setLoadingSync(false);
         }
     };
 
     const handleRestoreFromSnapshot = async (id: string) => {
-        const isAuto = id.includes('_AUTO_');
-        const label = isAuto ? id.split('_AUTO_')[1] : `V${id}`;
+        const label = new Date(parseInt(id.split('_').pop() || Date.now().toString())).toLocaleDateString('en-IN');
 
         if (!confirm(`WARNING: This will overwrite your current database with backup from ${label}. Are you sure?`)) return;
         try {

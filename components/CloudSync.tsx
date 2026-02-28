@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Cloud, Copy, Check, ShieldCheck, RefreshCw, Smartphone, LogOut, Zap, Info, Trash2, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { Cloud, Copy, Check, ShieldCheck, RefreshCw, LogOut, Zap, Info, Trash2, AlertTriangle, ShieldAlert, Shield } from 'lucide-react';
 
 interface Props {
   url: string;
@@ -11,16 +11,14 @@ interface Props {
   onLogout: () => void;
   onDeleteWorkspace: () => void;
   onExport: () => void;
-  onCreateSnapshot: (slot: string) => void;
-  snapshotDates: Record<string, number | null>;
+  onCreateSnapshot: (label: string) => void;
 }
 
-const CloudSync: React.FC<Props> = ({ url, setUrl, workspaceId, loading, lastSynced, onLogout, onDeleteWorkspace, onExport, onCreateSnapshot, snapshotDates }) => {
+const CloudSync: React.FC<Props> = ({ url, setUrl, workspaceId, loading, lastSynced, onLogout, onDeleteWorkspace, onExport, onCreateSnapshot }) => {
   const [copiedScript, setCopiedScript] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
-  const [selectedSlot, setSelectedSlot] = useState('1');
 
   const scriptCode = `// --- BIZFLOW ADVANCED TWO-WAY SYNC SCRIPT ---
 function doGet() {
@@ -154,52 +152,34 @@ function writeDashboard(ss, stats) {
             <RefreshCw size={120} className="absolute -bottom-8 -right-8 text-white/10 rotate-12" />
             <div className="relative z-10">
               <span className="text-[10px] font-black text-emerald-100 uppercase tracking-widest block mb-1">Safety First</span>
-              <h4 className="text-lg font-black mb-4">Full Database Backup</h4>
+              <h4 className="text-lg font-black mb-4">JSON Data Export</h4>
               <p className="text-[10px] font-bold text-emerald-50 mb-6 leading-relaxed">
-                Download a complete copy of your accounts, rules, and every transaction as a secure JSON file.
+                Download a complete copy of your accounts and transactions as a secure JSON file for offline storage.
               </p>
               <button
-                className="w-full bg-white text-emerald-600 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg group-hover:bg-emerald-50 transition-all"
+                className="w-full bg-white text-emerald-600 py-4 rounded-2xl font-black text-[10px] uppercase shadow-lg group-hover:bg-emerald-50 transition-all"
               >
                 Export All Data (.json)
               </button>
             </div>
           </div>
 
-          <div className="p-8 bg-amber-600 text-white rounded-[2rem] shadow-xl flex flex-col justify-between relative overflow-hidden group hover:scale-[1.02] transition-all cursor-pointer">
-            <Cloud size={120} className="absolute -bottom-8 -right-8 text-white/10 rotate-12" />
+          <div
+            className="p-8 bg-amber-600 text-white rounded-[2rem] shadow-xl flex flex-col justify-between relative overflow-hidden group hover:scale-[1.02] transition-all cursor-pointer"
+            onClick={() => onCreateSnapshot('Manual Protection Point')}
+          >
+            <Shield size={120} className="absolute -bottom-8 -right-8 text-white/10 rotate-12" />
             <div className="relative z-10">
-              <span className="text-[10px] font-black text-amber-100 uppercase tracking-widest block mb-1">Internal Protection</span>
-              <h4 className="text-lg font-black mb-4">Cloud Snapshot</h4>
+              <span className="text-[10px] font-black text-amber-100 uppercase tracking-widest block mb-1">Instant Protection</span>
+              <h4 className="text-lg font-black mb-4">Save Point Now</h4>
               <p className="text-[10px] font-bold text-amber-50 mb-6 leading-relaxed">
-                Create a full duplicate of your database inside Firestore as a safety point.
+                Manually trigger a snapshot of your entire database. It will be stored in your date-wise history for 3 days.
               </p>
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center gap-2 bg-black/10 p-1.5 rounded-xl">
-                  {['1', '2', '3'].map(slot => (
-                    <button
-                      key={slot}
-                      onClick={() => setSelectedSlot(slot)}
-                      className={`flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all flex flex-col items-center leading-tight ${selectedSlot === slot ? 'bg-white text-amber-600 shadow-sm' : 'text-amber-100 hover:bg-white/5'}`}
-                    >
-                      <span className="uppercase">Slot V{slot}</span>
-                      {snapshotDates[slot] && (
-                        <span className={`text-[7px] opacity-70 ${selectedSlot === slot ? 'text-amber-500' : 'text-amber-100'}`}>
-                          {new Date(snapshotDates[slot]!).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} {new Date(snapshotDates[slot]!).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => onCreateSnapshot(selectedSlot)}
-                    className="flex-1 bg-white text-emerald-600 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg group-hover:bg-emerald-50 transition-all flex items-center justify-center gap-2"
-                  >
-                    <Cloud size={14} /> Update Manual V{selectedSlot}
-                  </button>
-                </div>
-              </div>
+              <button
+                className="w-full bg-white text-amber-600 py-4 rounded-2xl font-black text-[10px] uppercase shadow-lg group-hover:bg-amber-50 transition-all flex items-center justify-center gap-3"
+              >
+                <Shield size={16} strokeWidth={3} /> Backup Current State
+              </button>
             </div>
           </div>
         </div>
