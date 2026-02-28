@@ -9,6 +9,7 @@ import HistoryList from './components/HistoryList';
 import InvoicesList from './components/InvoicesList';
 import CloudSync from './components/CloudSync';
 import TransactionForm from './components/TransactionForm';
+import BackupManager from './components/BackupManager';
 
 const firebaseConfig = {
     apiKey: "AIzaSyDIyPAe5qGMrwj51KutR-4Xp99rQdH-Okk",
@@ -885,6 +886,7 @@ const App: React.FC = () => {
                     { id: 'history', icon: History, label: 'Logs' },
                     { id: 'new', icon: Plus, label: 'Add', isFab: true },
                     { id: 'invoices', icon: FileText, label: 'Bills' },
+                    { id: 'backup', icon: Shield, label: 'Backup' },
                     { id: 'cloud', icon: Cloud, label: 'Cloud' },
                 ].map(item => (
                     item.isFab ? (
@@ -938,6 +940,7 @@ const App: React.FC = () => {
                         { id: 'accounts', icon: Wallet, label: 'Accounts' },
                         { id: 'history', icon: History, label: 'Transaction' },
                         { id: 'invoices', icon: FileText, label: 'Invoices' },
+                        { id: 'backup', icon: Shield, label: 'Backups' },
                         { id: 'cloud', icon: Cloud, label: 'Cloud' },
                     ].map(item => (
                         <button
@@ -1072,7 +1075,14 @@ const App: React.FC = () => {
                         onCreateSnapshot={handleCreateSnapshot}
                         onRestoreSnapshot={handleRestoreFromSnapshot}
                         snapshotDates={snapshotDates}
-                        availableBackups={availableBackups}
+                    />
+                )}
+
+                {activeTab === 'backup' && (
+                    <BackupManager
+                        backups={availableBackups}
+                        onRestore={handleRestoreFromSnapshot}
+                        loading={loadingSync}
                     />
                 )}
             </main>

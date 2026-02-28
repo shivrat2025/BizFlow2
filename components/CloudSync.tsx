@@ -14,10 +14,9 @@ interface Props {
   onCreateSnapshot: (slot: string) => void;
   onRestoreSnapshot: (id: string) => void;
   snapshotDates: Record<string, number | null>;
-  availableBackups: { id: string, date: number, label: string }[];
 }
 
-const CloudSync: React.FC<Props> = ({ url, setUrl, workspaceId, loading, lastSynced, onLogout, onDeleteWorkspace, onExport, onCreateSnapshot, onRestoreSnapshot, snapshotDates, availableBackups }) => {
+const CloudSync: React.FC<Props> = ({ url, setUrl, workspaceId, loading, lastSynced, onLogout, onDeleteWorkspace, onExport, onCreateSnapshot, snapshotDates }) => {
   const [copiedScript, setCopiedScript] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -204,51 +203,6 @@ function writeDashboard(ss, stats) {
               </div>
             </div>
 
-            {/* NEW: Automatic Backups Section */}
-            <div className="p-8 bg-slate-900 text-white rounded-[2rem] shadow-xl flex flex-col justify-between relative overflow-hidden group border border-slate-800 lg:col-span-2">
-              <History size={120} className="absolute -bottom-8 -right-8 text-white/5 rotate-12" />
-              <div className="relative z-10 w-full">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Protection Log</span>
-                    <h4 className="text-xl font-black tracking-tight">Daily Auto-Restoration Points</h4>
-                  </div>
-                  <div className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-lg text-[8px] font-black uppercase tracking-widest border border-emerald-500/30">
-                    Auto-Save Active
-                  </div>
-                </div>
-
-                {availableBackups.length === 0 ? (
-                  <div className="py-10 text-center border-2 border-dashed border-slate-800 rounded-2xl">
-                    <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">No automated backups found yet.</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
-                    {availableBackups.map(b => (
-                      <div key={b.id} className="bg-slate-800/50 border border-slate-700/50 p-4 rounded-2xl flex flex-col justify-between hover:border-indigo-500/50 transition-all group/card">
-                        <div>
-                          <p className="text-[11px] font-black text-white mb-1">{b.label}</p>
-                          <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">
-                            {new Date(b.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => onRestoreSnapshot(b.id)}
-                          className="mt-4 w-full py-2 bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
-                        >
-                          Restore This Day
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <p className="text-[9px] font-bold text-slate-500 mt-6 flex items-center gap-2">
-                  <Info size={12} /> The system captures a rolling 7-day window of automated backups. Oldest data is pruned automatically.
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
