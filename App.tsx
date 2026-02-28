@@ -68,6 +68,7 @@ const App: React.FC = () => {
     const [passwordInput, setPasswordInput] = useState('');
     const [loginError, setLoginError] = useState(false);
     const [deleteAccountState, setDeleteAccountState] = useState<{ id: string, name: string, blockedCount: number } | null>(null);
+    const [snapshotDates, setSnapshotDates] = useState<Record<string, number | null>>({ '1': null, '2': null, '3': null });
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
@@ -141,6 +142,19 @@ const App: React.FC = () => {
 
     useEffect(() => {
         if (workspaceId) localStorage.setItem('bizflow_workspace_id', workspaceId.trim());
+
+        // Fetch snapshot meta on login/refresh
+        const fetchSnapMeta = async () => {
+            if (!workspaceId) return;
+            const slots = ['1', '2', '3'];
+            const dates: Record<string, number | null> = { '1': null, '2': null, '3': null };
+            for (const s of slots) {
+                const snap = await getDoc(doc(db, "backups", `${workspaceId}_BACKUP_V${s}`));
+                if (snap.exists()) dates[s] = snap.data().snapshotDate;
+            }
+            setSnapshotDates(dates);
+        };
+        fetchSnapMeta();
     }, [workspaceId]);
 
     const calculateStats = (accs: Account[], txs: Transaction[]): DashboardStats => {
@@ -481,6 +495,7 @@ const App: React.FC = () => {
             });
 
             await batch.commit();
+            setSnapshotDates(prev => ({ ...prev, [slot]: Date.now() }));
             alert(`Cloud Snapshot V${slot} Created Successfully! You can now restore to this point later.`);
         } catch (e) {
             console.error("Snapshot Error:", e);
@@ -997,6 +1012,7 @@ const App: React.FC = () => {
                         onExport={handleExport}
                         onCreateSnapshot={handleCreateSnapshot}
                         onRestoreSnapshot={handleRestoreFromSnapshot}
+                        snapshotDates={snapshotDates}
                     />
                 )}
             </main>

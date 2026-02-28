@@ -13,9 +13,10 @@ interface Props {
   onExport: () => void;
   onCreateSnapshot: (slot: string) => void;
   onRestoreSnapshot: (slot: string) => void;
+  snapshotDates: Record<string, number | null>;
 }
 
-const CloudSync: React.FC<Props> = ({ url, setUrl, workspaceId, loading, lastSynced, onLogout, onDeleteWorkspace, onExport, onCreateSnapshot, onRestoreSnapshot }) => {
+const CloudSync: React.FC<Props> = ({ url, setUrl, workspaceId, loading, lastSynced, onLogout, onDeleteWorkspace, onExport, onCreateSnapshot, onRestoreSnapshot, snapshotDates }) => {
   const [copiedScript, setCopiedScript] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -180,9 +181,14 @@ function writeDashboard(ss, stats) {
                     <button
                       key={slot}
                       onClick={() => setSelectedSlot(slot)}
-                      className={`flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all ${selectedSlot === slot ? 'bg-white text-amber-600 shadow-sm' : 'text-amber-100 hover:bg-white/5'}`}
+                      className={`flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all flex flex-col items-center leading-tight ${selectedSlot === slot ? 'bg-white text-amber-600 shadow-sm' : 'text-amber-100 hover:bg-white/5'}`}
                     >
-                      SLOT V{slot}
+                      <span className="uppercase">Slot V{slot}</span>
+                      {snapshotDates[slot] && (
+                        <span className={`text-[7px] opacity-70 ${selectedSlot === slot ? 'text-amber-500' : 'text-amber-100'}`}>
+                          {new Date(snapshotDates[slot]!).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} {new Date(snapshotDates[slot]!).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -191,11 +197,12 @@ function writeDashboard(ss, stats) {
                     onClick={() => onCreateSnapshot(selectedSlot)}
                     className="flex-1 bg-white text-amber-600 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg group-hover:bg-amber-50 transition-all flex items-center justify-center gap-2"
                   >
-                    <Cloud size={14} /> Create V{selectedSlot}
+                    <Cloud size={14} /> {snapshotDates[selectedSlot] ? 'Update Snapshot' : 'Create Snapshot'}
                   </button>
                   <button
+                    disabled={!snapshotDates[selectedSlot]}
                     onClick={(e) => { e.stopPropagation(); onRestoreSnapshot(selectedSlot); }}
-                    className="px-4 bg-amber-700 text-white py-3 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-amber-800 transition-all border border-amber-500/30 flex items-center justify-center gap-2"
+                    className="px-4 bg-amber-700 text-white py-3 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-amber-800 transition-all border border-amber-500/30 flex items-center justify-center gap-2 disabled:opacity-30 disabled:grayscale"
                   >
                     <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Restore
                   </button>
