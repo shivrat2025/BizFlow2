@@ -12,7 +12,6 @@ interface Props {
   onDeleteWorkspace: () => void;
   onExport: () => void;
   onCreateSnapshot: (slot: string) => void;
-  onRestoreSnapshot: (id: string) => void;
   snapshotDates: Record<string, number | null>;
 }
 
@@ -167,7 +166,7 @@ function writeDashboard(ss, stats) {
             </div>
           </div>
 
-          <div className="p-8 bg-amber-600 text-white rounded-[2rem] shadow-xl flex flex-col justify-between relative overflow-hidden group hover:scale-[1.02] transition-all cursor-pointer" onClick={onCreateSnapshot}>
+          <div className="p-8 bg-amber-600 text-white rounded-[2rem] shadow-xl flex flex-col justify-between relative overflow-hidden group hover:scale-[1.02] transition-all cursor-pointer">
             <Cloud size={120} className="absolute -bottom-8 -right-8 text-white/10 rotate-12" />
             <div className="relative z-10">
               <span className="text-[10px] font-black text-amber-100 uppercase tracking-widest block mb-1">Internal Protection</span>
@@ -202,7 +201,7 @@ function writeDashboard(ss, stats) {
                 </div>
               </div>
             </div>
-
+          </div>
         </div>
       </div>
 
@@ -305,7 +304,7 @@ function writeDashboard(ss, stats) {
           )}
         </div>
       </div>
-    </div >
+    </div>
   );
 };
 
