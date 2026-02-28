@@ -68,7 +68,8 @@ const App: React.FC = () => {
     const [passwordInput, setPasswordInput] = useState('');
     const [loginError, setLoginError] = useState(false);
     const [deleteAccountState, setDeleteAccountState] = useState<{ id: string, name: string, blockedCount: number } | null>(null);
-    const [snapshotDates, setSnapshotDates] = useState<Record<string, number | null>>({ '1': null, '2': null, '3': null });
+    const [snapshotDates, setSnapshotDates] = useState<Record<string, number | null>>({});
+    const [availableBackups, setAvailableBackups] = useState<{ id: string, date: number, label: string }[]>([]);
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
@@ -143,19 +144,46 @@ const App: React.FC = () => {
     useEffect(() => {
         if (workspaceId) localStorage.setItem('bizflow_workspace_id', workspaceId.trim());
 
-        // Fetch snapshot meta on login/refresh
-        const fetchSnapMeta = async () => {
+        // Fetch historical backups on login/refresh
+        const fetchBackups = async () => {
             if (!workspaceId) return;
-            const slots = ['1', '2', '3'];
-            const dates: Record<string, number | null> = { '1': null, '2': null, '3': null };
-            for (const s of slots) {
-                const snap = await getDoc(doc(db, "backups", `${workspaceId}_BACKUP_V${s}`));
-                if (snap.exists()) dates[s] = snap.data().snapshotDate;
+            const backupsRef = collection(db, "backups");
+            // Note: We'd ideally use a query here, but listing by ID prefix is safer for simple Firestore rules
+            const snap = await getDocs(backupsRef);
+            const history: any[] = [];
+            const manualSlots: any = {};
+
+            snap.forEach(doc => {
+                if (doc.id.startsWith(`${workspaceId}_BACKUP_`)) {
+                    const data = doc.data();
+                    if (doc.id.includes('_V')) {
+                        const slot = doc.id.split('_V')[1];
+                        manualSlots[slot] = data.snapshotDate;
+                    } else if (doc.id.includes('_AUTO_')) {
+                        history.push({
+                            id: doc.id,
+                            date: data.snapshotDate,
+                            label: new Date(data.snapshotDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+                        });
+                    }
+                }
+            });
+
+            setSnapshotDates(manualSlots);
+            setAvailableBackups(history.sort((a, b) => b.date - a.date).slice(0, 15));
+
+            // Automatic Daily Backup Check
+            const today = new Date().toISOString().split('T')[0];
+            const autoId = `${workspaceId}_BACKUP_AUTO_${today}`;
+            const exists = history.some(h => h.id === autoId);
+
+            if (!exists && accounts.length > 0) {
+                console.log("Creating daily auto-backup...");
+                handleCreateSnapshot(`AUTO_${today}`, true);
             }
-            setSnapshotDates(dates);
         };
-        fetchSnapMeta();
-    }, [workspaceId]);
+        fetchBackups();
+    }, [workspaceId, accounts.length > 0]);
 
     const calculateStats = (accs: Account[], txs: Transaction[]): DashboardStats => {
         const currentCodAcc = accs.find(a => a.name.toUpperCase().includes('IDFC'));
@@ -454,10 +482,10 @@ const App: React.FC = () => {
         }
     };
 
-    const handleCreateSnapshot = async (slot: string = '1') => {
+    const handleCreateSnapshot = async (slot: string = '1', isAuto: boolean = false) => {
         try {
-            setLoadingSync(true);
-            const backupId = `${workspaceId}_BACKUP_V${slot}`;
+            if (!isAuto) setLoadingSync(true);
+            const backupId = `${workspaceId}_BACKUP_${slot.startsWith('AUTO_') ? '' : 'V'}${slot}`;
 
             // 1. Get Metadata
             const docRef = doc(db, "workspaces", workspaceId);
@@ -495,26 +523,39 @@ const App: React.FC = () => {
             });
 
             await batch.commit();
-            setSnapshotDates(prev => ({ ...prev, [slot]: Date.now() }));
-            alert(`Cloud Snapshot V${slot} Created Successfully! You can now restore to this point later.`);
+
+            if (slot.startsWith('AUTO_')) {
+                setAvailableBackups(prev => [{
+                    id: backupId,
+                    date: Date.now(),
+                    label: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+                }, ...prev].slice(0, 15));
+            } else {
+                setSnapshotDates(prev => ({ ...prev, [slot]: Date.now() }));
+            }
+
+            if (!isAuto) alert(`Cloud Snapshot ${slot.startsWith('AUTO') ? 'Date' : 'V' + slot} Created Successfully!`);
         } catch (e) {
             console.error("Snapshot Error:", e);
-            alert("Failed to create cloud snapshot.");
+            if (!isAuto) alert("Failed to create cloud snapshot.");
         } finally {
-            setLoadingSync(false);
+            if (!isAuto) setLoadingSync(false);
         }
     };
 
-    const handleRestoreFromSnapshot = async (slot: string = '1') => {
-        if (!confirm(`WARNING: This will overwrite your current database with Snapshot V${slot}. Are you sure?`)) return;
+    const handleRestoreFromSnapshot = async (id: string) => {
+        const isAuto = id.includes('_AUTO_');
+        const label = isAuto ? id.split('_AUTO_')[1] : `V${id}`;
+
+        if (!confirm(`WARNING: This will overwrite your current database with backup from ${label}. Are you sure?`)) return;
         try {
             setLoadingSync(true);
-            const backupId = `${workspaceId}_BACKUP_V${slot}`;
+            const backupId = id.startsWith(workspaceId) ? id : `${workspaceId}_BACKUP_V${id}`;
             const backupRef = doc(db, "backups", backupId);
             const backupSnap = await getDoc(backupRef);
 
             if (!backupSnap.exists()) {
-                alert(`No snapshot found in Slot V${slot}.`);
+                alert(`No snapshot found for ${label}.`);
                 return;
             }
 
@@ -542,7 +583,7 @@ const App: React.FC = () => {
             });
 
             await restoreBatch.commit();
-            alert(`Database Restored to Snapshot V${slot}! App will refresh now.`);
+            alert(`Database Restored to ${label}! App will refresh now.`);
             window.location.reload();
         } catch (e) {
             console.error("Restore Error:", e);
@@ -1013,6 +1054,7 @@ const App: React.FC = () => {
                         onCreateSnapshot={handleCreateSnapshot}
                         onRestoreSnapshot={handleRestoreFromSnapshot}
                         snapshotDates={snapshotDates}
+                        availableBackups={availableBackups}
                     />
                 )}
             </main>
