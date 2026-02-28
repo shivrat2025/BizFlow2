@@ -45,10 +45,15 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
   const initializedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    // Only initialize if we haven't initialized this transaction yet
+    // Determine the ID of the transaction we are handling
     const txId = initialData?.id || 'new';
-    if (initializedRef.current === txId) return;
-    initializedRef.current = txId;
+
+    // Only re-initialize if the transaction ID changes or if we were waiting for accounts
+    // But we avoid overwriting if the user has already interacted (check if sourceId is empty for 'new')
+    const isEditing = !!initialData;
+    const hasAlreadyInitialized = initializedRef.current === txId;
+
+    if (hasAlreadyInitialized && (isEditing || sourceId)) return;
 
     if (initialData) {
       setType(initialData.type);
@@ -66,7 +71,9 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
       setInvoiceUrl(initialData.invoiceUrl);
       setPaymentProofUrl(initialData.paymentProofUrl);
       if (initialData.tags?.length || initialData.notes || initialData.invoiceUrl || initialData.paymentProofUrl || initialData.supplierId) setShowAdvanced(true);
+      initializedRef.current = txId;
     } else if (accounts.length > 0) {
+      // Default initialization for new entries when accounts load
       if (!sourceId) {
         const defaultAcc = accounts[0];
         setSourceId(defaultAcc.id);
@@ -77,6 +84,11 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
       if (!destinationId && type === 'REPAYMENT') {
         const odAcc = accounts.find(a => a.type === 'OD' || a.type === 'CREDIT_CARD');
         if (odAcc) setDestinationId(odAcc.id);
+      }
+
+      // Mark as initialized only if we actually had accounts to pick from
+      if (accounts.length > 0) {
+        initializedRef.current = 'new';
       }
     }
   }, [accounts, initialData, sourceId, destinationId, type]);

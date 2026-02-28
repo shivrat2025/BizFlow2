@@ -148,8 +148,8 @@ const App: React.FC = () => {
         const currentPrepaidAcc = accs.find(a => a.name.toUpperCase().includes('INDUSIND'));
 
         const s: DashboardStats = {
-            codPool: currentCodAcc ? (currentCodAcc.limit || 0) : 0,
-            prepaidPool: currentPrepaidAcc ? (currentPrepaidAcc.limit || 0) : 0,
+            codPool: currentCodAcc ? (currentCodAcc.balance || 0) : 0,
+            prepaidPool: currentPrepaidAcc ? (currentPrepaidAcc.balance || 0) : 0,
             totalCodIncome: 0,
             totalPrepaidIncome: 0,
             totalExternalCap: 0,

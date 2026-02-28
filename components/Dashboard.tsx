@@ -76,7 +76,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
     .filter(a => ['BANK', 'CURRENT'].includes(a.type))
     .reduce((sum, a) => sum + Math.max(0, a.balance), 0);
 
-  const bankAccounts = accounts.filter(a => ['BANK', 'CURRENT'].includes(a.type) && a.balance > 0);
+  const bankAccounts = accounts.filter(a => ['BANK', 'CURRENT'].includes(a.type));
 
   const categoryData = (Object.entries(stats.categoryBreakdown) as [string, number][]).map(([id, value]) => {
     const label = categories.find(c => c.id === id)?.label || id;
