@@ -11,8 +11,8 @@ interface Props {
   onLogout: () => void;
   onDeleteWorkspace: () => void;
   onExport: () => void;
-  onCreateSnapshot: () => void;
-  onRestoreSnapshot: () => void;
+  onCreateSnapshot: (slot: string) => void;
+  onRestoreSnapshot: (slot: string) => void;
 }
 
 const CloudSync: React.FC<Props> = ({ url, setUrl, workspaceId, loading, lastSynced, onLogout, onDeleteWorkspace, onExport, onCreateSnapshot, onRestoreSnapshot }) => {
@@ -20,6 +20,7 @@ const CloudSync: React.FC<Props> = ({ url, setUrl, workspaceId, loading, lastSyn
   const [copiedKey, setCopiedKey] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [selectedSlot, setSelectedSlot] = useState('1');
 
   const scriptCode = `// --- BIZFLOW ADVANCED TWO-WAY SYNC SCRIPT ---
 function doGet() {
@@ -173,18 +174,32 @@ function writeDashboard(ss, stats) {
               <p className="text-[10px] font-bold text-amber-50 mb-6 leading-relaxed">
                 Create a full duplicate of your database inside Firestore as a safety point.
               </p>
-              <div className="flex gap-2">
-                <button
-                  className="flex-1 bg-white text-amber-600 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg group-hover:bg-amber-50 transition-all"
-                >
-                  Create Snapshot
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); onRestoreSnapshot(); }}
-                  className="px-4 bg-amber-700 text-white py-3 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-amber-800 transition-all border border-amber-500/30"
-                >
-                  Restore
-                </button>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2 bg-black/10 p-1.5 rounded-xl">
+                  {['1', '2', '3'].map(slot => (
+                    <button
+                      key={slot}
+                      onClick={() => setSelectedSlot(slot)}
+                      className={`flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all ${selectedSlot === slot ? 'bg-white text-amber-600 shadow-sm' : 'text-amber-100 hover:bg-white/5'}`}
+                    >
+                      SLOT V{slot}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => onCreateSnapshot(selectedSlot)}
+                    className="flex-1 bg-white text-amber-600 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg group-hover:bg-amber-50 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Cloud size={14} /> Create V{selectedSlot}
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onRestoreSnapshot(selectedSlot); }}
+                    className="px-4 bg-amber-700 text-white py-3 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-amber-800 transition-all border border-amber-500/30 flex items-center justify-center gap-2"
+                  >
+                    <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Restore
+                  </button>
+                </div>
               </div>
             </div>
           </div>

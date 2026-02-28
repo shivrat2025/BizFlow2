@@ -440,15 +440,17 @@ const App: React.FC = () => {
         }
     };
 
-    const handleCreateSnapshot = async () => {
+    const handleCreateSnapshot = async (slot: string = '1') => {
         try {
             setLoadingSync(true);
-            const backupId = `${workspaceId}_BACKUP`;
+            const backupId = `${workspaceId}_BACKUP_V${slot}`;
 
             // 1. Get Metadata
             const docRef = doc(db, "workspaces", workspaceId);
             const docSnap = await getDoc(docRef);
             const meta = docSnap.data();
+
+            if (!meta) return;
 
             // 2. Get All Transactions
             const txsRef = collection(db, "workspaces", workspaceId, "transactions");
@@ -459,20 +461,27 @@ const App: React.FC = () => {
             await setDoc(backupRef, {
                 ...meta,
                 snapshotDate: Date.now(),
+                snapshotSlot: slot,
                 originalWorkspace: workspaceId
             });
 
             // 4. Save Backup Transactions (Batch)
             const backupTxsRef = collection(db, "backups", backupId, "transactions");
-            const batch = writeBatch(db);
 
+            // Delete old transactions in this backup slot first
+            const oldTxsSnap = await getDocs(backupTxsRef);
+            const deleteBatch = writeBatch(db);
+            oldTxsSnap.forEach(d => deleteBatch.delete(doc(backupTxsRef, d.id)));
+            await deleteBatch.commit();
+
+            const batch = writeBatch(db);
             txsSnap.forEach(tDoc => {
                 const bTxRef = doc(backupTxsRef, tDoc.id);
                 batch.set(bTxRef, tDoc.data());
             });
 
             await batch.commit();
-            alert("Cloud Snapshot Created Successfully! A complete duplicate of your database is now stored in 'backups' in Firestore.");
+            alert(`Cloud Snapshot V${slot} Created Successfully! You can now restore to this point later.`);
         } catch (e) {
             console.error("Snapshot Error:", e);
             alert("Failed to create cloud snapshot.");
@@ -481,37 +490,44 @@ const App: React.FC = () => {
         }
     };
 
-    const handleRestoreFromSnapshot = async () => {
-        if (!confirm("WARNING: This will overwrite your current database with the last Snapshot. Are you sure?")) return;
+    const handleRestoreFromSnapshot = async (slot: string = '1') => {
+        if (!confirm(`WARNING: This will overwrite your current database with Snapshot V${slot}. Are you sure?`)) return;
         try {
             setLoadingSync(true);
-            const backupId = `${workspaceId}_BACKUP`;
+            const backupId = `${workspaceId}_BACKUP_V${slot}`;
             const backupRef = doc(db, "backups", backupId);
             const backupSnap = await getDoc(backupRef);
 
             if (!backupSnap.exists()) {
-                alert("No snapshot found to restore from.");
+                alert(`No snapshot found in Slot V${slot}.`);
                 return;
             }
 
             const data = backupSnap.data();
-            const { snapshotDate, originalWorkspace, ...meta } = data;
+            const { snapshotDate, snapshotSlot, originalWorkspace, ...meta } = data;
 
-            // Restore Metadata
+            // 1. Wipe current transactions
+            const txsRef = collection(db, "workspaces", workspaceId, "transactions");
+            const txsSnap = await getDocs(txsRef);
+            const wipeBatch = writeBatch(db);
+            txsSnap.forEach(d => wipeBatch.delete(doc(txsRef, d.id)));
+            await wipeBatch.commit();
+
+            // 2. Restore Metadata
             await setDoc(doc(db, "workspaces", workspaceId), meta);
 
-            // Restore Transactions
+            // 3. Restore Transactions
             const backupTxsRef = collection(db, "backups", backupId, "transactions");
             const bTxsSnap = await getDocs(backupTxsRef);
 
-            const batch = writeBatch(db);
+            const restoreBatch = writeBatch(db);
             bTxsSnap.forEach(tDoc => {
                 const txRef = doc(db, "workspaces", workspaceId, "transactions", tDoc.id);
-                batch.set(txRef, tDoc.data());
+                restoreBatch.set(txRef, tDoc.data());
             });
 
-            await batch.commit();
-            alert("Database Restored to Last Snapshot! Refreshing...");
+            await restoreBatch.commit();
+            alert(`Database Restored to Snapshot V${slot}! App will refresh now.`);
             window.location.reload();
         } catch (e) {
             console.error("Restore Error:", e);
