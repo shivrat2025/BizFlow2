@@ -8,9 +8,10 @@ interface Props {
   onUpdate: (id: string, updates: Partial<Account>) => void;
   onDelete: (id: string) => void;
   onSync?: (id: string) => void;
+  onRestoreFromDump?: () => void;
 }
 
-const AccountManager: React.FC<Props> = ({ accounts, onAdd, onUpdate, onDelete, onSync }) => {
+const AccountManager: React.FC<Props> = ({ accounts, onAdd, onUpdate, onDelete, onSync, onRestoreFromDump }) => {
   const [name, setName] = useState('');
   const [type, setType] = useState<AccountType>('BANK');
   const [limit, setLimit] = useState('');
@@ -122,7 +123,15 @@ const AccountManager: React.FC<Props> = ({ accounts, onAdd, onUpdate, onDelete, 
       {accounts.length === 0 ? (
         <div className="py-12 text-center bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-100">
           <AlertCircle className="mx-auto text-slate-200 mb-2" size={32} />
-          <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest">No hubs registered.</p>
+          <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest mb-4">No hubs registered.</p>
+          {onRestoreFromDump && (
+            <button
+              onClick={onRestoreFromDump}
+              className="px-6 py-3 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 flex items-center gap-2 mx-auto"
+            >
+              <RefreshCw size={14} /> Rescue Hubs from Backup
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-8">

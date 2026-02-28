@@ -231,30 +231,25 @@ const App: React.FC = () => {
     const persistAndSync = async (newAccs?: Account[], newCats?: ExpenseCategory[], newRules?: AIRule[], newSups?: { id: string; name: string }[], newUrl?: string) => {
         if (!workspaceId) return;
 
-        const targetAccs = newAccs !== undefined ? newAccs : accounts;
-        const targetCats = newCats !== undefined ? newCats : categories;
-        const targetRules = newRules !== undefined ? newRules : aiRules;
-        const targetSups = newSups !== undefined ? newSups : suppliers;
-        const targetUrl = newUrl !== undefined ? newUrl : cloudUrl;
-
         try {
-            const payloadData = {
-                accounts: targetAccs,
-                categories: targetCats,
-                aiRules: targetRules,
-                suppliers: targetSups,
-                cloudUrl: targetUrl,
+            const payload: any = {
                 lastSynced: Date.now()
             };
 
-            const payloadBytes = JSON.stringify(payloadData).length;
+            if (newAccs !== undefined) payload.accounts = newAccs;
+            if (newCats !== undefined) payload.categories = newCats;
+            if (newRules !== undefined) payload.aiRules = newRules;
+            if (newSups !== undefined) payload.suppliers = newSups;
+            if (newUrl !== undefined) payload.cloudUrl = newUrl;
+
+            const payloadBytes = JSON.stringify(payload).length;
             if (payloadBytes > 900000) {
                 alert("Cloud metadata limit reached (1MB). Please reduce data.");
                 return;
             }
 
             const docRef = doc(db, "workspaces", workspaceId);
-            await updateDoc(docRef, deepClean(payloadData));
+            await updateDoc(docRef, deepClean(payload));
         } catch (e: any) {
             console.error("Sync Error:", e);
             if (e.code === 'permission-denied') {
@@ -521,6 +516,67 @@ const App: React.FC = () => {
         } catch (e) {
             console.error("Restore Error:", e);
             alert("Failed to restore from snapshot.");
+        } finally {
+            setLoadingSync(false);
+        }
+    };
+
+
+    const handleRestoreFromLocalDump = async () => {
+        try {
+            setLoadingSync(true);
+            const dump = {
+                accounts: [
+                    { id: "dccbcc41-7dac-4dd4-8396-07c48b0e7719", name: "IDFC Bank", type: "BANK", balance: 0 },
+                    { id: "5abb6e32-bd50-4522-8950-8d75fecf6a14", name: "IndusInd Bank", type: "BANK", balance: 0 },
+                    { id: "b83bb345-551b-4e55-b7e0-457b220c9513", name: "Credit Card", type: "CREDIT_CARD", balance: 80000, limit: 80000 },
+                    { id: "d41cda10-b31e-4094-84bb-d6143ff41ee1", name: "ICICI MANISHA OD", type: "BANK", balance: 0 }
+                ],
+                categories: [
+                    { id: "FB_ADS", label: "FB Ads" },
+                    { id: "SHIPPING", label: "Shipping" },
+                    { id: "PRODUCT", label: "Product" },
+                    { id: "OTHER", label: "Other" },
+                    { id: "OFFICE_SALARY", label: "Office Salary" },
+                    { id: "SHOPIFY", label: "Shopify" },
+                    { id: "FOLLOWERS", label: "followers" },
+                    { id: "PORTER", label: "porter" }
+                ],
+                suppliers: [
+                    { id: "d8942ba1-15cb-49b6-8a3f-65bcdd9016de", name: "Zoya" },
+                    { id: "5507bb9d-a06b-4e5f-9ccd-d48cd54cac71", name: "GST BILL" },
+                    { id: "8a188f9b-b115-4125-8f0c-a485f9e2f222", name: "Heera Creation" },
+                    { id: "54b79325-c25e-4924-a8c1-8ccabe21a29c", name: "Gopinath" },
+                    { id: "5e7a4875-c8fc-4473-a09f-3fc4f3d29d67", name: "HV " },
+                    { id: "00bf6e07-8909-42e4-b740-3f45334027c4", name: "RTC" },
+                    { id: "27edece4-c72b-446f-95ce-c365948386c5", name: "Maruti Designer" },
+                    { id: "09ba1878-d171-442a-9727-dd498bd13a13", name: "Shree Hari Fashion" },
+                    { id: "1f6c9fd2-a71c-4329-a274-447a1a89b380", name: "Swank" },
+                    { id: "35d6c924-4016-4b7b-ae14-11e383e31b6e", name: "Sai Creation" },
+                    { id: "1afa061c-bd04-4436-a9c1-b816d3ec1bac", name: "Women Wastra" },
+                    { id: "df17c1c8-69d1-4dc4-8063-ffd8084ad4e3", name: "Brand of Brothers" },
+                    { id: "a4726ba6-f15e-4ffe-a310-59873bee8c87", name: "KK Creation" },
+                    { id: "af2661ad-091d-49c3-a791-234fd137ef01", name: "LadyLook" },
+                    { id: "1dc40c20-e017-4c93-b902-5a97ab581449", name: "JK Creation" },
+                    { id: "68e2a2f3-388d-46c0-b2c8-50f6393449b8", name: "Bhanderi Enterprise" },
+                    { id: "7b9aabef-39b2-45e1-87c0-ec5f9b4c8f79", name: "Hirva" },
+                    { id: "248cc011-86aa-4095-8a30-4438f7943fc1", name: "Bewafa Designer" },
+                    { id: "9c4e2087-3ced-463c-b1f0-425ea741406f", name: "RV CREATION" },
+                    { id: "0cde16a3-2c3b-48e8-b02c-c8166c3be81e", name: "Aarohi Designer" },
+                    { id: "468e5332-415d-454f-b452-cecc89ee20a2", name: "Mizeoo Trade" },
+                    { id: "80b85aa8-bafc-4ebb-89a4-0135d6b9f0da", name: "Pal Fab" },
+                    { id: "823fb4e5-affd-4a6e-84ca-e406f65ba9a6", name: "Thirteen D" },
+                    { id: "a834eae9-d29c-4e09-9a9c-6d4d4630b1c5", name: "Stationary" },
+                    { id: "f1f6330d-2bcf-4962-9646-92424c447d51", name: "Unknow" },
+                    { id: "0a52a0d6-956f-43af-ae53-c299e6be4f8d", name: "ZSR" }
+                ]
+            };
+
+            await persistAndSync(dump.accounts as any, dump.categories as any, undefined, dump.suppliers);
+            alert("Rescue Successful! All hubs and suppliers restored from local backup.");
+        } catch (e) {
+            console.error("Rescue Error:", e);
+            alert("Rescue failed. Please try again or manual entry.");
         } finally {
             setLoadingSync(false);
         }
@@ -876,7 +932,7 @@ const App: React.FC = () => {
 
                 {activeTab === 'dashboard' && <Dashboard stats={currentStats} accounts={computedAccounts} transactions={transactions} categories={categories} onBackup={handleExport} />}
 
-                {activeTab === 'accounts' && <AccountManager accounts={computedAccounts} onAdd={handleAddAccount} onUpdate={handleUpdateAccount} onDelete={handleDeleteAccount} />}
+                {activeTab === 'accounts' && <AccountManager accounts={computedAccounts} onAdd={handleAddAccount} onUpdate={handleUpdateAccount} onDelete={handleDeleteAccount} onRestoreFromDump={handleRestoreFromLocalDump} />}
                 {activeTab === 'history' && (
                     <HistoryList
                         transactions={transactions}
