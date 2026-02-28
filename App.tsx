@@ -170,7 +170,8 @@ const App: React.FC = () => {
             });
 
             setSnapshotDates(manualSlots);
-            setAvailableBackups(history.sort((a, b) => b.date - a.date).slice(0, 15));
+            const sortedHistory = history.sort((a, b) => b.date - a.date);
+            setAvailableBackups(sortedHistory.slice(0, 7));
 
             // Automatic Daily Backup Check
             const today = new Date().toISOString().split('T')[0];
@@ -180,6 +181,23 @@ const App: React.FC = () => {
             if (!exists && accounts.length > 0) {
                 console.log("Creating daily auto-backup...");
                 handleCreateSnapshot(`AUTO_${today}`, true);
+
+                // Cleanup: Delete backups older than 7 days
+                if (sortedHistory.length >= 7) {
+                    const toDelete = sortedHistory.slice(7);
+                    toDelete.forEach(async (oldSnap) => {
+                        try {
+                            const oldTxsRef = collection(db, "backups", oldSnap.id, "transactions");
+                            const oldTxs = await getDocs(oldTxsRef);
+                            const batch = writeBatch(db);
+                            oldTxs.forEach(d => batch.delete(doc(oldTxsRef, d.id)));
+                            await batch.commit();
+                            await deleteDoc(doc(db, "backups", oldSnap.id));
+                        } catch (e) {
+                            console.error("Pruning Error:", e);
+                        }
+                    });
+                }
             }
         };
         fetchBackups();

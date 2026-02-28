@@ -244,7 +244,7 @@ function writeDashboard(ss, stats) {
                 )}
 
                 <p className="text-[9px] font-bold text-slate-500 mt-6 flex items-center gap-2">
-                  <Info size={12} /> The system automatically captures a full snapshot of your ledger once per day.
+                  <Info size={12} /> The system captures a rolling 7-day window of automated backups. Oldest data is pruned automatically.
                 </p>
               </div>
             </div>
