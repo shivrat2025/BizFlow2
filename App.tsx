@@ -520,17 +520,21 @@ const App: React.FC = () => {
                 originalWorkspace: workspaceId
             });
 
-            // 3. Save Backup Transactions (Batch)
+            // 3. Save Backup Transactions (Chunked batching to handle 500+ items)
             const txsRef = collection(db, "workspaces", workspaceId, "transactions");
             const txsSnap = await getDocs(txsRef);
             const backupTxsRef = collection(db, "backups", snapshotId, "transactions");
 
-            const batch = writeBatch(db);
-            txsSnap.forEach(tDoc => {
-                const bTxRef = doc(backupTxsRef, tDoc.id);
-                batch.set(bTxRef, tDoc.data());
-            });
-            await batch.commit();
+            const allTxs = txsSnap.docs.map(d => ({ id: d.id, data: d.data() }));
+            for (let i = 0; i < allTxs.length; i += 500) {
+                const chunk = allTxs.slice(i, i + 500);
+                const batch = writeBatch(db);
+                chunk.forEach(tx => {
+                    const bTxRef = doc(backupTxsRef, tx.id);
+                    batch.set(bTxRef, tx.data);
+                });
+                await batch.commit();
+            }
 
             // Refresh available backups
             const backupsRef = collection(db, "backups");
@@ -558,12 +562,14 @@ const App: React.FC = () => {
     };
 
     const handleRestoreFromSnapshot = async (id: string) => {
-        const label = new Date(parseInt(id.split('_').pop() || Date.now().toString())).toLocaleDateString('en-IN');
+        // Find the backup object to get the timestamp-based date
+        const backupObj = availableBackups.find(b => b.id === id);
+        const label = backupObj ? backupObj.label : "Selected Date";
 
         if (!confirm(`WARNING: This will overwrite your current database with backup from ${label}. Are you sure?`)) return;
         try {
             setLoadingSync(true);
-            const backupId = id.startsWith(workspaceId) ? id : `${workspaceId}_BACKUP_V${id}`;
+            const backupId = id; // The ID is now full ID from availableBackups
             const backupRef = doc(db, "backups", backupId);
             const backupSnap = await getDoc(backupRef);
 
