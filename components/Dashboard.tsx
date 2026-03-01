@@ -98,8 +98,97 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
   });
 
   const COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
+  // ── Position snapshot values ─────────────────────────────────────
+  const snapshotBalance = accounts
+    .filter(a => ['BANK', 'CURRENT'].includes(a.type) && !a.name.toUpperCase().includes('OD'))
+    .reduce((s, a) => s + a.balance, 0);
+
+  const snapshotDebt = accounts.reduce((debt, a) => {
+    if (a.type === 'OD' || a.name.toUpperCase().includes('OD')) {
+      return debt + (a.balance < 0 ? Math.abs(a.balance) : 0);
+    }
+    if (a.type === 'CREDIT_CARD') {
+      return debt + (a.limit ? Math.max(0, a.limit - a.balance) : 0);
+    }
+    return debt;
+  }, 0);
+
+  const snapshotNet = snapshotBalance - snapshotDebt;
+  const snapshotPositive = snapshotNet >= 0;
+
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500 pb-12">
+
+      {/* ── Cash Position Snapshot ───────────────────────────────────── */}
+      <div className="relative grid grid-cols-2 gap-0 rounded-[1.5rem] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-white/60">
+
+        {/* LEFT — Balances */}
+        <div className="bg-white/70 backdrop-blur-xl p-4 flex flex-col gap-1 border-r border-slate-100/80">
+          <div className="flex items-center gap-1.5">
+            <div className="p-1 bg-emerald-50 rounded-lg"><TrendingUp size={10} className="text-emerald-600" /></div>
+            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Total Balances</p>
+          </div>
+          <p className="text-xl font-black text-emerald-600 tracking-tight leading-none mt-1">
+            ₹{snapshotBalance.toLocaleString('en-IN')}
+          </p>
+          <p className="text-[7px] font-black text-slate-300 uppercase tracking-widest mt-1">Bank &amp; Current Accounts</p>
+          <div className="flex gap-1 flex-wrap mt-1">
+            {accounts
+              .filter(a => ['BANK', 'CURRENT'].includes(a.type) && !a.name.toUpperCase().includes('OD'))
+              .map(a => {
+                const logo = getBankLogo(a.name);
+                return (
+                  <span key={a.id} className="flex items-center gap-0.5 bg-emerald-50 text-emerald-700 text-[6px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full">
+                    {logo && <img src={logo.url} alt={a.name} className="w-2.5 h-2.5 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
+                    {a.name.split(' ')[0]}
+                  </span>
+                );
+              })}
+          </div>
+        </div>
+
+        {/* RIGHT — Debt */}
+        <div className="bg-white/70 backdrop-blur-xl p-4 flex flex-col gap-1">
+          <div className="flex items-center gap-1.5">
+            <div className="p-1 bg-rose-50 rounded-lg"><TrendingDown size={10} className="text-rose-600" /></div>
+            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Total Debt</p>
+          </div>
+          <p className="text-xl font-black text-rose-600 tracking-tight leading-none mt-1">
+            ₹{snapshotDebt.toLocaleString('en-IN')}
+          </p>
+          <p className="text-[7px] font-black text-slate-300 uppercase tracking-widest mt-1">OD &amp; Credit Card Used</p>
+          <div className="flex gap-1 flex-wrap mt-1">
+            {accounts
+              .filter(a => a.type === 'OD' || a.name.toUpperCase().includes('OD') || a.type === 'CREDIT_CARD')
+              .map(a => {
+                const logo = getBankLogo(a.name);
+                return (
+                  <span key={a.id} className="flex items-center gap-0.5 bg-rose-50 text-rose-700 text-[6px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full">
+                    {logo && <img src={logo.url} alt={a.name} className="w-2.5 h-2.5 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
+                    {a.name.split(' ')[0]}
+                  </span>
+                );
+              })}
+          </div>
+        </div>
+
+        {/* NET — centre pill floating over the divider */}
+        <div className="absolute inset-x-0 bottom-0 flex justify-center pb-2">
+          <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full shadow-md border text-[8px] font-black uppercase tracking-widest
+            ${snapshotPositive
+              ? 'bg-emerald-600 text-white border-emerald-700/30 shadow-emerald-500/20'
+              : 'bg-rose-600 text-white border-rose-700/30 shadow-rose-500/20'
+            }`}>
+            {snapshotPositive
+              ? <TrendingUp size={9} />
+              : <TrendingDown size={9} />
+            }
+            Net {snapshotPositive ? '+' : '−'}₹{Math.abs(snapshotNet).toLocaleString('en-IN')}
+            &nbsp;·&nbsp;{snapshotPositive ? 'Positive' : 'Negative'}
+          </div>
+        </div>
+      </div>
+
       {/* Compact Stat Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <div className="bg-white/70 backdrop-blur-xl p-4 rounded-[1.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60 active:bg-white/80 transition-all group hover:scale-[1.02] duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
