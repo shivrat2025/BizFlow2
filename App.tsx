@@ -1155,11 +1155,6 @@ const App: React.FC = () => {
 
                 {activeTab === 'cloud' && (
                     <CloudSync
-                        url={cloudUrl}
-                        setUrl={(url) => {
-                            setCloudUrl(url);
-                            persistAndSync(undefined, undefined, undefined, undefined, url);
-                        }}
                         workspaceId={workspaceId}
                         loading={loadingSync}
                         lastSynced={lastSynced}
@@ -1167,8 +1162,6 @@ const App: React.FC = () => {
                         onDeleteWorkspace={handleDeleteWorkspace}
                         onExport={handleExport}
                         onCreateSnapshot={handleCreateSnapshot}
-                        onRestoreSnapshot={handleRestoreFromSnapshot}
-                        snapshotDates={snapshotDates}
                     />
                 )}
 
@@ -1232,8 +1225,8 @@ const App: React.FC = () => {
                                             key={p}
                                             onClick={() => setProfitPercent(p)}
                                             className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest transition-all border ${profitPercent === p
-                                                    ? 'bg-indigo-600 text-white border-indigo-700 shadow-md shadow-indigo-200'
-                                                    : 'bg-white/60 text-slate-500 border-white/60 hover:border-indigo-200 hover:text-indigo-600'
+                                                ? 'bg-indigo-600 text-white border-indigo-700 shadow-md shadow-indigo-200'
+                                                : 'bg-white/60 text-slate-500 border-white/60 hover:border-indigo-200 hover:text-indigo-600'
                                                 }`}
                                         >{p}%</button>
                                     ))}
