@@ -982,8 +982,37 @@ const App: React.FC = () => {
                     </button>
 
                     <button
+                        onClick={async () => {
+                            if (!window.confirm("EMERGENCY RESCUE: Are you sure you want to FORCE PUSH your current screen's data to the cloud? This will overwrite the cloud database with what you see here.")) return;
+                            try {
+                                const batch = writeBatch(db);
+                                transactions.forEach(tx => {
+                                    const txRef = doc(db, "workspaces", workspaceId, "transactions", tx.id);
+                                    batch.set(txRef, deepClean(tx));
+                                });
+
+                                const wsRef = doc(db, "workspaces", workspaceId);
+                                await updateDoc(wsRef, {
+                                    accounts: deepClean(accounts),
+                                    categories: deepClean(categories),
+                                    suppliers: deepClean(suppliers),
+                                    aiRules: deepClean(aiRules)
+                                });
+
+                                await batch.commit();
+                                alert('Successfully rescued and pushed local data to the cloud!');
+                            } catch (e: any) {
+                                alert('Failed to rescue: ' + e.message);
+                            }
+                        }}
+                        className="w-full bg-emerald-500/10 backdrop-blur-md border border-emerald-500/30 text-emerald-600 py-3 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-emerald-500 hover:text-white transition-all text-[10px] uppercase tracking-widest shadow-sm hover:shadow-md mt-2"
+                    >
+                        <Zap size={14} /> Rescue Data To Cloud
+                    </button>
+
+                    <button
                         onClick={handleLogout}
-                        className="w-full bg-white/70 backdrop-blur-md border border-white/60 text-slate-500 py-4 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-red-50/50 hover:text-red-500 hover:border-red-100 transition-all text-xs uppercase tracking-widest shadow-sm hover:shadow-md"
+                        className="w-full bg-white/70 backdrop-blur-md border border-white/60 text-slate-500 py-4 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-red-50/50 hover:text-red-500 hover:border-red-100 transition-all text-xs uppercase tracking-widest shadow-sm hover:shadow-md mt-2"
                     >
                         Sign Out Account
                     </button>
