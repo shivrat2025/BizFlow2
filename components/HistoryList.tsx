@@ -369,9 +369,14 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
           <table className="w-full text-left">
             <thead className="bg-white/50 text-slate-500 text-[10px] uppercase tracking-widest font-black border-b border-white/40">
               <tr>
-                <th className="px-6 py-4 cursor-pointer group" onClick={() => toggleSort(sortKey === 'createdAt' ? 'date' : 'createdAt')}>
+                <th className="px-6 py-4 cursor-pointer group" onClick={() => toggleSort('createdAt')}>
                   <div className="flex items-center gap-1">
-                    {sortKey === 'createdAt' ? 'Entry Time' : 'Date'} <SortIcon k={sortKey === 'createdAt' ? 'createdAt' : 'date'} />
+                    Entered At <SortIcon k="createdAt" />
+                  </div>
+                </th>
+                <th className="px-6 py-4 cursor-pointer group" onClick={() => toggleSort('date')}>
+                  <div className="flex items-center gap-1">
+                    Date of Transaction <SortIcon k="date" />
                   </div>
                 </th>
                 <th className="px-6 py-4">Details</th>
@@ -389,7 +394,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
             <tbody className="divide-y divide-slate-50">
               {filteredTransactions.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-300 font-bold uppercase tracking-widest text-[10px]">
+                  <td colSpan={8} className="px-6 py-12 text-center text-slate-300 font-bold uppercase tracking-widest text-[10px]">
                     No records found for selected filters.
                   </td>
                 </tr>
@@ -398,10 +403,19 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
                   <tr key={t.id} className="hover:bg-white/60 transition-colors border-b border-gray-50/50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-400">{formatDate(t.date)}</span>
-                        {t.createdAt && (
-                          <span className="text-[8px] text-slate-300 font-medium tracking-tight mt-0.5">Entered at {formatTime(t.createdAt)}</span>
+                        {t.createdAt ? (
+                          <>
+                            <span className="text-[10px] font-bold text-slate-400">{new Date(t.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}</span>
+                            <span className="text-[8px] text-slate-300 font-medium tracking-tight mt-0.5">{formatTime(t.createdAt)}</span>
+                          </>
+                        ) : (
+                          <span className="text-[10px] font-bold text-slate-400">N/A</span>
                         )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-slate-600">{formatDate(t.date)}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
