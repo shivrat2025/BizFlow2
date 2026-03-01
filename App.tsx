@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { LayoutDashboard, History, Wallet, Cloud, Plus, RefreshCw, ChevronRight, BarChart3, FileText, Menu, Landmark, Lock, Shield, Zap, AlertCircle } from 'lucide-react';
+import { LayoutDashboard, History, Wallet, Cloud, Plus, RefreshCw, ChevronRight, BarChart3, FileText, Menu, Landmark, Lock, Shield, Zap, AlertCircle, Settings } from 'lucide-react';
 import { initializeApp, getApp, getApps } from "firebase/app";
 import { getFirestore, doc, onSnapshot, setDoc, deleteDoc, updateDoc, collection, writeBatch, getDoc, getDocs, query } from "firebase/firestore";
 import { Account, Transaction, DashboardStats, ExpenseCategory, AIRule } from './types';
@@ -71,6 +71,10 @@ const App: React.FC = () => {
     const [deleteAccountState, setDeleteAccountState] = useState<{ id: string, name: string, blockedCount: number } | null>(null);
     const [snapshotDates, setSnapshotDates] = useState<Record<string, number | null>>({});
     const [availableBackups, setAvailableBackups] = useState<{ id: string, date: number, label: string }[]>([]);
+    const [profitPercent, setProfitPercent] = useState<number>(() => {
+        const saved = localStorage.getItem('bizflow_profit_pct');
+        return saved ? parseFloat(saved) : 5;
+    });
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
@@ -101,6 +105,10 @@ const App: React.FC = () => {
                 if (data.cloudUrl !== undefined) setCloudUrl(data.cloudUrl);
                 if (data.lastSynced !== undefined) setLastSynced(data.lastSynced);
                 if (data.transactions) setLegacyTransactions(data.transactions);
+                if (data.profitPercent !== undefined) {
+                    setProfitPercent(data.profitPercent);
+                    localStorage.setItem('bizflow_profit_pct', String(data.profitPercent));
+                }
             } else {
                 setDoc(doc(db, "workspaces", workspaceId), {
                     accounts: [],
@@ -998,6 +1006,7 @@ const App: React.FC = () => {
                         { id: 'invoices', icon: FileText, label: 'Invoices' },
                         { id: 'backup', icon: Shield, label: 'Backups' },
                         { id: 'cloud', icon: Cloud, label: 'Cloud' },
+                        { id: 'settings', icon: Settings, label: 'Settings' },
                     ].map(item => (
                         <button
                             key={item.id}
@@ -1108,7 +1117,7 @@ const App: React.FC = () => {
                     </div>
                 </header>
 
-                {activeTab === 'dashboard' && <Dashboard stats={currentStats} accounts={computedAccounts} transactions={transactions} categories={categories} onBackup={handleExport} />}
+                {activeTab === 'dashboard' && <Dashboard stats={currentStats} accounts={computedAccounts} transactions={transactions} categories={categories} onBackup={handleExport} profitPercent={profitPercent} />}
 
                 {activeTab === 'accounts' && <AccountManager accounts={computedAccounts} transactions={transactions} onAdd={handleAddAccount} onUpdate={handleUpdateAccount} onDelete={handleDeleteAccount} onRestoreFromDump={handleRestoreFromLocalDump} />}
                 {activeTab === 'history' && (
@@ -1171,6 +1180,103 @@ const App: React.FC = () => {
                         loading={loadingSync}
                     />
                 )}
+
+                {activeTab === 'settings' && (
+                    <div className="max-w-lg mx-auto space-y-6 animate-in fade-in duration-500">
+                        {/* Profit Rule Config */}
+                        <div className="bg-white/70 backdrop-blur-xl p-6 rounded-[1.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60">
+                            <div className="flex items-center gap-2 mb-1">
+                                <div className="p-1.5 bg-indigo-50 rounded-xl"><Settings size={14} className="text-indigo-600" /></div>
+                                <h3 className="text-sm font-black text-slate-800 tracking-tight">Profit Rule Configuration</h3>
+                            </div>
+                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-6">Set the % of revenue to target for profit withdrawal</p>
+
+                            <div className="space-y-5">
+                                {/* Big % display */}
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Profit Withdrawal Target</span>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="number"
+                                            min={1} max={50} step={0.5}
+                                            value={profitPercent}
+                                            onChange={e => {
+                                                const v = Math.min(50, Math.max(1, parseFloat(e.target.value) || 1));
+                                                setProfitPercent(v);
+                                            }}
+                                            className="w-16 text-center text-lg font-black text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-xl px-2 py-1 outline-none focus:ring-2 focus:ring-indigo-300"
+                                        />
+                                        <span className="text-lg font-black text-indigo-700">%</span>
+                                    </div>
+                                </div>
+
+                                {/* Slider */}
+                                <div>
+                                    <input
+                                        type="range"
+                                        min={1} max={50} step={0.5}
+                                        value={profitPercent}
+                                        onChange={e => setProfitPercent(parseFloat(e.target.value))}
+                                        className="w-full h-1.5 rounded-full accent-indigo-600 cursor-pointer"
+                                    />
+                                    <div className="flex justify-between mt-1">
+                                        <span className="text-[7px] font-black text-slate-300 uppercase tracking-widest">1%</span>
+                                        <span className="text-[7px] font-black text-slate-300 uppercase tracking-widest">50%</span>
+                                    </div>
+                                </div>
+
+                                {/* Quick presets */}
+                                <div className="flex gap-2 flex-wrap">
+                                    {[3, 5, 8, 10, 15, 20].map(p => (
+                                        <button
+                                            key={p}
+                                            onClick={() => setProfitPercent(p)}
+                                            className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest transition-all border ${profitPercent === p
+                                                    ? 'bg-indigo-600 text-white border-indigo-700 shadow-md shadow-indigo-200'
+                                                    : 'bg-white/60 text-slate-500 border-white/60 hover:border-indigo-200 hover:text-indigo-600'
+                                                }`}
+                                        >{p}%</button>
+                                    ))}
+                                </div>
+
+                                {/* Save */}
+                                <button
+                                    onClick={async () => {
+                                        localStorage.setItem('bizflow_profit_pct', String(profitPercent));
+                                        if (workspaceId) {
+                                            try {
+                                                const docRef = doc(db, 'workspaces', workspaceId);
+                                                await updateDoc(docRef, { profitPercent, lastSynced: Date.now() });
+                                            } catch (e) { console.error(e); }
+                                        }
+                                        alert(`✅ Profit target saved: ${profitPercent}%`);
+                                    }}
+                                    className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-500/20 hover:scale-[1.02] active:scale-95 transition-all"
+                                >
+                                    Save Configuration
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Current impact preview */}
+                        <div className="bg-white/70 backdrop-blur-xl p-5 rounded-[1.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60">
+                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-3">Live Impact Preview</p>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-indigo-50 rounded-2xl p-3 text-center">
+                                    <p className="text-[7px] font-black text-indigo-400 uppercase tracking-widest mb-1">Threshold ({profitPercent}%)</p>
+                                    <p className="text-base font-black text-indigo-700">
+                                        ₹{Math.round((currentStats.totalCodIncome + currentStats.totalPrepaidIncome) * profitPercent / 100).toLocaleString('en-IN')}
+                                    </p>
+                                </div>
+                                <div className="bg-emerald-50 rounded-2xl p-3 text-center">
+                                    <p className="text-[7px] font-black text-emerald-500 uppercase tracking-widest mb-1">Already Withdrawn</p>
+                                    <p className="text-base font-black text-emerald-700">₹{currentStats.totalWithdrawals.toLocaleString('en-IN')}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
             </main>
 
             {showForm && (

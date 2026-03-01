@@ -24,9 +24,10 @@ interface DashboardProps {
   transactions: Transaction[];
   categories: ExpenseCategory[];
   onBackup: () => void;
+  profitPercent?: number;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, categories, onBackup }) => {
+const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, categories, onBackup, profitPercent = 5 }) => {
   if (accounts.length === 0 && transactions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
@@ -66,7 +67,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
 
   const trendData = getTrendData();
 
-  const totalSuggestedWithdrawal = (stats.totalCodIncome + stats.totalPrepaidIncome) * 0.05;
+  const totalSuggestedWithdrawal = (stats.totalCodIncome + stats.totalPrepaidIncome) * (profitPercent / 100);
   const alreadyWithdrawn = stats.totalWithdrawals;
   const availableToWithdraw = Math.max(0, totalSuggestedWithdrawal - alreadyWithdrawn);
   const withdrawalProgress = totalSuggestedWithdrawal > 0
@@ -119,77 +120,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500 pb-12">
 
-      {/* ── Cash Position Snapshot ───────────────────────────────────── */}
-      <div className="relative grid grid-cols-2 gap-0 rounded-[1.5rem] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-white/60">
-
-        {/* LEFT — Balances */}
-        <div className="bg-white/70 backdrop-blur-xl p-4 flex flex-col gap-1 border-r border-slate-100/80">
-          <div className="flex items-center gap-1.5">
-            <div className="p-1 bg-emerald-50 rounded-lg"><TrendingUp size={10} className="text-emerald-600" /></div>
-            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Total Balances</p>
-          </div>
-          <p className="text-xl font-black text-emerald-600 tracking-tight leading-none mt-1">
-            ₹{snapshotBalance.toLocaleString('en-IN')}
-          </p>
-          <p className="text-[7px] font-black text-slate-300 uppercase tracking-widest mt-1">Bank &amp; Current Accounts</p>
-          <div className="flex gap-1 flex-wrap mt-1">
-            {accounts
-              .filter(a => ['BANK', 'CURRENT'].includes(a.type) && !a.name.toUpperCase().includes('OD'))
-              .map(a => {
-                const logo = getBankLogo(a.name);
-                return (
-                  <span key={a.id} className="flex items-center gap-0.5 bg-emerald-50 text-emerald-700 text-[6px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full">
-                    {logo && <img src={logo.url} alt={a.name} className="w-2.5 h-2.5 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
-                    {a.name.split(' ')[0]}
-                  </span>
-                );
-              })}
-          </div>
-        </div>
-
-        {/* RIGHT — Debt */}
-        <div className="bg-white/70 backdrop-blur-xl p-4 flex flex-col gap-1">
-          <div className="flex items-center gap-1.5">
-            <div className="p-1 bg-rose-50 rounded-lg"><TrendingDown size={10} className="text-rose-600" /></div>
-            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Total Debt</p>
-          </div>
-          <p className="text-xl font-black text-rose-600 tracking-tight leading-none mt-1">
-            ₹{snapshotDebt.toLocaleString('en-IN')}
-          </p>
-          <p className="text-[7px] font-black text-slate-300 uppercase tracking-widest mt-1">OD &amp; Credit Card Used</p>
-          <div className="flex gap-1 flex-wrap mt-1">
-            {accounts
-              .filter(a => a.type === 'OD' || a.name.toUpperCase().includes('OD') || a.type === 'CREDIT_CARD')
-              .map(a => {
-                const logo = getBankLogo(a.name);
-                return (
-                  <span key={a.id} className="flex items-center gap-0.5 bg-rose-50 text-rose-700 text-[6px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full">
-                    {logo && <img src={logo.url} alt={a.name} className="w-2.5 h-2.5 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
-                    {a.name.split(' ')[0]}
-                  </span>
-                );
-              })}
-          </div>
-        </div>
-
-        {/* NET — centre pill floating over the divider */}
-        <div className="absolute inset-x-0 bottom-0 flex justify-center pb-2">
-          <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full shadow-md border text-[8px] font-black uppercase tracking-widest
-            ${snapshotPositive
-              ? 'bg-emerald-600 text-white border-emerald-700/30 shadow-emerald-500/20'
-              : 'bg-rose-600 text-white border-rose-700/30 shadow-rose-500/20'
-            }`}>
-            {snapshotPositive
-              ? <TrendingUp size={9} />
-              : <TrendingDown size={9} />
-            }
-            Net {snapshotPositive ? '+' : '−'}₹{Math.abs(snapshotNet).toLocaleString('en-IN')}
-            &nbsp;·&nbsp;{snapshotPositive ? 'Positive' : 'Negative'}
-          </div>
-        </div>
-      </div>
-
-      {/* Compact Stat Grid */}
+      {/* Compact Stat Grid — Row 1 */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <div className="bg-white/70 backdrop-blur-xl p-4 rounded-[1.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60 active:bg-white/80 transition-all group hover:scale-[1.02] duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
           <div className="flex items-center gap-2 mb-2">
@@ -354,13 +285,89 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
         </div>
       </div>
 
+      {/* ── Row 3: Cash Position — lightest green / red ───────────────────── */}
+      <div className="rounded-[1.5rem] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60">
+        <div className="grid grid-cols-2">
+
+          {/* LEFT — Balances */}
+          <div className="bg-green-50/80 backdrop-blur-xl px-5 py-4 flex flex-col gap-1 border-r border-green-100">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <div className="p-1 bg-green-100 rounded-lg"><TrendingUp size={10} className="text-green-600" /></div>
+              <p className="text-[8px] font-black text-green-700/70 uppercase tracking-widest">Total Balances</p>
+            </div>
+            <p className="text-2xl font-black text-green-700 tracking-tight leading-none">
+              ₹{snapshotBalance.toLocaleString('en-IN')}
+            </p>
+            <p className="text-[7px] font-black text-green-500/60 uppercase tracking-widest mt-0.5">Bank &amp; Current Accounts</p>
+            <div className="flex gap-1 flex-wrap mt-2">
+              {accounts
+                .filter(a => ['BANK', 'CURRENT'].includes(a.type) && !a.name.toUpperCase().includes('OD'))
+                .map(a => {
+                  const logo = getBankLogo(a.name);
+                  return (
+                    <span key={a.id} className="flex items-center gap-0.5 bg-white/80 text-green-700 text-[6px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border border-green-100">
+                      {logo && <img src={logo.url} alt={a.name} className="w-2.5 h-2.5 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
+                      {a.name.split(' ')[0]}
+                    </span>
+                  );
+                })}
+            </div>
+          </div>
+
+          {/* RIGHT — Debt */}
+          <div className="bg-red-50/80 backdrop-blur-xl px-5 py-4 flex flex-col gap-1">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <div className="p-1 bg-red-100 rounded-lg"><TrendingDown size={10} className="text-red-500" /></div>
+              <p className="text-[8px] font-black text-red-600/70 uppercase tracking-widest">Total Debt</p>
+            </div>
+            <p className="text-2xl font-black text-red-600 tracking-tight leading-none">
+              ₹{snapshotDebt.toLocaleString('en-IN')}
+            </p>
+            <p className="text-[7px] font-black text-red-400/60 uppercase tracking-widest mt-0.5">OD &amp; Credit Card Used</p>
+            <div className="flex gap-1 flex-wrap mt-2">
+              {accounts
+                .filter(a => a.type === 'OD' || a.name.toUpperCase().includes('OD') || a.type === 'CREDIT_CARD')
+                .map(a => {
+                  const logo = getBankLogo(a.name);
+                  return (
+                    <span key={a.id} className="flex items-center gap-0.5 bg-white/80 text-red-600 text-[6px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border border-red-100">
+                      {logo && <img src={logo.url} alt={a.name} className="w-2.5 h-2.5 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
+                      {a.name.split(' ')[0]}
+                    </span>
+                  );
+                })}
+            </div>
+          </div>
+        </div>
+
+        {/* NET strip */}
+        <div className={`flex items-center justify-between px-5 py-2.5 ${snapshotPositive ? 'bg-green-100/70' : 'bg-red-100/70'
+          }`}>
+          <div className="flex items-center gap-1.5">
+            {snapshotPositive
+              ? <TrendingUp size={10} className="text-green-600" />
+              : <TrendingDown size={10} className="text-red-500" />}
+            <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Net Cash Flow</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`text-sm font-black tracking-tight ${snapshotPositive ? 'text-green-700' : 'text-red-600'}`}>
+              {snapshotPositive ? '+' : '−'}₹{Math.abs(snapshotNet).toLocaleString('en-IN')}
+            </span>
+            <span className={`text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${snapshotPositive ? 'bg-green-200/80 text-green-800' : 'bg-red-200/80 text-red-800'
+              }`}>
+              {snapshotPositive ? '✓ Positive' : '✕ Negative'}
+            </span>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Profit Rule Card - Compact */}
         <div className="bg-slate-900 p-5 rounded-[1.5rem] text-white shadow-xl shadow-slate-900/10 relative overflow-hidden border border-white/10 ring-1 ring-white/10">
           <div className="relative z-10">
             <h3 className="text-sm font-black tracking-tight mb-4 flex items-center gap-2">
               <DollarSign size={14} className="text-indigo-400" />
-              5% Rule Pulse
+              {profitPercent}% Rule Pulse
             </h3>
 
             <div className="space-y-4">
