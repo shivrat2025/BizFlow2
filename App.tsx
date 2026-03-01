@@ -189,24 +189,8 @@ const App: React.FC = () => {
 
             if (!slotExists && accounts.length > 0) {
                 console.log("Creating 12h auto-backup for slot:", slotKey);
-                handleCreateSnapshot(slotKey, true);
-
-                // Prune: keep only 12 most recent
-                if (sortedHistory.length >= 12) {
-                    const toDelete = sortedHistory.slice(12);
-                    toDelete.forEach(async (oldSnap) => {
-                        try {
-                            const oldTxsRef = collection(db, "backups", oldSnap.id, "transactions");
-                            const oldTxs = await getDocs(oldTxsRef);
-                            const batch = writeBatch(db);
-                            oldTxs.forEach(d => batch.delete(doc(oldTxsRef, d.id)));
-                            await batch.commit();
-                            await deleteDoc(doc(db, "backups", oldSnap.id));
-                        } catch (e) {
-                            console.error("Pruning Error:", e);
-                        }
-                    });
-                }
+                // Await so the prune inside handleCreateSnapshot runs correctly
+                await handleCreateSnapshot(slotKey, true);
             }
         };
         fetchBackups();
