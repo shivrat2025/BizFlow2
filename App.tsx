@@ -219,10 +219,8 @@ const App: React.FC = () => {
         txs.forEach(t => {
             if (t.type === 'INCOME') {
                 if (t.incomeSource === 'COD') {
-                    s.codPool += t.amount;
                     s.totalCodIncome += t.amount;
                 } else if (t.incomeSource === 'PREPAID') {
-                    s.prepaidPool += t.amount;
                     s.totalPrepaidIncome += t.amount;
                 }
             } else if (t.type === 'EXPENSE') {
@@ -231,22 +229,16 @@ const App: React.FC = () => {
                     s.categoryBreakdown[t.expenseCategory] = (s.categoryBreakdown[t.expenseCategory] || 0) + t.amount;
                 }
                 if (t.incomeSource === 'COD') {
-                    s.codPool -= t.amount;
                     s.sourceBreakdown.cod += t.amount;
                 } else if (t.incomeSource === 'PREPAID') {
-                    s.prepaidPool -= t.amount;
                     s.sourceBreakdown.prepaid += t.amount;
                 } else {
                     s.sourceBreakdown.accounts += t.amount;
                 }
             } else if (t.type === 'WITHDRAWAL') {
                 s.totalWithdrawals += t.amount;
-                if (t.incomeSource === 'COD') s.codPool -= t.amount;
-                if (t.incomeSource === 'PREPAID') s.prepaidPool -= t.amount;
             } else if (t.type === 'REPAYMENT') {
                 s.totalRepayments += t.amount;
-                if (t.incomeSource === 'COD') s.codPool -= t.amount;
-                if (t.incomeSource === 'PREPAID') s.prepaidPool -= t.amount;
             }
         });
 
