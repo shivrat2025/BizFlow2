@@ -1088,7 +1088,7 @@ const App: React.FC = () => {
 
                 {activeTab === 'dashboard' && <Dashboard stats={currentStats} accounts={computedAccounts} transactions={transactions} categories={categories} onBackup={handleExport} />}
 
-                {activeTab === 'accounts' && <AccountManager accounts={computedAccounts} onAdd={handleAddAccount} onUpdate={handleUpdateAccount} onDelete={handleDeleteAccount} onRestoreFromDump={handleRestoreFromLocalDump} />}
+                {activeTab === 'accounts' && <AccountManager accounts={computedAccounts} transactions={transactions} onAdd={handleAddAccount} onUpdate={handleUpdateAccount} onDelete={handleDeleteAccount} onRestoreFromDump={handleRestoreFromLocalDump} />}
                 {activeTab === 'history' && (
                     <HistoryList
                         transactions={transactions}
