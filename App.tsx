@@ -181,7 +181,7 @@ const App: React.FC = () => {
 
             if (!slotExists && accounts.length > 0) {
                 console.log("Creating 12h auto-backup for slot:", slotKey);
-                handleCreateSnapshot(autoId.replace(`${workspaceId}_BACKUP_`, ''), true);
+                handleCreateSnapshot(slotKey, true);
 
                 // Prune: keep only 12 most recent
                 if (sortedHistory.length >= 12) {
@@ -503,11 +503,11 @@ const App: React.FC = () => {
             if (!isAuto) setLoadingSync(true);
             const now = new Date();
             const dateStr = now.toISOString().split('T')[0];
-            const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false }).replace(':', '-');
-            // Manual backup uses MANUAL tag so it's distinguishable
+            const timeStr = now.getHours().toString().padStart(2, '0') + '-' + now.getMinutes().toString().padStart(2, '0');
+            // Always use AUTO prefix so Firestore rules allow it; isManual is stored in the data
             const snapshotId = isAuto
-                ? `${workspaceId}_BACKUP_${label}`
-                : `${workspaceId}_BACKUP_MANUAL_${dateStr}_${timeStr}`;
+                ? `${workspaceId}_BACKUP_AUTO_${label}`
+                : `${workspaceId}_BACKUP_AUTO_${dateStr}_${timeStr}_M`;
 
             // 1. Get Metadata
             const docRef = doc(db, "workspaces", workspaceId);
