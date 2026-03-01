@@ -428,29 +428,19 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
                         <span className="text-[10px] font-bold text-slate-600">{formatDate(t.date)}</span>
                       </div>
                     </td>
-                    <td className="px-2 py-2">
-                      <div className="flex items-center gap-3">
-                        <div className="p-1 bg-slate-50 rounded-lg">{getIcon(t)}</div>
-                        <div>
-                          <p className="font-black text-slate-800 text-[10px] uppercase tracking-tight">
-                            {t.type === 'EXPENSE' ? getCategoryLabel(t.expenseCategory) :
-                              t.type === 'INCOME' ? (t.incomeSource === 'COD' ? 'COD Sale' : 'Prepaid Sale') :
-                                t.type}
-                          </p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            {t.incomeSource && (
-                              <span className={`px-1.5 py-0.5 rounded text-[7px] font-black uppercase ring-1 ring-inset ${t.incomeSource === 'COD' ? 'bg-indigo-50 text-indigo-600 ring-indigo-200' :
-                                t.incomeSource === 'PREPAID' ? 'bg-emerald-50 text-emerald-600 ring-emerald-200' :
-                                  'bg-slate-50 text-slate-500 ring-slate-200'
-                                }`}>
-                                {t.incomeSource}
-                              </span>
-                            )}
-                            <span className="text-[9px] text-slate-400 truncate max-w-[80px]">
-                              {t.description || 'No description'}
-                            </span>
-                          </div>
-                        </div>
+                    <td className="px-2 py-1 truncate">
+                      <div className="flex items-center gap-1.5">
+                        <div className="p-0.5 bg-slate-50 rounded flex-shrink-0">{getIcon(t)}</div>
+                        <span className="font-black text-slate-800 text-[9px] uppercase tracking-tight whitespace-nowrap">
+                          {t.type === 'EXPENSE' ? getCategoryLabel(t.expenseCategory) :
+                            t.type === 'INCOME' ? (t.incomeSource === 'COD' ? 'COD Sale' : 'Prepaid Sale') : t.type}
+                        </span>
+                        {t.incomeSource && (
+                          <span className={`px-1 py-0.5 rounded text-[6px] font-black uppercase ring-1 ring-inset flex-shrink-0 ${t.incomeSource === 'COD' ? 'bg-indigo-50 text-indigo-600 ring-indigo-200' : t.incomeSource === 'PREPAID' ? 'bg-emerald-50 text-emerald-600 ring-emerald-200' : 'bg-slate-50 text-slate-500 ring-slate-200'}`}>
+                            {t.incomeSource}
+                          </span>
+                        )}
+                        <span className="text-[8px] text-slate-400 truncate">{t.description}</span>
                       </div>
                     </td>
                     <td className="px-2 py-1.5 text-[10px] font-bold text-slate-500">
@@ -459,75 +449,72 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
                         <span className="ml-1 text-slate-300 font-normal">→ {getAccountName(t.destinationAccountId)}</span>
                       )}
                     </td>
-                    <td className="px-2 py-2">
+                    <td className="px-2 py-1">
                       {t.expenseCategory === 'PRODUCT' && (
-                        <div className="flex flex-col gap-2 min-w-[100px]">
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {/* Bill */}
                           {t.invoiceUrl ? (
-                            <div className="flex items-center gap-1">
-                              <button onClick={() => setViewingAttachment({ url: t.invoiceUrl!, title: 'Invoice/Bill' })} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-100 rounded-lg text-[8px] font-black uppercase text-indigo-600 hover:bg-indigo-100 transition-all">
-                                <FileText size={10} /> View Bill
+                            <div className="flex items-center gap-0.5">
+                              <button onClick={() => setViewingAttachment({ url: t.invoiceUrl!, title: 'Invoice/Bill' })} className="flex items-center gap-0.5 px-1.5 py-0.5 bg-indigo-50 border border-indigo-100 rounded text-[7px] font-black uppercase text-indigo-600 hover:bg-indigo-100">
+                                <FileText size={8} />Bill
                               </button>
-                              <button onClick={() => { if (confirm('Remove this bill?')) onUpdate(t.id, { invoiceUrl: '' }) }} className="p-1.5 bg-rose-50 border border-rose-100 rounded-lg text-rose-500 hover:bg-rose-100 transition-all">
-                                <Trash2 size={10} />
+                              <button onClick={() => { if (confirm('Remove bill?')) onUpdate(t.id, { invoiceUrl: '' }) }} className="p-0.5 text-rose-400 hover:text-rose-600">
+                                <Trash2 size={9} />
                               </button>
                             </div>
                           ) : (
-                            <div className="relative">
+                            <div>
                               <input type="file" accept="image/*,application/pdf" onChange={(e) => handleRowFileChange(e, t.id, 'invoiceUrl')} className="hidden" id={`bill-${t.id}`} />
-                              <label htmlFor={`bill-${t.id}`} className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white/50 border border-indigo-100/30 rounded-lg text-[8px] font-black uppercase text-slate-500 hover:bg-white hover:border-indigo-200 hover:text-indigo-500 cursor-pointer transition-all">
-                                <FileText size={10} /> Attach Bill
+                              <label htmlFor={`bill-${t.id}`} className="flex items-center gap-0.5 px-1.5 py-0.5 bg-white border border-slate-200 rounded text-[7px] font-black uppercase text-slate-400 hover:border-indigo-300 hover:text-indigo-500 cursor-pointer">
+                                <FileText size={8} />+Bill
                               </label>
                             </div>
                           )}
-
+                          {/* Proof */}
                           {t.paymentProofUrl ? (
-                            <div className="flex items-center gap-1">
-                              <button onClick={() => setViewingAttachment({ url: t.paymentProofUrl!, title: 'Payment Proof' })} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-100 rounded-lg text-[8px] font-black uppercase text-emerald-600 hover:bg-emerald-100 transition-all">
-                                <Check size={10} /> View Proof
+                            <div className="flex items-center gap-0.5">
+                              <button onClick={() => setViewingAttachment({ url: t.paymentProofUrl!, title: 'Payment Proof' })} className="flex items-center gap-0.5 px-1.5 py-0.5 bg-emerald-50 border border-emerald-100 rounded text-[7px] font-black uppercase text-emerald-600 hover:bg-emerald-100">
+                                <Check size={8} />Proof
                               </button>
-                              <button onClick={() => { if (confirm('Remove this proof?')) onUpdate(t.id, { paymentProofUrl: '' }) }} className="p-1.5 bg-rose-50 border border-rose-100 rounded-lg text-rose-500 hover:bg-rose-100 transition-all">
-                                <Trash2 size={10} />
+                              <button onClick={() => { if (confirm('Remove proof?')) onUpdate(t.id, { paymentProofUrl: '' }) }} className="p-0.5 text-rose-400 hover:text-rose-600">
+                                <Trash2 size={9} />
                               </button>
                             </div>
                           ) : (
-                            <div className="relative">
+                            <div>
                               <input type="file" accept="image/*,application/pdf" onChange={(e) => handleRowFileChange(e, t.id, 'paymentProofUrl')} className="hidden" id={`proof-${t.id}`} />
-                              <label htmlFor={`proof-${t.id}`} className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white/50 border border-indigo-100/30 rounded-lg text-[8px] font-black uppercase text-slate-500 hover:bg-white hover:border-emerald-200 hover:text-emerald-500 cursor-pointer transition-all">
-                                <Check size={10} /> Attach Proof
+                              <label htmlFor={`proof-${t.id}`} className="flex items-center gap-0.5 px-1.5 py-0.5 bg-white border border-slate-200 rounded text-[7px] font-black uppercase text-slate-400 hover:border-emerald-300 hover:text-emerald-500 cursor-pointer">
+                                <Check size={8} />+Proof
                               </label>
                             </div>
                           )}
                         </div>
                       )}
                     </td>
-                    <td className="px-2 py-2">
-                      <div className="space-y-1.5 max-w-[120px]">
+                    <td className="px-2 py-1">
+                      <div className="flex flex-col gap-0.5">
                         {t.tags && t.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
+                          <div className="flex flex-wrap gap-0.5">
                             {t.tags.map(tag => (
-                              <span key={tag} className="px-1.5 py-0.5 bg-slate-100 text-slate-500 text-[8px] font-bold uppercase rounded-md border border-slate-200">
-                                {tag}
-                              </span>
+                              <span key={tag} className="px-1 py-0 bg-slate-100 text-slate-500 text-[7px] font-bold uppercase rounded border border-slate-200">{tag}</span>
                             ))}
                           </div>
                         )}
                         {t.notes && (
-                          <div className="text-[9px] text-slate-400 font-medium italic truncate" title={t.notes}>
-                            "{t.notes}"
-                          </div>
+                          <div className="text-[8px] text-slate-400 font-medium italic truncate max-w-[120px]" title={t.notes}>"{t.notes}"</div>
                         )}
                       </div>
                     </td>
-                    <td className="px-2 py-2 text-right">
+                    <td className="px-2 py-1 text-right">
                       <span className={`font-mono font-black text-sm ${(t.type === 'INCOME') ? 'text-emerald-600' : 'text-rose-600'}`}>
                         {(t.type === 'INCOME') ? '+' : '-'}₹{t.amount.toLocaleString()}
                       </span>
                     </td>
-                    <td className="px-2 py-2 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => onDuplicate(t)} className="p-2 text-slate-300 hover:text-green-600" title="Duplicate"><Copy size={16} /></button>
-                        <button onClick={() => onEdit(t)} className="p-2 text-slate-300 hover:text-indigo-600"><Pencil size={16} /></button>
-                        <button onClick={() => deleteTransaction(t.id)} className="p-2 text-slate-300 hover:text-red-500"><Trash2 size={16} /></button>
+                    <td className="px-2 py-1 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <button onClick={() => onDuplicate(t)} className="p-1 text-slate-300 hover:text-green-600" title="Duplicate"><Copy size={13} /></button>
+                        <button onClick={() => onEdit(t)} className="p-1 text-slate-300 hover:text-indigo-600"><Pencil size={13} /></button>
+                        <button onClick={() => deleteTransaction(t.id)} className="p-1 text-slate-300 hover:text-red-500"><Trash2 size={13} /></button>
                       </div>
                     </td>
                   </tr>
