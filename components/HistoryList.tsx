@@ -455,7 +455,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
                       return (
                         <div className="flex items-center gap-1.5">
                           {logo ? (
-                            <img src={logo.url} alt={name} className="w-5 h-5 rounded object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                            <img src={logo} alt={name} className="w-5 h-5 rounded object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                           ) : null}
                           <div>
                             <div className="text-[10px] font-semibold text-slate-600 truncate">{name}</div>

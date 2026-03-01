@@ -194,7 +194,7 @@ const AccountCard: React.FC<{ acc: Account, editingId: string | null, handleEdit
         {(() => {
           const logo = getBankLogo(acc.name);
           return logo ? (
-            <img src={logo.url} alt={acc.name} className="w-8 h-8 rounded-xl object-contain bg-white border border-slate-100 shadow-sm flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            <img src={logo} alt={acc.name} className="w-8 h-8 rounded-xl object-contain bg-white border border-slate-100 shadow-sm flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
           ) : (
             <div className={`p-2 rounded-xl ${acc.type === 'BANK' ? 'bg-indigo-50 text-indigo-600' : acc.type === 'CURRENT' ? 'bg-emerald-50 text-emerald-600' : acc.type === 'CREDIT_CARD' ? 'bg-purple-50 text-purple-600' : 'bg-rose-50 text-rose-600'}`}>
               {acc.type === 'BANK' ? <Landmark size={14} /> : acc.type === 'CURRENT' ? <Wallet size={14} /> : <CreditCard size={14} />}
