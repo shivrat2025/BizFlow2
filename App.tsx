@@ -145,42 +145,47 @@ const App: React.FC = () => {
     useEffect(() => {
         if (workspaceId) localStorage.setItem('bizflow_workspace_id', workspaceId.trim());
 
-        // Fetch historical backups on login/refresh
+        // Fetch historical backups + run 12-hour auto-backup logic
         const fetchBackups = async () => {
             if (!workspaceId) return;
             const backupsRef = collection(db, "backups");
-            // Note: We'd ideally use a query here, but listing by ID prefix is safer for simple Firestore rules
             const snap = await getDocs(backupsRef);
             const history: any[] = [];
-            const manualSlots: any = {};
 
-            snap.forEach(doc => {
-                if (doc.id.startsWith(`${workspaceId}_BACKUP_`)) {
-                    const data = doc.data();
+            snap.forEach(d => {
+                if (d.id.startsWith(`${workspaceId}_BACKUP_`)) {
+                    const data = d.data();
+                    const ts = data.snapshotDate;
                     history.push({
-                        id: doc.id,
-                        date: data.snapshotDate,
-                        label: new Date(data.snapshotDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+                        id: d.id,
+                        date: ts,
+                        isManual: !!data.isManual,
+                        label: new Date(ts).toLocaleString('en-IN', {
+                            day: '2-digit', month: 'short', year: 'numeric',
+                            hour: '2-digit', minute: '2-digit', hour12: true
+                        })
                     });
                 }
             });
 
             setSnapshotDates({});
             const sortedHistory = history.sort((a, b) => b.date - a.date);
-            setAvailableBackups(sortedHistory.slice(0, 3));
+            setAvailableBackups(sortedHistory.slice(0, 12));
 
-            // Automatic Daily Backup Check
-            const today = new Date().toISOString().split('T')[0];
-            const autoId = `${workspaceId}_BACKUP_AUTO_${today}`;
-            const exists = history.some(h => h.id === autoId);
+            // 12-hour auto-backup: slot = date + AM/PM (00 or 12)
+            const now = new Date();
+            const slotHour = now.getHours() < 12 ? '00' : '12';
+            const slotKey = `${now.toISOString().split('T')[0]}_${slotHour}`;
+            const autoId = `${workspaceId}_BACKUP_AUTO_${slotKey}`;
+            const slotExists = history.some(h => h.id === autoId);
 
-            if (!exists && accounts.length > 0) {
-                console.log("Creating daily auto-backup...");
-                handleCreateSnapshot(`AUTO_${today}`, true);
+            if (!slotExists && accounts.length > 0) {
+                console.log("Creating 12h auto-backup for slot:", slotKey);
+                handleCreateSnapshot(autoId.replace(`${workspaceId}_BACKUP_`, ''), true);
 
-                // Cleanup: Delete backups older than 3 days
-                if (sortedHistory.length >= 3) {
-                    const toDelete = sortedHistory.slice(3);
+                // Prune: keep only 12 most recent
+                if (sortedHistory.length >= 12) {
+                    const toDelete = sortedHistory.slice(12);
                     toDelete.forEach(async (oldSnap) => {
                         try {
                             const oldTxsRef = collection(db, "backups", oldSnap.id, "transactions");
@@ -197,6 +202,10 @@ const App: React.FC = () => {
             }
         };
         fetchBackups();
+
+        // Re-check every 30 minutes so 12h backup triggers automatically while app is open
+        const autoInterval = setInterval(fetchBackups, 30 * 60 * 1000);
+        return () => clearInterval(autoInterval);
     }, [workspaceId, accounts.length > 0]);
 
     const calculateStats = (accs: Account[], txs: Transaction[]): DashboardStats => {
@@ -492,9 +501,13 @@ const App: React.FC = () => {
         if (!workspaceId) return;
         try {
             if (!isAuto) setLoadingSync(true);
-            const today = new Date().toISOString().split('T')[0];
-            const timeStr = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false }).replace(':', '-');
-            const snapshotId = `${workspaceId}_BACKUP_AUTO_${today}_${timeStr}`;
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false }).replace(':', '-');
+            // Manual backup uses MANUAL tag so it's distinguishable
+            const snapshotId = isAuto
+                ? `${workspaceId}_BACKUP_${label}`
+                : `${workspaceId}_BACKUP_MANUAL_${dateStr}_${timeStr}`;
 
             // 1. Get Metadata
             const docRef = doc(db, "workspaces", workspaceId);
@@ -503,16 +516,21 @@ const App: React.FC = () => {
 
             if (!meta) return;
 
+            const snapshotLabel = isAuto
+                ? `Auto · ${now.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}`
+                : `Manual · ${now.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}`;
+
             // 2. Save Backup Metadata
             const backupRef = doc(db, "backups", snapshotId);
             await setDoc(backupRef, {
                 ...meta,
                 snapshotDate: Date.now(),
-                label: label,
+                label: snapshotLabel,
+                isManual: !isAuto,
                 originalWorkspace: workspaceId
             });
 
-            // 3. Save Backup Transactions (Chunked batching to handle 500+ items)
+            // 3. Save Backup Transactions (Chunked batching)
             const txsRef = collection(db, "workspaces", workspaceId, "transactions");
             const txsSnap = await getDocs(txsRef);
             const backupTxsRef = collection(db, "backups", snapshotId, "transactions");
@@ -528,7 +546,7 @@ const App: React.FC = () => {
                 await batch.commit();
             }
 
-            // Refresh available backups and keep only the latest 3
+            // 4. Refresh backup list and prune to 12
             const backupsRef = collection(db, "backups");
             const snap = await getDocs(backupsRef);
             const history: any[] = [];
@@ -538,16 +556,20 @@ const App: React.FC = () => {
                     history.push({
                         id: d.id,
                         date: data.snapshotDate,
-                        label: new Date(data.snapshotDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+                        isManual: !!data.isManual,
+                        label: data.label || new Date(data.snapshotDate).toLocaleString('en-IN', {
+                            day: '2-digit', month: 'short', year: 'numeric',
+                            hour: '2-digit', minute: '2-digit', hour12: true
+                        })
                     });
                 }
             });
 
             const sortedHistory = history.sort((a, b) => b.date - a.date);
 
-            // Delete older backups beyond the 3 recent ones from the cloud
-            if (sortedHistory.length > 3) {
-                const backupsToDelete = sortedHistory.slice(3);
+            // Prune beyond 12
+            if (sortedHistory.length > 12) {
+                const backupsToDelete = sortedHistory.slice(12);
                 for (const oldBackup of backupsToDelete) {
                     try {
                         const oldTxsRef = collection(db, "backups", oldBackup.id, "transactions");
@@ -562,12 +584,12 @@ const App: React.FC = () => {
                 }
             }
 
-            setAvailableBackups(sortedHistory.slice(0, 3));
+            setAvailableBackups(sortedHistory.slice(0, 12));
 
-            if (!isAuto) alert("Protection Point Saved Successfully!");
+            if (!isAuto) alert("✅ Backup Saved Successfully!");
         } catch (e) {
             console.error("Snapshot Error:", e);
-            if (!isAuto) alert("Failed to create snapshot");
+            if (!isAuto) alert("Failed to create backup");
         } finally {
             if (!isAuto) setLoadingSync(false);
         }
@@ -1145,6 +1167,7 @@ const App: React.FC = () => {
                     <BackupManager
                         backups={availableBackups}
                         onRestore={handleRestoreFromSnapshot}
+                        onCreateSnapshot={handleCreateSnapshot}
                         loading={loadingSync}
                     />
                 )}
