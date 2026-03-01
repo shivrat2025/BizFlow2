@@ -1,7 +1,115 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Trash2, Landmark, CreditCard, Pencil, Wallet, RefreshCw, AlertCircle, X, TrendingUp, TrendingDown, FileText, ArrowUpDown } from 'lucide-react';
+import { Plus, Trash2, Landmark, CreditCard, Pencil, Wallet, RefreshCw, AlertCircle, X, TrendingUp, TrendingDown, FileText, ArrowUpDown, CheckCircle2, XCircle, Activity } from 'lucide-react';
 import { Account, AccountType, Transaction } from '../types';
 import { getBankLogo } from '../utils/bankLogos';
+
+// ─── Cash Flow Summary Banner ─────────────────────────────────────────────────
+const CashFlowSummary: React.FC<{ accounts: Account[] }> = ({ accounts }) => {
+  const totalBalance = useMemo(() =>
+    accounts
+      .filter(a => ['BANK', 'CURRENT'].includes(a.type) && !a.name.toUpperCase().includes('OD'))
+      .reduce((s, a) => s + a.balance, 0),
+    [accounts]
+  );
+
+  const totalDebt = useMemo(() => {
+    let debt = 0;
+    accounts.forEach(a => {
+      if (a.type === 'OD' || a.name.toUpperCase().includes('OD')) {
+        // OD balance is available; debt = how much is drawn = limit - balance (if balance < 0, debt = |balance|)
+        const drawn = a.balance < 0 ? Math.abs(a.balance) : 0;
+        debt += drawn;
+      }
+      if (a.type === 'CREDIT_CARD') {
+        // used amount = limit - balance
+        const used = a.limit ? Math.max(0, a.limit - a.balance) : 0;
+        debt += used;
+      }
+    });
+    return debt;
+  }, [accounts]);
+
+  const net = totalBalance - totalDebt;
+  const isPositive = net >= 0;
+
+  if (accounts.length === 0) return null;
+
+  return (
+    <div className="rounded-[2rem] overflow-hidden shadow-[0_12px_40px_rgb(0,0,0,0.08)] border border-white/60 mb-2">
+      {/* Split Panel */}
+      <div className="grid grid-cols-2">
+        {/* LEFT — Balances */}
+        <div className="relative p-5 bg-gradient-to-br from-emerald-500 to-teal-600 flex flex-col justify-between min-h-[120px]">
+          {/* subtle pattern */}
+          <div className="absolute inset-0 opacity-10"
+            style={{ backgroundImage: 'radial-gradient(circle at 20% 80%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+          <div className="relative">
+            <div className="flex items-center gap-1.5 mb-1">
+              <TrendingUp size={11} className="text-emerald-100" />
+              <span className="text-[9px] font-black uppercase tracking-widest text-emerald-100">Total Balances</span>
+            </div>
+            <p className="text-2xl font-black text-white tracking-tight leading-none">
+              ₹{totalBalance.toLocaleString('en-IN')}
+            </p>
+            <p className="text-[8px] text-emerald-100 font-semibold mt-1.5">Bank &amp; Current Accounts</p>
+          </div>
+          <div className="relative mt-3 flex gap-2 flex-wrap">
+            {accounts.filter(a => ['BANK', 'CURRENT'].includes(a.type) && !a.name.toUpperCase().includes('OD')).map(a => (
+              <span key={a.id} className="bg-white/20 text-white text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+                {a.name.split(' ')[0]}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* RIGHT — Debt */}
+        <div className="relative p-5 bg-gradient-to-br from-rose-500 to-orange-500 flex flex-col justify-between min-h-[120px]">
+          <div className="absolute inset-0 opacity-10"
+            style={{ backgroundImage: 'radial-gradient(circle at 80% 80%, white 1px, transparent 1px), radial-gradient(circle at 20% 20%, white 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+          <div className="relative">
+            <div className="flex items-center gap-1.5 mb-1">
+              <TrendingDown size={11} className="text-rose-100" />
+              <span className="text-[9px] font-black uppercase tracking-widest text-rose-100">Total Debt</span>
+            </div>
+            <p className="text-2xl font-black text-white tracking-tight leading-none">
+              ₹{totalDebt.toLocaleString('en-IN')}
+            </p>
+            <p className="text-[8px] text-rose-100 font-semibold mt-1.5">OD &amp; Credit Card Used</p>
+          </div>
+          <div className="relative mt-3 flex gap-2 flex-wrap">
+            {accounts.filter(a => a.type === 'OD' || a.name.toUpperCase().includes('OD') || a.type === 'CREDIT_CARD').map(a => (
+              <span key={a.id} className="bg-white/20 text-white text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+                {a.name.split(' ')[0]}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* NET CASH FLOW BAR */}
+      <div className={`flex items-center justify-between px-5 py-3 ${isPositive ? 'bg-emerald-950' : 'bg-rose-950'}`}>
+        <div className="flex items-center gap-2">
+          <Activity size={13} className={isPositive ? 'text-emerald-400' : 'text-rose-400'} />
+          <span className="text-[9px] font-black uppercase tracking-widest text-white/60">Net Cash Flow</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={`text-base font-black tracking-tight ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
+            {isPositive ? '+' : '−'}₹{Math.abs(net).toLocaleString('en-IN')}
+          </span>
+          <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full ${isPositive ? 'bg-emerald-500/20' : 'bg-rose-500/20'}`}>
+            {isPositive
+              ? <CheckCircle2 size={10} className="text-emerald-400" />
+              : <XCircle size={10} className="text-rose-400" />
+            }
+            <span className={`text-[8px] font-black uppercase tracking-widest ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {isPositive ? 'Positive' : 'Negative'}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 interface Props {
   accounts: Account[];
@@ -295,6 +403,9 @@ const AccountManager: React.FC<Props> = ({ accounts, transactions, onAdd, onUpda
           onClose={() => setStatementAcc(null)}
         />
       )}
+
+      {/* Cash Flow Summary */}
+      <CashFlowSummary accounts={accounts} />
 
       {/* Add / Edit Form */}
       <div className="bg-white/70 backdrop-blur-3xl p-5 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50">
