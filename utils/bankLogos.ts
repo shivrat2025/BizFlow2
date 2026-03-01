@@ -1,41 +1,52 @@
-// Maps bank/card names to real logo URLs via Clearbit Logo API (high quality)
-// SBI CARD must come before SBI so the more-specific match wins
-const BANK_DOMAIN_MAP: { keywords: string[]; domain: string }[] = [
-    // Credit cards (more specific — must come before parent banks)
-    { keywords: ['sbi card', 'sbicard', 'sbi credit'], domain: 'sbicard.com' },
-    { keywords: ['hdfc credit', 'hdfc card'], domain: 'hdfcbank.com' },
-    { keywords: ['icici credit', 'icici card'], domain: 'icicibank.com' },
-    { keywords: ['axis credit', 'axis card'], domain: 'axisbank.com' },
+// Bank logo mapping — keywords match account name (case-insensitive)
+// More specific entries (e.g. SBI CARD) must come before general ones (SBI)
+const BANK_MAP: { keywords: string[]; domain: string; bg: string; color: string }[] = [
+    // Credit Cards (specific first)
+    { keywords: ['sbi card', 'sbicard', 'sbi credit card'], domain: 'sbicard.com', bg: '#22409A', color: '#fff' },
+    { keywords: ['hdfc credit', 'hdfc card'], domain: 'hdfcbank.com', bg: '#004C8F', color: '#fff' },
+    { keywords: ['icici credit', 'icici card'], domain: 'icicibank.com', bg: '#F17B21', color: '#fff' },
+    { keywords: ['axis credit', 'axis card'], domain: 'axisbank.com', bg: '#97144D', color: '#fff' },
 
     // Banks
-    { keywords: ['idfc first', 'idfcfirst', 'idfc bank', 'idfc'], domain: 'idfcfirstbank.com' },
-    { keywords: ['indusind', 'indus ind'], domain: 'indusind.com' },
-    { keywords: ['icici'], domain: 'icicibank.com' },
-    { keywords: ['sbi', 'state bank of india', 'state bank'], domain: 'sbi.co.in' },
-    { keywords: ['hdfc'], domain: 'hdfcbank.com' },
-    { keywords: ['axis'], domain: 'axisbank.com' },
-    { keywords: ['kotak'], domain: 'kotak.com' },
-    { keywords: ['yes bank', 'yesbank'], domain: 'yesbank.in' },
-    { keywords: ['pnb', 'punjab national'], domain: 'pnbindia.in' },
-    { keywords: ['bank of baroda', 'bob bank'], domain: 'bankofbaroda.in' },
-    { keywords: ['canara'], domain: 'canarabank.com' },
-    { keywords: ['federal bank'], domain: 'federalbank.co.in' },
-    { keywords: ['rbl'], domain: 'rblbank.com' },
-    { keywords: ['au bank', 'au small'], domain: 'aubank.in' },
-    { keywords: ['paytm'], domain: 'paytm.com' },
-    { keywords: ['razorpay'], domain: 'razorpay.com' },
-    { keywords: ['amazon pay', 'amazonpay'], domain: 'amazon.in' },
+    { keywords: ['idfc first', 'idfcfirst', 'idfc bank', 'idfc'], domain: 'idfcfirstbank.com', bg: '#E8001C', color: '#fff' },
+    { keywords: ['indusind', 'indus ind'], domain: 'indusind.com', bg: '#1B4D8E', color: '#fff' },
+    { keywords: ['icici'], domain: 'icicibank.com', bg: '#F17B21', color: '#fff' },
+    { keywords: ['sbi', 'state bank'], domain: 'sbi.co.in', bg: '#22409A', color: '#fff' },
+    { keywords: ['hdfc'], domain: 'hdfcbank.com', bg: '#004C8F', color: '#fff' },
+    { keywords: ['axis'], domain: 'axisbank.com', bg: '#97144D', color: '#fff' },
+    { keywords: ['kotak'], domain: 'kotak.com', bg: '#E31837', color: '#fff' },
+    { keywords: ['yes bank', 'yesbank'], domain: 'yesbank.in', bg: '#00529F', color: '#fff' },
+    { keywords: ['pnb', 'punjab national'], domain: 'pnbindia.in', bg: '#EC1C24', color: '#fff' },
+    { keywords: ['bank of baroda'], domain: 'bankofbaroda.in', bg: '#F58220', color: '#fff' },
+    { keywords: ['canara'], domain: 'canarabank.com', bg: '#003087', color: '#fff' },
+    { keywords: ['federal bank'], domain: 'federalbank.co.in', bg: '#003087', color: '#fff' },
+    { keywords: ['rbl'], domain: 'rblbank.com', bg: '#004B87', color: '#fff' },
+    { keywords: ['au bank', 'au small'], domain: 'aubank.in', bg: '#E31837', color: '#fff' },
+    { keywords: ['paytm'], domain: 'paytm.com', bg: '#00B9F1', color: '#fff' },
+    { keywords: ['razorpay'], domain: 'razorpay.com', bg: '#2D81F7', color: '#fff' },
 ];
 
-// Use Clearbit Logo API (high quality, proper logos)
-const CLEARBIT = 'https://logo.clearbit.com';
+export interface BankLogoInfo {
+    // Google Favicon — always resolves, never 404
+    url: string;
+    bg: string;
+    color: string;
+    initials: string;
+}
 
-export function getBankLogo(accountName: string): string | null {
+export function getBankLogo(accountName: string): BankLogoInfo | null {
     if (!accountName) return null;
-    const lower = accountName.toLowerCase();
-    for (const entry of BANK_DOMAIN_MAP) {
+    const lower = accountName.toLowerCase().trim();
+
+    for (const entry of BANK_MAP) {
         if (entry.keywords.some(k => lower.includes(k))) {
-            return `${CLEARBIT}/${entry.domain}?size=64`;
+            return {
+                // sz=128 gives a crisp 64px display; Google always returns something
+                url: `https://www.google.com/s2/favicons?sz=128&domain_url=https://${entry.domain}`,
+                bg: entry.bg,
+                color: entry.color,
+                initials: accountName.split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase(),
+            };
         }
     }
     return null;

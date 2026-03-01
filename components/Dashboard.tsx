@@ -146,7 +146,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
               return (
                 <div key={acc.id} className="flex justify-between items-center text-[7px] font-black text-slate-400 uppercase tracking-tight">
                   <div className="flex items-center gap-1">
-                    {logo && <img src={logo} alt={acc.name} className="w-4 h-4 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
+                    {logo && <img src={logo.url} alt={acc.name} className="w-4 h-4 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
                     <span className="truncate max-w-[50px]">{acc.name}</span>
                   </div>
                   <span className="text-slate-600">₹{acc.balance.toLocaleString()}</span>
@@ -170,7 +170,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
               return (
                 <div key={acc.id} className="flex justify-between items-center text-[7px] font-black text-slate-400 uppercase tracking-tight">
                   <div className="flex items-center gap-1">
-                    {logo && <img src={logo} alt={acc.name} className="w-4 h-4 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
+                    {logo && <img src={logo.url} alt={acc.name} className="w-4 h-4 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
                     <span className="truncate max-w-[50px]">{acc.name}</span>
                   </div>
                   <span className="text-rose-600">₹{acc.debt.toLocaleString()}</span>

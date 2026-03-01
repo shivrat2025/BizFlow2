@@ -193,9 +193,23 @@ const AccountCard: React.FC<{ acc: Account, editingId: string | null, handleEdit
       <div className="flex items-center gap-2">
         {(() => {
           const logo = getBankLogo(acc.name);
-          return logo ? (
-            <img src={logo} alt={acc.name} className="w-8 h-8 rounded-xl object-contain bg-white border border-slate-100 shadow-sm flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-          ) : (
+          if (logo) {
+            return (
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden border border-slate-100 shadow-sm"
+                style={{ background: logo.bg }}>
+                <img
+                  src={logo.url}
+                  alt={acc.name}
+                  className="w-7 h-7 object-contain"
+                  onError={(e) => {
+                    const parent = (e.target as HTMLImageElement).parentElement!;
+                    parent.innerHTML = `<span style="color:${logo.color};font-size:11px;font-weight:900;letter-spacing:-0.5px">${logo.initials}</span>`;
+                  }}
+                />
+              </div>
+            );
+          }
+          return (
             <div className={`p-2 rounded-xl ${acc.type === 'BANK' ? 'bg-indigo-50 text-indigo-600' : acc.type === 'CURRENT' ? 'bg-emerald-50 text-emerald-600' : acc.type === 'CREDIT_CARD' ? 'bg-purple-50 text-purple-600' : 'bg-rose-50 text-rose-600'}`}>
               {acc.type === 'BANK' ? <Landmark size={14} /> : acc.type === 'CURRENT' ? <Wallet size={14} /> : <CreditCard size={14} />}
             </div>
