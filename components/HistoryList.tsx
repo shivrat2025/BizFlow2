@@ -376,18 +376,18 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
           </colgroup>
           <thead className="bg-white/50 text-slate-500 text-[9px] uppercase tracking-widest font-black border-b border-white/40">
             <tr>
-              <th className="px-3 py-2.5 cursor-pointer" onClick={() => toggleSort('createdAt')}>
+              <th className="px-3 py-2 cursor-pointer" onClick={() => toggleSort('createdAt')}>
                 <div className="flex items-center gap-1">Entered At <SortIcon k="createdAt" /></div>
               </th>
-              <th className="px-3 py-2.5 cursor-pointer" onClick={() => toggleSort('date')}>
+              <th className="px-3 py-2 cursor-pointer" onClick={() => toggleSort('date')}>
                 <div className="flex items-center gap-1">Tx Date <SortIcon k="date" /></div>
               </th>
-              <th className="px-3 py-2.5">Details</th>
-              <th className="px-3 py-2.5">Account</th>
-              <th className="px-3 py-2.5 text-right cursor-pointer" onClick={() => toggleSort('amount')}>
+              <th className="px-3 py-2">Details</th>
+              <th className="px-3 py-2">Account</th>
+              <th className="px-3 py-2 text-right cursor-pointer" onClick={() => toggleSort('amount')}>
                 <div className="flex items-center justify-end gap-1">Amount <SortIcon k="amount" /></div>
               </th>
-              <th className="px-3 py-2.5 text-center">Actions</th>
+              <th className="px-3 py-2 text-center">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50/80">
@@ -401,7 +401,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
               filteredTransactions.map(t => (
                 <tr key={t.id} className="hover:bg-indigo-50/20 transition-colors">
                   {/* Entered At */}
-                  <td className="px-3 py-2 whitespace-nowrap align-top">
+                  <td className="px-3 py-1 whitespace-nowrap align-middle">
                     {t.createdAt ? (
                       <div className="flex flex-col leading-tight">
                         <span className="text-[9px] font-bold text-slate-400">{new Date(t.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }).toUpperCase()}</span>
@@ -410,11 +410,11 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
                     ) : <span className="text-[9px] text-slate-300">—</span>}
                   </td>
                   {/* Tx Date */}
-                  <td className="px-3 py-2 whitespace-nowrap align-top">
+                  <td className="px-3 py-1 whitespace-nowrap align-middle">
                     <span className="text-[9px] font-black text-slate-700">{new Date(t.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).toUpperCase()}</span>
                   </td>
                   {/* Details */}
-                  <td className="px-3 py-2 align-top">
+                  <td className="px-3 py-1 align-middle">
                     <div className="flex items-start gap-2">
                       <div className="p-1.5 bg-slate-50 rounded-lg flex-shrink-0 mt-0.5">{getIcon(t)}</div>
                       <div className="min-w-0 flex-1">
@@ -464,7 +464,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
                     </div>
                   </td>
                   {/* Account */}
-                  <td className="px-3 py-2 align-top">
+                  <td className="px-3 py-1 align-middle">
                     <div className="flex flex-col leading-tight">
                       <span className="text-[9px] font-bold text-slate-600 truncate">{getAccountName(t.sourceAccountId)}</span>
                       {t.type === 'REPAYMENT' && (
@@ -473,13 +473,13 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
                     </div>
                   </td>
                   {/* Amount */}
-                  <td className="px-3 py-2 text-right align-top">
+                  <td className="px-3 py-1 text-right align-middle">
                     <span className={`font-mono font-black text-sm ${t.type === 'INCOME' ? 'text-emerald-600' : 'text-rose-600'}`}>
                       {t.type === 'INCOME' ? '+' : '-'}₹{t.amount.toLocaleString()}
                     </span>
                   </td>
                   {/* Actions */}
-                  <td className="px-3 py-2 text-center align-top">
+                  <td className="px-3 py-1 text-center align-middle">
                     <div className="flex items-center justify-center gap-0.5">
                       <button onClick={() => onDuplicate(t)} className="p-1.5 text-slate-300 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all" title="Duplicate"><Copy size={13} /></button>
                       <button onClick={() => onEdit(t)} className="p-1.5 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all" title="Edit"><Pencil size={13} /></button>
