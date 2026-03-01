@@ -528,7 +528,7 @@ const App: React.FC = () => {
                 await batch.commit();
             }
 
-            // Refresh available backups
+            // Refresh available backups and keep only the latest 3
             const backupsRef = collection(db, "backups");
             const snap = await getDocs(backupsRef);
             const history: any[] = [];
@@ -542,7 +542,27 @@ const App: React.FC = () => {
                     });
                 }
             });
-            setAvailableBackups(history.sort((a, b) => b.date - a.date).slice(0, 3));
+
+            const sortedHistory = history.sort((a, b) => b.date - a.date);
+
+            // Delete older backups beyond the 3 recent ones from the cloud
+            if (sortedHistory.length > 3) {
+                const backupsToDelete = sortedHistory.slice(3);
+                for (const oldBackup of backupsToDelete) {
+                    try {
+                        const oldTxsRef = collection(db, "backups", oldBackup.id, "transactions");
+                        const oldTxsSnap = await getDocs(oldTxsRef);
+                        const delBatch = writeBatch(db);
+                        oldTxsSnap.forEach(d => delBatch.delete(doc(oldTxsRef, d.id)));
+                        delBatch.delete(doc(db, "backups", oldBackup.id));
+                        await delBatch.commit();
+                    } catch (err) {
+                        console.error("Cleanup error:", err);
+                    }
+                }
+            }
+
+            setAvailableBackups(sortedHistory.slice(0, 3));
 
             if (!isAuto) alert("Protection Point Saved Successfully!");
         } catch (e) {
@@ -580,8 +600,30 @@ const App: React.FC = () => {
             txsSnap.forEach(d => wipeBatch.delete(doc(txsRef, d.id)));
             await wipeBatch.commit();
 
-            // 2. Restore Metadata
-            await setDoc(doc(db, "workspaces", workspaceId), meta);
+            // 2. Restore Metadata (Safely Merge to prevent losing newly added accounts/categories)
+            const currentDocRef = doc(db, "workspaces", workspaceId);
+            const currentDocSnap = await getDoc(currentDocRef);
+            let mergedMeta = { ...meta };
+
+            if (currentDocSnap.exists()) {
+                const currentData = currentDocSnap.data();
+                const mergeArrays = (oldArr: any[] = [], currentArr: any[] = []) => {
+                    const map = new Map();
+                    // Put old (backup) items first
+                    oldArr.forEach(item => { if (item && item.id) map.set(item.id, item) });
+                    // Only add current items if they didn't exist in the backup at all
+                    currentArr.forEach(item => {
+                        if (item && item.id && !map.has(item.id)) map.set(item.id, item);
+                    });
+                    return Array.from(map.values());
+                };
+                mergedMeta.accounts = mergeArrays(meta.accounts, currentData.accounts);
+                mergedMeta.categories = mergeArrays(meta.categories, currentData.categories);
+                mergedMeta.suppliers = mergeArrays(meta.suppliers, currentData.suppliers);
+                mergedMeta.aiRules = mergeArrays(meta.aiRules, currentData.aiRules);
+            }
+
+            await setDoc(doc(db, "workspaces", workspaceId), mergedMeta);
 
             // 3. Restore Transactions
             const backupTxsRef = collection(db, "backups", backupId, "transactions");
