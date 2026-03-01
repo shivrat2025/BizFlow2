@@ -25,9 +25,13 @@ interface DashboardProps {
   categories: ExpenseCategory[];
   onBackup: () => void;
   profitPercent?: number;
+  privacyMode?: boolean;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, categories, onBackup, profitPercent = 5 }) => {
+const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, categories, onBackup, profitPercent = 5, privacyMode = false }) => {
+  // Privacy mask helper
+  const m = (n: number, prefix = '₹') => privacyMode ? '₹ ••••••' : `${prefix}${n.toLocaleString('en-IN')}`;
+  const mpct = (n: number) => privacyMode ? '••%' : `${Math.round(n)}%`;
   if (accounts.length === 0 && transactions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
@@ -129,7 +133,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
             </div>
             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">COD Pool</p>
           </div>
-          <p className="text-lg font-black text-slate-900 tracking-tight">₹{stats.codPool.toLocaleString()}</p>
+          <p className="text-lg font-black text-slate-900 tracking-tight">{m(stats.codPool)}</p>
           <div className="mt-2 pt-2 border-t border-slate-50">
             <div className="flex justify-between items-center text-[7px] font-black text-slate-400 uppercase tracking-tight">
               <span>{accounts.find(a => a.name.toUpperCase().includes('IDFC'))?.name || 'IDFC BANK'}</span>
@@ -144,7 +148,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
             </div>
             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Prepaid Pool</p>
           </div>
-          <p className="text-lg font-black text-slate-900 tracking-tight">₹{stats.prepaidPool.toLocaleString()}</p>
+          <p className="text-lg font-black text-slate-900 tracking-tight">{m(stats.prepaidPool)}</p>
           <div className="mt-2 pt-2 border-t border-slate-50">
             <div className="flex justify-between items-center text-[7px] font-black text-slate-400 uppercase tracking-tight">
               <span>{accounts.find(a => a.name.toUpperCase().includes('INDUSIND'))?.name || 'INDUSIND BANK'}</span>
@@ -159,7 +163,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
             </div>
             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Total Bank Balance</p>
           </div>
-          <p className="text-lg font-black text-emerald-600 tracking-tight">₹{totalAssets.toLocaleString()}</p>
+          <p className="text-lg font-black text-emerald-600 tracking-tight">{m(totalAssets)}</p>
           <div className="mt-2 space-y-1 pt-2 border-t border-slate-50">
             {bankAccounts.map(acc => {
               const logo = getBankLogo(acc.name);
@@ -169,7 +173,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
                     {logo && <img src={logo.url} alt={acc.name} className="w-4 h-4 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
                     <span className="truncate max-w-[50px]">{acc.name}</span>
                   </div>
-                  <span className="text-slate-600">₹{acc.balance.toLocaleString()}</span>
+                  <span className="text-slate-600">{m(acc.balance)}</span>
                 </div>
               );
             })}
@@ -183,7 +187,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
             </div>
             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Debt</p>
           </div>
-          <p className="text-lg font-black text-red-600 tracking-tight">₹{stats.totalExternalCap.toLocaleString()}</p>
+          <p className="text-lg font-black text-red-600 tracking-tight">{m(stats.totalExternalCap)}</p>
           <div className="mt-2 space-y-1 pt-2 border-t border-slate-50">
             {debtAccounts.map(acc => {
               const logo = getBankLogo(acc.name);
@@ -193,7 +197,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
                     {logo && <img src={logo.url} alt={acc.name} className="w-4 h-4 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
                     <span className="truncate max-w-[50px]">{acc.name}</span>
                   </div>
-                  <span className="text-rose-600">₹{acc.debt.toLocaleString()}</span>
+                  <span className="text-rose-600">{m(acc.debt)}</span>
                 </div>
               );
             })}
@@ -204,7 +208,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
           <Sparkles className="absolute -top-2 -right-2 text-indigo-400/20 w-16 h-16 rotate-12" />
           <div className="relative z-10">
             <p className="text-[8px] font-black text-indigo-200 uppercase tracking-widest mb-1">Available Profit</p>
-            <p className="text-lg font-black tracking-tight">₹{availableToWithdraw.toLocaleString()}</p>
+            <p className="text-lg font-black tracking-tight">{m(availableToWithdraw)}</p>
           </div>
         </div>
       </div>
@@ -277,7 +281,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
                     <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                     <span className="text-[7px] font-black text-slate-500 uppercase tracking-tight truncate w-16">{cat.name}</span>
                   </div>
-                  <span className="text-[8px] font-black text-slate-900">₹{cat.value.toLocaleString()}</span>
+                  <span className="text-[8px] font-black text-slate-900">{m(cat.value)}</span>
                 </div>
               ))}
             </div>
@@ -296,7 +300,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
               <p className="text-[8px] font-black text-green-700/70 uppercase tracking-widest">Total Balances</p>
             </div>
             <p className="text-2xl font-black text-green-700 tracking-tight leading-none">
-              ₹{snapshotBalance.toLocaleString('en-IN')}
+              {m(snapshotBalance)}
             </p>
             <p className="text-[7px] font-black text-green-500/60 uppercase tracking-widest mt-0.5">Bank &amp; Current Accounts</p>
             <div className="flex gap-1 flex-wrap mt-2">
@@ -321,7 +325,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
               <p className="text-[8px] font-black text-red-600/70 uppercase tracking-widest">Total Debt</p>
             </div>
             <p className="text-2xl font-black text-red-600 tracking-tight leading-none">
-              ₹{snapshotDebt.toLocaleString('en-IN')}
+              {m(snapshotDebt)}
             </p>
             <p className="text-[7px] font-black text-red-400/60 uppercase tracking-widest mt-0.5">OD &amp; Credit Card Used</p>
             <div className="flex gap-1 flex-wrap mt-2">
@@ -351,7 +355,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
           </div>
           <div className="flex items-center gap-2">
             <span className={`text-sm font-black tracking-tight ${snapshotPositive ? 'text-green-700' : 'text-red-600'}`}>
-              {snapshotPositive ? '+' : '−'}₹{Math.abs(snapshotNet).toLocaleString('en-IN')}
+              {snapshotPositive ? '+' : '−'}{m(Math.abs(snapshotNet))}
             </span>
             <span className={`text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${snapshotPositive ? 'bg-green-200/80 text-green-800' : 'bg-red-200/80 text-red-800'
               }`}>
@@ -374,9 +378,9 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
               <div className="flex justify-between items-end">
                 <div>
                   <p className="text-[7px] font-black text-indigo-300 uppercase tracking-widest mb-0.5">Threshold</p>
-                  <p className="text-xl font-black tracking-tighter">₹{totalSuggestedWithdrawal.toLocaleString()}</p>
+                  <p className="text-xl font-black tracking-tighter">{m(totalSuggestedWithdrawal)}</p>
                 </div>
-                <p className="text-sm font-black text-indigo-400">{Math.round(withdrawalProgress)}%</p>
+                <p className="text-sm font-black text-indigo-400">{mpct(withdrawalProgress)}</p>
               </div>
 
               <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
@@ -389,11 +393,11 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-white/5 p-2.5 rounded-xl border border-white/5 text-center">
                   <p className="text-[7px] font-black text-indigo-200 uppercase mb-0.5">Withdrawn</p>
-                  <p className="text-xs font-black text-emerald-400">₹{alreadyWithdrawn.toLocaleString()}</p>
+                  <p className="text-xs font-black text-emerald-400">{m(alreadyWithdrawn)}</p>
                 </div>
                 <div className="bg-white/5 p-2.5 rounded-xl border border-white/5 text-center">
                   <p className="text-[7px] font-black text-indigo-200 uppercase mb-0.5">Remaining</p>
-                  <p className="text-xs font-black text-amber-400">₹{availableToWithdraw.toLocaleString()}</p>
+                  <p className="text-xs font-black text-amber-400">{m(availableToWithdraw)}</p>
                 </div>
               </div>
             </div>
@@ -413,7 +417,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
               <div key={source.label}>
                 <div className="flex justify-between items-center mb-1.5 px-0.5">
                   <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{source.label}</span>
-                  <span className="text-[10px] font-black text-slate-900">₹{source.val.toLocaleString()}</span>
+                  <span className="text-[10px] font-black text-slate-900">{m(source.val)}</span>
                 </div>
                 <div className="w-full bg-slate-50 h-1.5 rounded-full overflow-hidden">
                   <div className={`${source.color} h-full rounded-full`} style={{ width: `${(source.val / (stats.totalExpenses + stats.totalWithdrawals || 1)) * 100}%` }} />

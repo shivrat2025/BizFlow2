@@ -4,7 +4,8 @@ import { Account, AccountType, Transaction } from '../types';
 import { getBankLogo } from '../utils/bankLogos';
 
 // ─── Cash Flow Summary Banner ─────────────────────────────────────────────────
-const CashFlowSummary: React.FC<{ accounts: Account[] }> = ({ accounts }) => {
+const CashFlowSummary: React.FC<{ accounts: Account[]; privacyMode?: boolean }> = ({ accounts, privacyMode = false }) => {
+  const m = (n: number) => privacyMode ? '₹ ••••••' : `₹${n.toLocaleString('en-IN')}`;
   const totalBalance = useMemo(() =>
     accounts
       .filter(a => ['BANK', 'CURRENT'].includes(a.type) && !a.name.toUpperCase().includes('OD'))
@@ -49,7 +50,7 @@ const CashFlowSummary: React.FC<{ accounts: Account[] }> = ({ accounts }) => {
               <span className="text-[9px] font-black uppercase tracking-widest text-emerald-100">Total Balances</span>
             </div>
             <p className="text-2xl font-black text-white tracking-tight leading-none">
-              ₹{totalBalance.toLocaleString('en-IN')}
+              {m(totalBalance)}
             </p>
             <p className="text-[8px] text-emerald-100 font-semibold mt-1.5">Bank &amp; Current Accounts</p>
           </div>
@@ -72,7 +73,7 @@ const CashFlowSummary: React.FC<{ accounts: Account[] }> = ({ accounts }) => {
               <span className="text-[9px] font-black uppercase tracking-widest text-rose-100">Total Debt</span>
             </div>
             <p className="text-2xl font-black text-white tracking-tight leading-none">
-              ₹{totalDebt.toLocaleString('en-IN')}
+              {m(totalDebt)}
             </p>
             <p className="text-[8px] text-rose-100 font-semibold mt-1.5">OD &amp; Credit Card Used</p>
           </div>
@@ -94,7 +95,7 @@ const CashFlowSummary: React.FC<{ accounts: Account[] }> = ({ accounts }) => {
         </div>
         <div className="flex items-center gap-2">
           <span className={`text-base font-black tracking-tight ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
-            {isPositive ? '+' : '−'}₹{Math.abs(net).toLocaleString('en-IN')}
+            {isPositive ? '+' : '−'}{m(Math.abs(net))}
           </span>
           <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full ${isPositive ? 'bg-emerald-500/20' : 'bg-rose-500/20'}`}>
             {isPositive
@@ -119,10 +120,12 @@ interface Props {
   onDelete: (id: string) => void;
   onSync?: (id: string) => void;
   onRestoreFromDump?: () => void;
+  privacyMode?: boolean;
 }
 
 // ─── Account Statement Modal ────────────────────────────────────────────────
-const StatementModal: React.FC<{ acc: Account; transactions: Transaction[]; onClose: () => void }> = ({ acc, transactions, onClose }) => {
+const StatementModal: React.FC<{ acc: Account; transactions: Transaction[]; onClose: () => void; privacyMode?: boolean }> = ({ acc, transactions, onClose, privacyMode = false }) => {
+  const m = (n: number) => privacyMode ? '₹ ••••••' : `₹${n.toLocaleString()}`;
   const logo = getBankLogo(acc.name);
 
   // All txns for this account (source or destination), sorted oldest → newest
@@ -185,15 +188,15 @@ const StatementModal: React.FC<{ acc: Account; transactions: Transaction[]; onCl
         <div className="grid grid-cols-3 gap-0 border-b border-slate-100 flex-shrink-0">
           <div className="px-6 py-3 border-r border-slate-100">
             <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Opening Balance</p>
-            <p className="text-sm font-black text-slate-700 mt-0.5">₹{openingBalance.toLocaleString()}</p>
+            <p className="text-sm font-black text-slate-700 mt-0.5">{m(openingBalance)}</p>
           </div>
           <div className="px-6 py-3 border-r border-slate-100">
             <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1"><TrendingUp size={9} className="text-emerald-500" /> Total Credit</p>
-            <p className="text-sm font-black text-emerald-600 mt-0.5">+₹{totalCredit.toLocaleString()}</p>
+            <p className="text-sm font-black text-emerald-600 mt-0.5">+{m(totalCredit)}</p>
           </div>
           <div className="px-6 py-3">
             <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1"><TrendingDown size={9} className="text-rose-500" /> Total Debit</p>
-            <p className="text-sm font-black text-rose-600 mt-0.5">−₹{totalDebit.toLocaleString()}</p>
+            <p className="text-sm font-black text-rose-600 mt-0.5">−{m(totalDebit)}</p>
           </div>
         </div>
 
@@ -222,7 +225,7 @@ const StatementModal: React.FC<{ acc: Account; transactions: Transaction[]; onCl
                   <td className="px-4 py-2 font-bold text-slate-500 italic">Opening Balance</td>
                   <td className="px-4 py-2"></td>
                   <td className="px-4 py-2"></td>
-                  <td className="px-4 py-2 text-right font-black text-slate-700">₹{openingBalance.toLocaleString()}</td>
+                  <td className="px-4 py-2 text-right font-black text-slate-700">{m(openingBalance)}</td>
                 </tr>
                 {rows.map(({ t, debit, credit, running }, i) => (
                   <tr key={t.id} className={`border-b border-slate-50 hover:bg-blue-50/30 transition-colors ${i % 2 === 0 ? '' : 'bg-slate-50/20'}`}>
@@ -237,13 +240,13 @@ const StatementModal: React.FC<{ acc: Account; transactions: Transaction[]; onCl
                       {t.description && <div className="text-[8px] text-slate-400 truncate">{t.description}</div>}
                     </td>
                     <td className="px-4 py-2 text-right font-bold text-rose-600">
-                      {debit > 0 ? `₹${debit.toLocaleString()}` : ''}
+                      {debit > 0 ? m(debit) : ''}
                     </td>
                     <td className="px-4 py-2 text-right font-bold text-emerald-600">
-                      {credit > 0 ? `₹${credit.toLocaleString()}` : ''}
+                      {credit > 0 ? m(credit) : ''}
                     </td>
                     <td className={`px-4 py-2 text-right font-black ${running >= 0 ? 'text-slate-800' : 'text-rose-600'}`}>
-                      {running < 0 ? '−' : ''}₹{Math.abs(running).toLocaleString()}
+                      {running < 0 ? '−' : ''}{m(Math.abs(running))}
                     </td>
                   </tr>
                 ))}
@@ -252,10 +255,10 @@ const StatementModal: React.FC<{ acc: Account; transactions: Transaction[]; onCl
               <tfoot className="sticky bottom-0 bg-white border-t-2 border-slate-200">
                 <tr>
                   <td className="px-4 py-2.5 font-black text-slate-500 text-[9px] uppercase tracking-widest" colSpan={2}>Closing Balance</td>
-                  <td className="px-4 py-2.5 text-right font-black text-rose-600">₹{totalDebit.toLocaleString()}</td>
-                  <td className="px-4 py-2.5 text-right font-black text-emerald-600">₹{totalCredit.toLocaleString()}</td>
+                  <td className="px-4 py-2.5 text-right font-black text-rose-600">{m(totalDebit)}</td>
+                  <td className="px-4 py-2.5 text-right font-black text-emerald-600">{m(totalCredit)}</td>
                   <td className={`px-4 py-2.5 text-right font-black text-sm ${acc.balance >= 0 ? 'text-slate-900' : 'text-rose-600'}`}>
-                    ₹{acc.balance.toLocaleString()}
+                    {m(acc.balance)}
                   </td>
                 </tr>
               </tfoot>
@@ -275,7 +278,8 @@ const AccountCard: React.FC<{
   handleEdit: (acc: Account) => void;
   onDelete: (id: string) => void;
   onViewStatement: (acc: Account) => void;
-}> = ({ acc, transactions, editingId, handleEdit, onDelete, onViewStatement }) => {
+  privacyMode?: boolean;
+}> = ({ acc, transactions, editingId, handleEdit, onDelete, onViewStatement, privacyMode = false }) => {
   const logo = getBankLogo(acc.name);
   return (
     <div
@@ -321,7 +325,7 @@ const AccountCard: React.FC<{
             {['OD', 'CREDIT_CARD'].includes(acc.type) ? 'Available' : 'Balance'}
           </span>
           <span className={`text-sm font-black tracking-tight ${(['OD', 'CREDIT_CARD'].includes(acc.type) ? acc.balance > 0 : acc.balance >= 0) ? (['OD', 'CREDIT_CARD'].includes(acc.type) ? 'text-emerald-600' : 'text-slate-900') : 'text-rose-600'}`}>
-            ₹{acc.balance.toLocaleString()}
+            {privacyMode ? '₹ ••••••' : `₹${acc.balance.toLocaleString()}`}
           </span>
         </div>
         {acc.limit !== undefined && !['BANK', 'CURRENT'].includes(acc.type) && (
@@ -332,14 +336,14 @@ const AccountCard: React.FC<{
             </div>
             <div className="flex justify-between items-center mt-1">
               <span className="text-[7px] font-black text-slate-300 uppercase tracking-widest">Limit Usage</span>
-              <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">L: ₹{acc.limit.toLocaleString()}</span>
+              <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">L: {privacyMode ? '₹ ••••••' : `₹${acc.limit.toLocaleString()}`}</span>
             </div>
           </div>
         )}
         {acc.limit !== undefined && ['BANK', 'CURRENT'].includes(acc.type) && (
           <div className="mt-2 flex justify-between items-center">
             <span className="text-[7px] font-black text-slate-300 uppercase tracking-widest">Opening Balance</span>
-            <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">₹{acc.limit.toLocaleString()}</span>
+            <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">{privacyMode ? '₹ ••••••' : `₹${acc.limit.toLocaleString()}`}</span>
           </div>
         )}
         {/* Txn count */}
@@ -358,7 +362,7 @@ const AccountCard: React.FC<{
 };
 
 // ─── Main AccountManager ─────────────────────────────────────────────────────
-const AccountManager: React.FC<Props> = ({ accounts, transactions, onAdd, onUpdate, onDelete, onSync, onRestoreFromDump }) => {
+const AccountManager: React.FC<Props> = ({ accounts, transactions, onAdd, onUpdate, onDelete, onSync, onRestoreFromDump, privacyMode = false }) => {
   const [name, setName] = useState('');
   const [type, setType] = useState<AccountType>('BANK');
   const [limit, setLimit] = useState('');
@@ -391,6 +395,7 @@ const AccountManager: React.FC<Props> = ({ accounts, transactions, onAdd, onUpda
     handleEdit: (a: Account) => setEditingId(a.id),
     onDelete,
     onViewStatement: (a: Account) => setStatementAcc(a),
+    privacyMode,
   });
 
   return (
@@ -401,11 +406,12 @@ const AccountManager: React.FC<Props> = ({ accounts, transactions, onAdd, onUpda
           acc={statementAcc}
           transactions={transactions}
           onClose={() => setStatementAcc(null)}
+          privacyMode={privacyMode}
         />
       )}
 
       {/* Cash Flow Summary */}
-      <CashFlowSummary accounts={accounts} />
+      <CashFlowSummary accounts={accounts} privacyMode={privacyMode} />
 
       {/* Add / Edit Form */}
       <div className="bg-white/70 backdrop-blur-3xl p-5 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50">

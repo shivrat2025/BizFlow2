@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { LayoutDashboard, History, Wallet, Cloud, Plus, RefreshCw, ChevronRight, BarChart3, FileText, Menu, Landmark, Lock, Shield, Zap, AlertCircle, Settings } from 'lucide-react';
+import { LayoutDashboard, History, Wallet, Cloud, Plus, RefreshCw, ChevronRight, BarChart3, FileText, Menu, Landmark, Lock, Shield, Zap, AlertCircle, Settings, Eye, EyeOff } from 'lucide-react';
 import { initializeApp, getApp, getApps } from "firebase/app";
 import { getFirestore, doc, onSnapshot, setDoc, deleteDoc, updateDoc, collection, writeBatch, getDoc, getDocs, query } from "firebase/firestore";
 import { Account, Transaction, DashboardStats, ExpenseCategory, AIRule } from './types';
@@ -75,6 +75,7 @@ const App: React.FC = () => {
         const saved = localStorage.getItem('bizflow_profit_pct');
         return saved ? parseFloat(saved) : 5;
     });
+    const [privacyMode, setPrivacyMode] = useState(false);
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
@@ -1085,15 +1086,30 @@ const App: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        {activeTab === 'dashboard' && (
+                        <div className="flex items-center gap-3">
+                            {/* Privacy Toggle — always visible */}
                             <button
-                                onClick={handleExport}
-                                className="flex items-center gap-2.5 px-6 py-4 bg-white/40 backdrop-blur-md border border-white/60 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-white/60 transition-all shadow-lg shadow-indigo-500/5 group hover:border-indigo-200 hover:-translate-y-1"
+                                onClick={() => setPrivacyMode(p => !p)}
+                                title={privacyMode ? 'Show balances' : 'Hide balances'}
+                                className={`flex items-center gap-2 px-4 py-3 rounded-[1.2rem] text-[10px] font-black uppercase tracking-widest border transition-all shadow-sm ${privacyMode
+                                        ? 'bg-slate-900 text-white border-slate-800 shadow-slate-900/20'
+                                        : 'bg-white/40 backdrop-blur-md border-white/60 text-slate-500 hover:bg-white/60'
+                                    }`}
                             >
-                                <Cloud size={16} className="text-indigo-500 group-hover:scale-110 transition-transform" />
-                                Cloud Backup
+                                {privacyMode ? <EyeOff size={15} /> : <Eye size={15} />}
+                                <span className="hidden sm:inline">{privacyMode ? 'Hidden' : 'Visible'}</span>
                             </button>
-                        )}
+
+                            {activeTab === 'dashboard' && (
+                                <button
+                                    onClick={handleExport}
+                                    className="flex items-center gap-2.5 px-6 py-4 bg-white/40 backdrop-blur-md border border-white/60 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-white/60 transition-all shadow-lg shadow-indigo-500/5 group hover:border-indigo-200 hover:-translate-y-1"
+                                >
+                                    <Cloud size={16} className="text-indigo-500 group-hover:scale-110 transition-transform" />
+                                    Cloud Backup
+                                </button>
+                            )}
+                        </div>
                         <div className="hidden lg:flex flex-col items-end px-8 border-l-2 border-white/20">
                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Financial Node</span>
                             <span className="text-base font-black text-slate-800 tracking-tighter">{workspaceId}</span>
@@ -1101,9 +1117,9 @@ const App: React.FC = () => {
                     </div>
                 </header>
 
-                {activeTab === 'dashboard' && <Dashboard stats={currentStats} accounts={computedAccounts} transactions={transactions} categories={categories} onBackup={handleExport} profitPercent={profitPercent} />}
+                {activeTab === 'dashboard' && <Dashboard stats={currentStats} accounts={computedAccounts} transactions={transactions} categories={categories} onBackup={handleExport} profitPercent={profitPercent} privacyMode={privacyMode} />}
 
-                {activeTab === 'accounts' && <AccountManager accounts={computedAccounts} transactions={transactions} onAdd={handleAddAccount} onUpdate={handleUpdateAccount} onDelete={handleDeleteAccount} onRestoreFromDump={handleRestoreFromLocalDump} />}
+                {activeTab === 'accounts' && <AccountManager accounts={computedAccounts} transactions={transactions} onAdd={handleAddAccount} onUpdate={handleUpdateAccount} onDelete={handleDeleteAccount} onRestoreFromDump={handleRestoreFromLocalDump} privacyMode={privacyMode} />}
                 {activeTab === 'history' && (
                     <HistoryList
                         transactions={transactions}
