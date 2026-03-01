@@ -368,30 +368,30 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
         <table className="w-full text-left table-fixed">
           <colgroup>
             <col style={{ width: '88px' }} />
-            <col style={{ width: '75px' }} />
-            <col />
-            <col style={{ width: '88px' }} />
-            <col style={{ width: '106px' }} />
-            <col style={{ width: '118px' }} />
-            <col style={{ width: '95px' }} />
-            <col style={{ width: '70px' }} />
+            <col style={{ width: '72px' }} />
+            <col style={{ width: '185px' }} />
+            <col style={{ width: '82px' }} />
+            <col style={{ width: '102px' }} />
+            <col style={{ width: '115px' }} />
+            <col style={{ width: '92px' }} />
+            <col style={{ width: '66px' }} />
           </colgroup>
           <thead className="bg-slate-50/80 border-b border-slate-100">
             <tr>
-              <th className="px-3 py-2 text-[9px] font-black uppercase tracking-widest text-slate-400 cursor-pointer" onClick={() => toggleSort('createdAt')}>
+              <th className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400 cursor-pointer" onClick={() => toggleSort('createdAt')}>
                 <div className="flex items-center gap-1">Entered At <SortIcon k="createdAt" /></div>
               </th>
-              <th className="px-3 py-2 text-[9px] font-black uppercase tracking-widest text-slate-400 cursor-pointer" onClick={() => toggleSort('date')}>
+              <th className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400 cursor-pointer" onClick={() => toggleSort('date')}>
                 <div className="flex items-center gap-1">Tx Date <SortIcon k="date" /></div>
               </th>
-              <th className="px-3 py-2 text-[9px] font-black uppercase tracking-widest text-slate-400">Details</th>
-              <th className="px-3 py-2 text-[9px] font-black uppercase tracking-widest text-slate-400">Account</th>
-              <th className="px-3 py-2 text-[9px] font-black uppercase tracking-widest text-slate-400">Attachments</th>
-              <th className="px-3 py-2 text-[9px] font-black uppercase tracking-widest text-slate-400">Tags & Notes</th>
-              <th className="px-3 py-2 text-[9px] font-black uppercase tracking-widest text-slate-400 text-right cursor-pointer" onClick={() => toggleSort('amount')}>
+              <th className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400">Details</th>
+              <th className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400">Account</th>
+              <th className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400">Attachments</th>
+              <th className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400">Tags & Notes</th>
+              <th className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400 text-right cursor-pointer" onClick={() => toggleSort('amount')}>
                 <div className="flex items-center justify-end gap-1">Amount <SortIcon k="amount" /></div>
               </th>
-              <th className="px-3 py-2 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Action</th>
+              <th className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -406,7 +406,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
                 <tr key={t.id} className={`border-b border-slate-50 hover:bg-indigo-50/30 transition-colors ${i % 2 === 0 ? '' : 'bg-slate-50/30'}`}>
 
                   {/* Col 1: Entered At */}
-                  <td className="px-3 py-2.5 align-middle">
+                  <td className="px-3 py-1.5 align-middle">
                     {t.createdAt ? (
                       <div className="leading-snug">
                         <div className="text-[9px] font-semibold text-slate-500">{new Date(t.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }).toUpperCase()}</div>
@@ -416,14 +416,14 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
                   </td>
 
                   {/* Col 2: Tx Date */}
-                  <td className="px-3 py-2.5 align-middle">
+                  <td className="px-3 py-1.5 align-middle">
                     <div className="text-[10px] font-bold text-slate-700 leading-tight">
                       {new Date(t.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).toUpperCase()}
                     </div>
                   </td>
 
                   {/* Col 3: Details */}
-                  <td className="px-3 py-2.5 align-middle">
+                  <td className="px-3 py-1.5 align-middle">
                     <div className="flex items-center gap-2">
                       <div className="p-1.5 bg-slate-100 rounded-lg flex-shrink-0">{getIcon(t)}</div>
                       <div className="min-w-0 flex-1">
@@ -447,7 +447,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
                   </td>
 
                   {/* Col 4: Account */}
-                  <td className="px-3 py-2.5 align-middle">
+                  <td className="px-3 py-1.5 align-middle">
                     <div className="text-[10px] font-semibold text-slate-600 truncate">{getAccountName(t.sourceAccountId)}</div>
                     {t.type === 'REPAYMENT' && (
                       <div className="text-[8px] text-slate-400 truncate mt-0.5">→ {getAccountName(t.destinationAccountId)}</div>
@@ -455,7 +455,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
                   </td>
 
                   {/* Col 5: Attachments */}
-                  <td className="px-3 py-2.5 align-middle">
+                  <td className="px-3 py-1.5 align-middle">
                     {t.expenseCategory === 'PRODUCT' && (
                       <div className="flex flex-col gap-1">
                         {t.invoiceUrl ? (
@@ -501,7 +501,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
                   </td>
 
                   {/* Col 6: Tags & Notes */}
-                  <td className="px-3 py-2.5 align-middle">
+                  <td className="px-3 py-1.5 align-middle">
                     <div className="space-y-1">
                       {t.tags && t.tags.length > 0 && (
                         <div className="flex flex-wrap gap-0.5">
@@ -517,14 +517,14 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
                   </td>
 
                   {/* Col 7: Amount */}
-                  <td className="px-3 py-2.5 align-middle text-right">
+                  <td className="px-3 py-1.5 align-middle text-right">
                     <span className={`font-mono font-black text-[13px] tabular-nums ${t.type === 'INCOME' ? 'text-emerald-600' : 'text-rose-600'}`}>
                       {t.type === 'INCOME' ? '+' : '−'}₹{t.amount.toLocaleString()}
                     </span>
                   </td>
 
                   {/* Col 8: Actions */}
-                  <td className="px-3 py-2.5 align-middle text-center">
+                  <td className="px-3 py-1.5 align-middle text-center">
                     <div className="flex items-center justify-center gap-0.5">
                       <button onClick={() => onDuplicate(t)} className="p-1.5 text-slate-300 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all" title="Duplicate"><Copy size={12} /></button>
                       <button onClick={() => onEdit(t)} className="p-1.5 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all" title="Edit"><Pencil size={12} /></button>
