@@ -21,7 +21,7 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
   const [description, setDescription] = useState('');
   const [tags, setTags] = useState('');
   const [notes, setNotes] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [sourceId, setSourceId] = useState('');
@@ -128,6 +128,11 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
 
     if (!amount || isNaN(numAmount) || numAmount <= 0) {
       setError("Please enter an amount greater than 0");
+      return;
+    }
+
+    if (!date) {
+      setError("Please select a Date of Transaction");
       return;
     }
 
