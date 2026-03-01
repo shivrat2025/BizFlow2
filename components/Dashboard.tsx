@@ -2,6 +2,7 @@
 import React from 'react';
 import { Wallet, Landmark, CreditCard, PiggyBank, TrendingDown, DollarSign, ArrowDownLeft, Facebook, Truck, ShoppingBag, Box, TrendingUp, AlertCircle, Info, RefreshCw, Sparkles, Cloud } from 'lucide-react';
 import { DashboardStats, Account, Transaction, ExpenseCategory } from '../types';
+import { getBankLogo } from '../utils/bankLogos';
 import {
   Tooltip,
   ResponsiveContainer,
@@ -140,12 +141,18 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
           </div>
           <p className="text-lg font-black text-emerald-600 tracking-tight">₹{totalAssets.toLocaleString()}</p>
           <div className="mt-2 space-y-1 pt-2 border-t border-slate-50">
-            {bankAccounts.map(acc => (
-              <div key={acc.id} className="flex justify-between items-center text-[7px] font-black text-slate-400 uppercase tracking-tight">
-                <span className="truncate max-w-[50px]">{acc.name}</span>
-                <span className="text-slate-600">₹{acc.balance.toLocaleString()}</span>
-              </div>
-            ))}
+            {bankAccounts.map(acc => {
+              const logo = getBankLogo(acc.name);
+              return (
+                <div key={acc.id} className="flex justify-between items-center text-[7px] font-black text-slate-400 uppercase tracking-tight">
+                  <div className="flex items-center gap-1">
+                    {logo && <img src={logo.url} alt={acc.name} className="w-4 h-4 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
+                    <span className="truncate max-w-[50px]">{acc.name}</span>
+                  </div>
+                  <span className="text-slate-600">₹{acc.balance.toLocaleString()}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -158,12 +165,18 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
           </div>
           <p className="text-lg font-black text-red-600 tracking-tight">₹{stats.totalExternalCap.toLocaleString()}</p>
           <div className="mt-2 space-y-1 pt-2 border-t border-slate-50">
-            {debtAccounts.map(acc => (
-              <div key={acc.id} className="flex justify-between items-center text-[7px] font-black text-slate-400 uppercase tracking-tight">
-                <span className="truncate max-w-[50px]">{acc.name}</span>
-                <span className="text-rose-600">₹{acc.debt.toLocaleString()}</span>
-              </div>
-            ))}
+            {debtAccounts.map(acc => {
+              const logo = getBankLogo(acc.name);
+              return (
+                <div key={acc.id} className="flex justify-between items-center text-[7px] font-black text-slate-400 uppercase tracking-tight">
+                  <div className="flex items-center gap-1">
+                    {logo && <img src={logo.url} alt={acc.name} className="w-4 h-4 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
+                    <span className="truncate max-w-[50px]">{acc.name}</span>
+                  </div>
+                  <span className="text-rose-600">₹{acc.debt.toLocaleString()}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
 

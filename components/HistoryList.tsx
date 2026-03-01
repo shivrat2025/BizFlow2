@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Trash2, TrendingUp, TrendingDown, PiggyBank, Package, Truck, Facebook, CreditCard, Landmark, ArrowRight, Tag, FileText, Pencil, Filter, Calendar, ChevronDown, Clock, Copy, Search, Check, X, Wallet, ArrowUpDown, ArrowUp, ArrowDown, AlertCircle, RefreshCw } from 'lucide-react';
 import { Transaction, Account, ExpenseCategory } from '../types';
+import { getBankLogo } from '../utils/bankLogos';
 
 interface Props {
   transactions: Transaction[];
@@ -431,7 +432,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
                           <span className="text-[10px] font-black text-slate-800 uppercase tracking-tight leading-tight">
                             {t.type === 'EXPENSE' ? getCategoryLabel(t.expenseCategory)
                               : t.type === 'INCOME' ? (t.incomeSource === 'COD' ? 'COD Sale' : 'Prepaid Sale')
-                              : t.type}
+                                : t.type}
                           </span>
                           {t.incomeSource && (
                             <span className={`flex-shrink-0 px-1.5 py-0.5 rounded text-[7px] font-black uppercase ring-1 ring-inset leading-tight ${t.incomeSource === 'COD' ? 'bg-indigo-50 text-indigo-600 ring-indigo-200' : t.incomeSource === 'PREPAID' ? 'bg-emerald-50 text-emerald-600 ring-emerald-200' : 'bg-slate-50 text-slate-500 ring-slate-200'}`}>
@@ -448,10 +449,23 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
 
                   {/* Col 4: Account */}
                   <td className="px-3 py-1.5 align-middle">
-                    <div className="text-[10px] font-semibold text-slate-600 truncate">{getAccountName(t.sourceAccountId)}</div>
-                    {t.type === 'REPAYMENT' && (
-                      <div className="text-[8px] text-slate-400 truncate mt-0.5">→ {getAccountName(t.destinationAccountId)}</div>
-                    )}
+                    {(() => {
+                      const name = getAccountName(t.sourceAccountId);
+                      const logo = getBankLogo(name);
+                      return (
+                        <div className="flex items-center gap-1.5">
+                          {logo ? (
+                            <img src={logo.url} alt={name} className="w-5 h-5 rounded object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                          ) : null}
+                          <div>
+                            <div className="text-[10px] font-semibold text-slate-600 truncate">{name}</div>
+                            {t.type === 'REPAYMENT' && (
+                              <div className="text-[8px] text-slate-400 truncate mt-0.5">→ {getAccountName(t.destinationAccountId)}</div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </td>
 
                   {/* Col 5: Attachments */}
@@ -538,7 +552,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
         </table>
       </div>
 
-            {/* Mobile Card View */}
+      {/* Mobile Card View */}
       <div className="md:hidden space-y-2">
         {filteredTransactions.length === 0 ? (
           <div className="py-20 text-center text-slate-300 font-black uppercase tracking-widest text-[10px]">No records found.</div>
