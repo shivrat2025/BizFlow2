@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, TrendingUp, TrendingDown, PiggyBank, CreditCard, Plus, Check, ArrowRight, Tag, FileText, ChevronDown, ChevronUp, Camera, Calendar, ChevronRight } from 'lucide-react';
 import { Account, Transaction, TransactionType, IncomeSource, DashboardStats, ExpenseCategory } from '../types';
+import { optimizeImage } from '../utils/imageOptimization';
 
 interface Props {
   onClose: () => void;
@@ -110,13 +111,20 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, setter: (val: string) => void) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, setter: (val: string) => void) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = () => {
-      setter(reader.result as string);
+    reader.onload = async () => {
+      const base64 = reader.result as string;
+      try {
+        const optimized = await optimizeImage(base64);
+        setter(optimized);
+      } catch (err) {
+        console.error("Image optimization failed:", err);
+        setter(base64); // Fallback to original if optimization fails
+      }
     };
     reader.readAsDataURL(file);
   };
