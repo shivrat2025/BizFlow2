@@ -288,7 +288,7 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
                     <label className="block text-[9px] font-black text-blue-400 uppercase tracking-widest">From Bank (Money Leaves)</label>
                     <select value={sourceId} onChange={(e) => handleSourceSelect(e.target.value)} className="w-full px-3 py-2.5 bg-white/80 border border-blue-200 rounded-xl text-[11px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20" required>
                       <option value="">Select Source...</option>
-                      {accounts.filter(a => ['BANK', 'CURRENT'].includes(a.type)).map(acc => (
+                      {accounts.filter(a => ['BANK', 'CURRENT'].includes(a.type) && !a.name.toUpperCase().includes('OD')).map(acc => (
                         <option key={acc.id} value={acc.id}>{acc.name} (₹{acc.balance.toLocaleString()})</option>
                       ))}
                     </select>
@@ -300,7 +300,7 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
                     <label className="block text-[9px] font-black text-blue-400 uppercase tracking-widest">To Debt (OD/Credit Card Debt Clear)</label>
                     <select value={destinationId} onChange={(e) => setDestinationId(e.target.value)} className="w-full px-3 py-2.5 bg-white/80 border border-blue-200 rounded-xl text-[11px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20" required>
                       <option value="">Select Target...</option>
-                      {accounts.filter(a => ['OD', 'CREDIT_CARD'].includes(a.type)).map(acc => (
+                      {accounts.filter(a => ['OD', 'CREDIT_CARD'].includes(a.type) || a.name.toUpperCase().includes('OD')).map(acc => (
                         <option key={acc.id} value={acc.id}>{acc.name} (Debt: ₹{Math.abs(Math.min(0, acc.balance)).toLocaleString()})</option>
                       ))}
                     </select>
@@ -321,11 +321,13 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-white/20 pb-1 mb-2">Bank Account</label>
                   <select value={sourceId} onChange={(e) => handleSourceSelect(e.target.value)} className="w-full px-3 py-3 bg-white/50 border border-white/30 rounded-xl text-[11px] font-bold text-slate-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 backdrop-blur-md" required>
                     <option value="">Select Account...</option>
-                    {accounts.map(acc => (
+                    {accounts.map(acc => {
+                      const isDebt = ['OD', 'CREDIT_CARD'].includes(acc.type) || acc.name.toUpperCase().includes('OD');
+                      return (
                       <option key={acc.id} value={acc.id}>
-                        {acc.name} ({['OD', 'CREDIT_CARD'].includes(acc.type) ? 'Avail: ' : 'Bal: '}₹{acc.balance.toLocaleString()})
+                        {acc.name} ({isDebt ? 'Avail: ' : 'Bal: '}₹{acc.balance.toLocaleString()})
                       </option>
-                    ))}
+                    )})}
                   </select>
                 </div>
               </div>
