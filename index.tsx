@@ -20,11 +20,27 @@ root.render(
   </React.StrictMode>
 );
 
-// Register Service Worker for PWA
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(err => {
-      console.log('SW registration failed: ', err);
-    });
+// Register Service Worker for PWA with Auto-Refresh on Deployment Update
+if ('serviceWorker' in navigator) {
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      refreshing = true;
+      console.log('⚡ New deployment detected! Auto-reloading page...');
+      window.location.reload();
+    }
   });
+
+  if (import.meta.env.PROD) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').then(reg => {
+        // Periodically check for new deployments every 30 seconds
+        setInterval(() => {
+          reg.update();
+        }, 30000);
+      }).catch(err => {
+        console.log('SW registration failed: ', err);
+      });
+    });
+  }
 }
