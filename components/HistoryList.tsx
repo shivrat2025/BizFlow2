@@ -4,16 +4,61 @@ import { Transaction, Account, ExpenseCategory } from '../types';
 import { getBankLogo } from '../utils/bankLogos';
 
 interface Props {
-  transactions: Transaction[];
+  transactions?: Transaction[];
   deleteTransaction: (id: string) => void;
   onEdit: (tx: Transaction) => void;
   onDuplicate: (tx: Transaction) => void;
-  accounts: Account[];
-  categories: ExpenseCategory[];
+  accounts?: Account[];
+  categories?: ExpenseCategory[];
   onUpdate: (id: string, updates: Partial<Transaction>) => void;
 }
 
-const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit, onDuplicate, accounts, categories, onUpdate }) => {
+class HistoryErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: string }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: '' };
+  }
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error: error?.message || 'Transaction rendering error' };
+  }
+  componentDidCatch(error: any, info: any) {
+    console.error("HistoryList Render Error caught:", error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-8 bg-white/80 backdrop-blur-xl rounded-3xl border border-rose-200 text-center space-y-4 shadow-xl my-6">
+          <div className="w-12 h-12 bg-rose-50 border border-rose-100 rounded-2xl flex items-center justify-center mx-auto text-rose-500">
+            <AlertCircle size={24} />
+          </div>
+          <div>
+            <h3 className="text-base font-black text-slate-800 tracking-tight">Unable to display ledger list</h3>
+            <p className="text-xs font-semibold text-slate-500 mt-1 max-w-md mx-auto">
+              A formatting error occurred while processing one of your entries ({this.state.error}).
+            </p>
+          </div>
+          <button
+            onClick={() => this.setState({ hasError: false })}
+            className="px-6 py-3 bg-slate-900 text-white font-black text-xs uppercase tracking-widest rounded-xl hover:bg-black transition-all shadow-md"
+          >
+            Reload Ledger View
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const HistoryListContent: React.FC<Props> = ({
+  transactions = [],
+  deleteTransaction,
+  onEdit,
+  onDuplicate,
+  accounts = [],
+  categories = [],
+  onUpdate
+}) => {
   const [activeFilter, setActiveFilter] = useState('ALL');
   const [dateFilter, setDateFilter] = useState('ALL_TIME');
   const [selectedTag, setSelectedTag] = useState('ALL_TAGS');
@@ -28,21 +73,27 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
 
   const observerTargetRef = React.useRef<HTMLDivElement>(null);
 
+  const safeAccounts = useMemo(() => Array.isArray(accounts) ? accounts : [], [accounts]);
+  const safeCategories = useMemo(() => Array.isArray(categories) ? categories : [], [categories]);
+  const safeTransactions = useMemo(() => Array.isArray(transactions) ? transactions : [], [transactions]);
+
   const getAccountName = (id?: string) => {
-    return accounts.find(a => a.id === id)?.name || 'N/A';
+    if (!id) return 'N/A';
+    return safeAccounts.find(a => a?.id === id)?.name || 'N/A';
   };
 
   const getCategoryLabel = (id?: string) => {
     if (!id) return 'Misc';
-    return categories.find(c => c.id === id)?.label || id;
+    return safeCategories.find(c => c?.id === id)?.label || id;
   };
 
   const filteredTransactions = useMemo(() => {
-    let list = [...transactions];
+    let list = [...safeTransactions];
 
     // Filter by Category/Type
     if (activeFilter !== 'ALL') {
       list = list.filter(t => {
+        if (!t) return false;
         if (activeFilter === 'FB_ADS') return t.type === 'EXPENSE' && t.expenseCategory === 'FB_ADS';
         if (activeFilter === 'SHIPPING') return t.type === 'EXPENSE' && t.expenseCategory === 'SHIPPING';
         if (activeFilter === 'PRODUCT') return t.type === 'EXPENSE' && t.expenseCategory === 'PRODUCT';
@@ -60,12 +111,12 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
 
     // Filter by Tag
     if (selectedTag !== 'ALL_TAGS') {
-      list = list.filter(t => t.tags?.includes(selectedTag));
+      list = list.filter(t => t?.tags?.includes(selectedTag));
     }
 
     // Filter by Account (Fund Flow)
     if (selectedAccountId !== 'ALL_ACCOUNTS') {
-      list = list.filter(t => t.sourceAccountId === selectedAccountId || t.destinationAccountId === selectedAccountId);
+      list = list.filter(t => t?.sourceAccountId === selectedAccountId || t?.destinationAccountId === selectedAccountId);
     }
 
     // Filter by Date
@@ -83,7 +134,9 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
       };
 
       list = list.filter(t => {
-        const txTime = t.date;
+        if (!t || !t.date) return false;
+        const txTime = typeof t.date === 'number' ? t.date : new Date(t.date).getTime();
+        if (isNaN(txTime)) return false;
 
         switch (dateFilter) {
           case 'TODAY':
@@ -119,10 +172,11 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase().trim();
       list = list.filter(t => {
+        if (!t) return false;
         const descriptionMatch = t.description?.toLowerCase().includes(term);
         const tagsMatch = t.tags?.some(tag => tag.toLowerCase().includes(term));
         const notesMatch = t.notes?.toLowerCase().includes(term);
-        const amountMatch = t.amount.toString().includes(term);
+        const amountMatch = (t.amount ?? '').toString().includes(term);
         const categoryMatch = getCategoryLabel(t.expenseCategory).toLowerCase().includes(term);
         const accountMatch = getAccountName(t.sourceAccountId).toLowerCase().includes(term);
 
@@ -132,19 +186,23 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
 
     // Sorting
     list.sort((a, b) => {
+      if (!a || !b) return 0;
       const multiplier = sortOrder === 'asc' ? 1 : -1;
-      if (sortKey === 'date') return (a.date - b.date) * multiplier;
-      if (sortKey === 'amount') return (a.amount - b.amount) * multiplier;
+      const aDate = typeof a.date === 'number' ? a.date : new Date(a.date || 0).getTime();
+      const bDate = typeof b.date === 'number' ? b.date : new Date(b.date || 0).getTime();
+
+      if (sortKey === 'date') return (aDate - bDate) * multiplier;
+      if (sortKey === 'amount') return ((Number(a.amount) || 0) - (Number(b.amount) || 0)) * multiplier;
       if (sortKey === 'createdAt') {
-        const aTime = a.createdAt || a.date;
-        const bTime = b.createdAt || b.date;
+        const aTime = a.createdAt || aDate;
+        const bTime = b.createdAt || bDate;
         return (aTime - bTime) * multiplier;
       }
       return 0;
     });
 
     return list;
-  }, [transactions, activeFilter, dateFilter, selectedTag, selectedAccountId, searchTerm, customStart, customEnd, sortKey, sortOrder]);
+  }, [safeTransactions, activeFilter, dateFilter, selectedTag, selectedAccountId, searchTerm, customStart, customEnd, sortKey, sortOrder]);
 
   const displayedTransactions = useMemo(() => {
     return filteredTransactions.slice(0, visibleCount);
@@ -160,7 +218,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && filteredTransactions.length > visibleCount) {
+        if (entries[0] && entries[0].isIntersecting && filteredTransactions.length > visibleCount) {
           setVisibleCount(prev => Math.min(prev + 40, filteredTransactions.length));
         }
       },
@@ -170,6 +228,38 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
     observer.observe(target);
     return () => observer.disconnect();
   }, [filteredTransactions.length, visibleCount]);
+
+  const allTags = useMemo(() => {
+    const tags = new Set<string>();
+    safeTransactions.forEach(t => t?.tags?.forEach(tag => {
+      if (tag) tags.add(tag);
+    }));
+    return Array.from(tags).sort();
+  }, [safeTransactions]);
+
+  const filters = [
+    { id: 'ALL', label: 'All', icon: Filter },
+    { id: 'COD_POOL', label: 'COD Flow', icon: RefreshCw, color: 'text-indigo-600' },
+    { id: 'PREPAID_POOL', label: 'Prepaid Flow', icon: RefreshCw, color: 'text-emerald-600' },
+    { id: 'FB_ADS', label: 'FB Ads', icon: Facebook, color: 'text-blue-600' },
+    { id: 'SHIPPING', label: 'Shipping', icon: Truck, color: 'text-amber-600' },
+    { id: 'PRODUCT', label: 'Product', icon: Package, color: 'text-indigo-600' },
+    { id: 'TRANSFER', label: 'Transfers', icon: RefreshCw, color: 'text-purple-600' },
+    { id: 'REPAYMENT', label: 'Repayments', icon: CreditCard, color: 'text-blue-500' },
+    { id: 'WITHDRAWAL', label: 'Profit', icon: PiggyBank, color: 'text-amber-500' },
+    { id: 'OTHER', label: 'Others', icon: Landmark, color: 'text-slate-500' },
+  ];
+
+  const dateFilters = [
+    { id: 'ALL_TIME', label: 'All Time' },
+    { id: 'TODAY', label: 'Today' },
+    { id: 'YESTERDAY', label: 'Yesterday' },
+    { id: 'MTD', label: 'This Month (MTD)' },
+    { id: 'LAST_MONTH', label: 'Last Month' },
+    { id: 'THIS_YEAR', label: 'This Year' },
+    { id: 'LAST_YEAR', label: 'Last Year' },
+    { id: 'CUSTOM', label: 'Custom Range' },
+  ];
 
   const compressImage = (base64Str: string): Promise<string> => {
     return new Promise((resolve) => {
@@ -219,6 +309,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
   };
 
   const getIcon = (t: Transaction) => {
+    if (!t) return <Landmark className="text-slate-400" />;
     if (t.type === 'WITHDRAWAL') return <PiggyBank className="text-amber-500" />;
     if (t.type === 'REPAYMENT') return <CreditCard className="text-blue-500" />;
     if (t.type === 'TRANSFER') return <RefreshCw className="text-purple-600" />;
@@ -247,7 +338,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
   };
 
   const formatTime = (timestamp?: number) => {
-    if (!timestamp) return '';
+    if (!timestamp || isNaN(timestamp)) return '';
     return new Date(timestamp).toLocaleTimeString('en-GB', {
       hour: '2-digit',
       minute: '2-digit',
@@ -255,7 +346,8 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
     });
   };
 
-  const formatDate = (timestamp: number) => {
+  const formatDate = (timestamp?: number) => {
+    if (!timestamp || isNaN(timestamp)) return 'N/A';
     return new Date(timestamp).toLocaleDateString('en-GB', {
       day: 'numeric',
       month: 'short',
@@ -263,10 +355,15 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
     }).toUpperCase();
   };
 
+  const formatAmount = (val?: number | string) => {
+    const num = Number(val) || 0;
+    return num.toLocaleString('en-IN');
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       <div className="bg-white/70 backdrop-blur-xl rounded-[1.5rem] p-3 md:p-4 border border-white/40 shadow-[0_4px_20px_rgb(0,0,0,0.03)] space-y-3">
-        {/* Top Filter Row: Search & Dropdowns Compactly aligned */}
+        {/* Top Filter Row */}
         <div className="flex flex-col md:flex-row items-center gap-2">
           {/* Quick Search */}
           <div className="relative group w-full md:flex-1">
@@ -313,7 +410,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
               className="w-full pl-7 pr-6 py-2 bg-white/50 border border-white/50 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-700 outline-none appearance-none cursor-pointer hover:bg-white/70 transition-all"
             >
               <option value="ALL_ACCOUNTS">Accounts</option>
-              {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name.substring(0, 10)}</option>)}
+              {safeAccounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name?.substring(0, 10) || 'Account'}</option>)}
             </select>
             <ChevronDown size={10} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>
@@ -332,7 +429,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
           </div>
         </div>
 
-        {/* Custom Date Inputs (Conditional) */}
+        {/* Custom Date Inputs */}
         {dateFilter === 'CUSTOM' && (
           <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 hover:bg-white transition-all w-fit">
             <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="bg-transparent text-[9px] font-bold text-slate-600 outline-none" />
@@ -405,7 +502,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
               </tr>
             ) : (
               displayedTransactions.map((t, i) => (
-                <tr key={t.id} className={`border-b border-slate-50 hover:bg-indigo-50/30 transition-colors ${i % 2 === 0 ? '' : 'bg-slate-50/30'}`}>
+                <tr key={t.id || `tx-${i}`} className={`border-b border-slate-50 hover:bg-indigo-50/30 transition-colors ${i % 2 === 0 ? '' : 'bg-slate-50/30'}`}>
 
                   {/* Col 1: Entered At */}
                   <td className="px-3 py-1.5 align-middle">
@@ -420,7 +517,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
                   {/* Col 2: Tx Date */}
                   <td className="px-3 py-1.5 align-middle">
                     <div className="text-[10px] font-bold text-slate-700 leading-tight">
-                      {new Date(t.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).toUpperCase()}
+                      {formatDate(t.date)}
                     </div>
                   </td>
 
@@ -534,7 +631,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
                   {/* Col 7: Amount */}
                   <td className="px-3 py-1.5 align-middle text-right">
                     <span className={`font-mono font-black text-[13px] tabular-nums ${t.type === 'INCOME' ? 'text-emerald-600' : t.type === 'TRANSFER' ? 'text-purple-600' : 'text-rose-600'}`}>
-                      {t.type === 'INCOME' ? '+' : t.type === 'TRANSFER' ? '⇄ ' : '−'}₹{t.amount.toLocaleString()}
+                      {t.type === 'INCOME' ? '+' : t.type === 'TRANSFER' ? '⇄ ' : '−'}₹{formatAmount(t.amount)}
                     </span>
                   </td>
 
@@ -558,8 +655,8 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
         {filteredTransactions.length === 0 ? (
           <div className="py-20 text-center text-slate-300 font-black uppercase tracking-widest text-[10px]">No records found.</div>
         ) : (
-          displayedTransactions.map(t => (
-            <div key={t.id} className="bg-white/70 backdrop-blur-xl px-4 py-3 rounded-2xl border border-white/40 shadow-sm active:bg-white/80 transition-colors">
+          displayedTransactions.map((t, i) => (
+            <div key={t.id || `mob-tx-${i}`} className="bg-white/70 backdrop-blur-xl px-4 py-3 rounded-2xl border border-white/40 shadow-sm active:bg-white/80 transition-colors">
               <div className="flex items-center gap-3">
                 <div className="p-1 bg-slate-50 rounded-lg flex-shrink-0">
                   {getIcon(t)}
@@ -582,7 +679,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
                       )}
                     </div>
                     <p className={`font-mono font-black text-xs ${(t.type === 'INCOME') ? 'text-emerald-600' : 'text-rose-600'}`}>
-                      {(t.type === 'INCOME') ? '+' : '-'}₹{t.amount.toLocaleString()}
+                      {(t.type === 'INCOME') ? '+' : '-'}₹{formatAmount(t.amount)}
                     </p>
                   </div>
                   <div className="flex justify-between items-center mt-0.5">
@@ -618,7 +715,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
                           <label htmlFor={`mob-bill-${t.id}`} className="px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-lg text-[8px] font-black uppercase text-slate-400">Attach Bill</label>
                         </div>
                       ) : (
-                        <button onClick={() => setViewingAttachment({ url: t.invoiceUrl!, title: 'Invoice/Bill' })} className="px-3 py-1.5 bg-indigo-50 border border-indigo-100 rounded-lg text-[8px] font-black uppercase text-indigo-600 font-black uppercase tracking-widest">View Bill</button>
+                        <button onClick={() => setViewingAttachment({ url: t.invoiceUrl!, title: 'Invoice/Bill' })} className="px-3 py-1.5 bg-indigo-50 border border-indigo-100 rounded-lg text-[8px] font-black uppercase text-indigo-600 tracking-widest">View Bill</button>
                       )}
                       {!t.paymentProofUrl ? (
                         <div className="relative">
@@ -626,7 +723,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
                           <label htmlFor={`mob-proof-${t.id}`} className="px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-lg text-[8px] font-black uppercase text-slate-400">Attach Proof</label>
                         </div>
                       ) : (
-                        <button onClick={() => setViewingAttachment({ url: t.paymentProofUrl!, title: 'Payment Proof' })} className="px-3 py-1.5 bg-emerald-50 border border-emerald-100 rounded-lg text-[8px] font-black uppercase text-emerald-600 font-black uppercase tracking-widest">View Proof</button>
+                        <button onClick={() => setViewingAttachment({ url: t.paymentProofUrl!, title: 'Payment Proof' })} className="px-3 py-1.5 bg-emerald-50 border border-emerald-100 rounded-lg text-[8px] font-black uppercase text-emerald-600 tracking-widest">View Proof</button>
                       )}
                     </>
                   )}
@@ -707,5 +804,11 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
     </div>
   );
 };
+
+const HistoryList: React.FC<Props> = (props) => (
+  <HistoryErrorBoundary>
+    <HistoryListContent {...props} />
+  </HistoryErrorBoundary>
+);
 
 export default HistoryList;
