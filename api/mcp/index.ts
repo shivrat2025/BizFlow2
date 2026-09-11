@@ -47,7 +47,7 @@ async function writeToFirestore(txDoc: any) {
         for (const [key, val] of Object.entries(txDoc)) {
             if (val === null || val === undefined) continue;
             if (typeof val === 'number') {
-                fields[key] = { doubleValue: val };
+                fields[key] = Number.isInteger(val) ? { integerValue: String(val) } : { doubleValue: val };
             } else {
                 fields[key] = { stringValue: String(val) };
             }
