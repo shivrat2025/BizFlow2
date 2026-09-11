@@ -1,4 +1,4 @@
-export type TransactionType = 'INCOME' | 'EXPENSE' | 'WITHDRAWAL' | 'REPAYMENT';
+export type TransactionType = 'INCOME' | 'EXPENSE' | 'WITHDRAWAL' | 'REPAYMENT' | 'TRANSFER';
 export type IncomeSource = 'COD' | 'PREPAID';
 export type AccountType = 'BANK' | 'CREDIT_CARD' | 'OD' | 'CURRENT';
 

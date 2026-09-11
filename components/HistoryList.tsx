@@ -38,6 +38,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
     { id: 'FB_ADS', label: 'FB Ads', icon: Facebook, color: 'text-blue-600' },
     { id: 'SHIPPING', label: 'Shipping', icon: Truck, color: 'text-amber-600' },
     { id: 'PRODUCT', label: 'Product', icon: Package, color: 'text-indigo-600' },
+    { id: 'TRANSFER', label: 'Transfers', icon: RefreshCw, color: 'text-purple-600' },
     { id: 'REPAYMENT', label: 'Repayments', icon: CreditCard, color: 'text-blue-500' },
     { id: 'WITHDRAWAL', label: 'Profit', icon: PiggyBank, color: 'text-amber-500' },
     { id: 'OTHER', label: 'Others', icon: Landmark, color: 'text-slate-500' },
@@ -76,6 +77,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
         if (activeFilter === 'PREPAID_SALES') return t.type === 'INCOME' && t.incomeSource === 'PREPAID';
         if (activeFilter === 'COD_POOL') return t.incomeSource === 'COD';
         if (activeFilter === 'PREPAID_POOL') return t.incomeSource === 'PREPAID';
+        if (activeFilter === 'TRANSFER') return t.type === 'TRANSFER';
         if (activeFilter === 'REPAYMENT') return t.type === 'REPAYMENT';
         if (activeFilter === 'WITHDRAWAL') return t.type === 'WITHDRAWAL';
         if (activeFilter === 'OTHER') return t.type === 'EXPENSE' && !['FB_ADS', 'SHIPPING', 'PRODUCT'].includes(t.expenseCategory || '');
@@ -221,6 +223,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
   const getIcon = (t: Transaction) => {
     if (t.type === 'WITHDRAWAL') return <PiggyBank className="text-amber-500" />;
     if (t.type === 'REPAYMENT') return <CreditCard className="text-blue-500" />;
+    if (t.type === 'TRANSFER') return <RefreshCw className="text-purple-600" />;
     if (t.type === 'INCOME') return <TrendingUp className="text-green-500" />;
 
     switch (t.expenseCategory) {
@@ -459,8 +462,8 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
                           ) : null}
                           <div>
                             <div className="text-[10px] font-semibold text-slate-600 truncate">{name}</div>
-                            {t.type === 'REPAYMENT' && (
-                              <div className="text-[8px] text-slate-400 truncate mt-0.5">→ {getAccountName(t.destinationAccountId)}</div>
+                            {(t.type === 'REPAYMENT' || t.type === 'TRANSFER') && (
+                              <div className="text-[8px] text-purple-600 font-bold truncate mt-0.5">→ {getAccountName(t.destinationAccountId)}</div>
                             )}
                           </div>
                         </div>
@@ -532,8 +535,8 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
 
                   {/* Col 7: Amount */}
                   <td className="px-3 py-1.5 align-middle text-right">
-                    <span className={`font-mono font-black text-[13px] tabular-nums ${t.type === 'INCOME' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                      {t.type === 'INCOME' ? '+' : '−'}₹{t.amount.toLocaleString()}
+                    <span className={`font-mono font-black text-[13px] tabular-nums ${t.type === 'INCOME' ? 'text-emerald-600' : t.type === 'TRANSFER' ? 'text-purple-600' : 'text-rose-600'}`}>
+                      {t.type === 'INCOME' ? '+' : t.type === 'TRANSFER' ? '⇄ ' : '−'}₹{t.amount.toLocaleString()}
                     </span>
                   </td>
 

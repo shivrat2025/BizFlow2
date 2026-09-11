@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, TrendingUp, TrendingDown, PiggyBank, CreditCard, Plus, Check, ArrowRight, Tag, FileText, ChevronDown, ChevronUp, Camera, Calendar, ChevronRight } from 'lucide-react';
+import { X, TrendingUp, TrendingDown, PiggyBank, CreditCard, Plus, Check, ArrowRight, Tag, FileText, ChevronDown, ChevronUp, Camera, Calendar, ChevronRight, RefreshCw } from 'lucide-react';
 import { Account, Transaction, TransactionType, IncomeSource, DashboardStats, ExpenseCategory } from '../types';
 import { optimizeImage } from '../utils/imageOptimization';
 
@@ -144,7 +144,7 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
       return;
     }
 
-    if (type === 'REPAYMENT' && sourceId === destinationId) {
+    if ((type === 'REPAYMENT' || type === 'TRANSFER') && sourceId === destinationId) {
       setError("Source and Target accounts cannot be the same");
       return;
     }
@@ -157,7 +157,7 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
       amount: numAmount,
       description: description,
       sourceAccountId: sourceId,
-      destinationAccountId: type === 'REPAYMENT' ? destinationId : undefined,
+      destinationAccountId: (type === 'REPAYMENT' || type === 'TRANSFER') ? destinationId : undefined,
       incomeSource: incomeSource === 'NONE' ? undefined : incomeSource,
       expenseCategory: type === 'EXPENSE' ? expenseCat : undefined,
       supplierId: type === 'EXPENSE' && expenseCat === 'PRODUCT' ? supplierId : undefined,
@@ -211,6 +211,7 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
             {[
               { id: 'EXPENSE', icon: TrendingDown, label: 'Expense', color: 'text-red-600' },
               { id: 'INCOME', icon: TrendingUp, label: 'Income', color: 'text-green-600' },
+              { id: 'TRANSFER', icon: RefreshCw, label: 'Transfer', color: 'text-purple-600' },
               { id: 'REPAYMENT', icon: CreditCard, label: 'Repay', color: 'text-blue-600' },
               { id: 'WITHDRAWAL', icon: PiggyBank, label: 'Profit', color: 'text-amber-600' }
             ].map(tab => (
@@ -273,7 +274,33 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
             </div>
             {error && <p className="text-[10px] font-bold text-red-500">{error}</p>}
 
-            {type === 'REPAYMENT' ? (
+            {type === 'TRANSFER' ? (
+              <div className="space-y-4 animate-in slide-in-from-top-2">
+                <div className="p-4 bg-purple-50/50 border border-purple-100 rounded-2xl space-y-3">
+                  <div className="space-y-1">
+                    <label className="block text-[9px] font-black text-purple-600 uppercase tracking-widest">From Bank (Money Leaves)</label>
+                    <select value={sourceId} onChange={(e) => handleSourceSelect(e.target.value)} className="w-full px-3 py-2.5 bg-white/80 border border-purple-200 rounded-xl text-[11px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/20" required>
+                      <option value="">Select Source Account...</option>
+                      {accounts.map(acc => (
+                        <option key={acc.id} value={acc.id}>{acc.name} (Bal: ₹{acc.balance.toLocaleString()})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex justify-center text-purple-400">
+                    <ArrowRight size={16} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[9px] font-black text-purple-600 uppercase tracking-widest">To Bank (Money Enters)</label>
+                    <select value={destinationId} onChange={(e) => setDestinationId(e.target.value)} className="w-full px-3 py-2.5 bg-white/80 border border-purple-200 rounded-xl text-[11px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/20" required>
+                      <option value="">Select Target Account...</option>
+                      {accounts.filter(a => a.id !== sourceId).map(acc => (
+                        <option key={acc.id} value={acc.id}>{acc.name} (Bal: ₹{acc.balance.toLocaleString()})</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            ) : type === 'REPAYMENT' ? (
               <div className="space-y-4 animate-in slide-in-from-top-2">
                 <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-2xl space-y-3">
                   <div className="space-y-1">
@@ -608,11 +635,12 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
             type="submit"
             disabled={accounts.length === 0}
             className={`w-full py-4 rounded-2xl font-black text-white shadow-xl flex items-center justify-center gap-2 ${type === 'EXPENSE' ? 'bg-red-600 hover:bg-red-700 shadow-red-100' :
-              type === 'REPAYMENT' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-100' :
-                type === 'INCOME' ? 'bg-green-600 hover:bg-green-700 shadow-green-100' : 'bg-amber-600 hover:bg-amber-700 shadow-amber-100'
+              type === 'TRANSFER' ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-100' :
+                type === 'REPAYMENT' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-100' :
+                  type === 'INCOME' ? 'bg-green-600 hover:bg-green-700 shadow-green-100' : 'bg-amber-600 hover:bg-amber-700 shadow-amber-100'
               } disabled:opacity-50 transition-all hover:scale-[1.01] active:scale-[0.99]`}
           >
-            {type === 'REPAYMENT' ? 'Record Repayment' : (initialData && !initialData.id ? 'Add Duplicate' : 'Save Entry')} <ChevronRight size={16} />
+            {type === 'TRANSFER' ? 'Record Internal Transfer' : type === 'REPAYMENT' ? 'Record Repayment' : (initialData && !initialData.id ? 'Add Duplicate' : 'Save Entry')} <ChevronRight size={16} />
           </button>
         </form >
       </div >
