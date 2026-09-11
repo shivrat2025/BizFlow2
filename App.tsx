@@ -10,6 +10,7 @@ import InvoicesList from './components/InvoicesList';
 import CloudSync from './components/CloudSync';
 import TransactionForm from './components/TransactionForm';
 import BackupManager from './components/BackupManager';
+import { neonDb } from './utils/neonDb';
 
 const firebaseConfig = {
     apiKey: "AIzaSyDIyPAe5qGMrwj51KutR-4Xp99rQdH-Okk",
@@ -95,6 +96,24 @@ const App: React.FC = () => {
         if (!workspaceId) return;
         setFirebaseStatus('SYNCING');
 
+        // Load data directly from Neon PostgreSQL
+        const loadNeonData = async () => {
+            try {
+                const data = await neonDb.getWorkspaceData(workspaceId);
+                if (data.accounts?.length) setAccounts(data.accounts);
+                if (data.categories?.length) setCategories(data.categories);
+                if (data.suppliers?.length) setSuppliers(data.suppliers);
+                if (data.transactions) setRealtimeTransactions(data.transactions);
+                if (data.profitPercent !== undefined) setProfitPercent(data.profitPercent);
+                setFirebaseStatus('CONNECTED');
+            } catch (err) {
+                console.error("Neon Load Error:", err);
+            }
+        };
+
+        loadNeonData();
+        const interval = setInterval(loadNeonData, 5000); // Polling Neon every 5s for multi-device sync
+
         // 1. Listen to Workspace Metadata (Accounts, Categories, Rules)
         const unsubMeta = onSnapshot(doc(db, "workspaces", workspaceId), (docSnap) => {
             if (docSnap.exists()) {
@@ -110,34 +129,25 @@ const App: React.FC = () => {
                     setProfitPercent(data.profitPercent);
                     localStorage.setItem('bizflow_profit_pct', String(data.profitPercent));
                 }
-            } else {
-                setDoc(doc(db, "workspaces", workspaceId), {
-                    accounts: [],
-                    categories: DEFAULT_CATEGORIES,
-                    aiRules: [],
-                    suppliers: [],
-                    lastSynced: Date.now()
-                }, { merge: true });
             }
         }, (err) => {
             console.error("Meta Sync Error:", err);
-            setFirebaseStatus('ERROR');
         });
 
-        // 2. Listen to Transactions Sub-collection (Real-time for all users)
+        // 2. Listen to Transactions Sub-collection
         const unsubTxs = onSnapshot(collection(db, "workspaces", workspaceId, "transactions"), (querySnap) => {
             const txs: Transaction[] = [];
             querySnap.forEach((doc) => {
                 txs.push({ ...doc.data(), id: doc.id } as Transaction);
             });
-            setRealtimeTransactions(txs);
+            if (txs.length > 0) setRealtimeTransactions(txs);
             setFirebaseStatus('CONNECTED');
         }, (err) => {
             console.error("Transaction Sync Error:", err);
-            setFirebaseStatus('ERROR');
         });
 
         return () => {
+            clearInterval(interval);
             unsubMeta();
             unsubTxs();
         };
@@ -407,15 +417,19 @@ const App: React.FC = () => {
                 createdAt: editingTransaction?.createdAt || Date.now()
             };
 
+            // Save to Neon PostgreSQL
+            await neonDb.saveTransaction(trimmedWorkspace, newTx);
+
+            // Also save to Firebase doc for fallback
             const docRef = doc(db, "workspaces", trimmedWorkspace, "transactions", txId);
             await setDoc(docRef, deepClean(newTx));
-            console.log("Transaction saved successfully:", txId);
+            console.log("Transaction saved successfully to Neon & Cloud:", txId);
 
             setShowForm(false);
             setEditingTransaction(null);
         } catch (e) {
             console.error("Add Tx Error:", e);
-            alert("Failed to save transaction to cloud. Check console for details.");
+            alert("Failed to save transaction. Check console for details.");
         }
     };
 
