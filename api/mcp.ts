@@ -36,6 +36,169 @@ async function resolveAccountId(accountName?: string) {
     return accounts[0]?.id || null;
 }
 
+async function handleRpc(body: any) {
+    const { jsonrpc, method, params, id } = body || {};
+    const reqId = id !== undefined ? id : 1;
+
+    // MCP Initialization
+    if (method === 'initialize') {
+        return {
+            jsonrpc: "2.0",
+            id: reqId,
+            result: {
+                protocolVersion: "2024-11-05",
+                capabilities: { 
+                    tools: {},
+                    resources: {},
+                    prompts: {}
+                },
+                serverInfo: { name: "bizflow", version: "1.0.0" }
+            }
+        };
+    }
+
+    // Notifications / Ping
+    if (method === 'notifications/initialized' || method === 'initialized' || method === 'ping') {
+        return {
+            jsonrpc: "2.0",
+            id: reqId,
+            result: {}
+        };
+    }
+
+    // List Resources & Prompts
+    if (method === 'resources/list') {
+        return { jsonrpc: "2.0", id: reqId, result: { resources: [] } };
+    }
+    if (method === 'prompts/list') {
+        return { jsonrpc: "2.0", id: reqId, result: { prompts: [] } };
+    }
+
+    // List Tools
+    if (method === 'tools/list') {
+        return {
+            jsonrpc: "2.0",
+            id: reqId,
+            result: {
+                tools: [
+                    {
+                        name: "add_transaction",
+                        description: "Add a financial transaction (Expense, Income, Internal Transfer, Repayment, Profit Withdrawal) directly to BizFlow Neon DB.",
+                        inputSchema: {
+                            type: "object",
+                            properties: {
+                                amount: { type: "number", description: "Amount in ₹" },
+                                type: { type: "string", enum: ["EXPENSE", "INCOME", "TRANSFER", "REPAYMENT", "WITHDRAWAL"] },
+                                description: { type: "string" },
+                                date: { type: "string", description: "Date (e.g. '2026-08-29', 'today')" },
+                                account: { type: "string", description: "Bank account name (IDFC, IndusInd, etc.)" },
+                                destination_account: { type: "string" },
+                                category: { type: "string", description: "Expense category (FB_ADS, SHIPPING, PRODUCT, etc.)" }
+                            },
+                            required: ["amount", "type"]
+                        }
+                    },
+                    {
+                        name: "get_account_balances",
+                        description: "Get real-time balances for all bank accounts in BizFlow.",
+                        inputSchema: { type: "object", properties: {} }
+                    },
+                    {
+                        name: "search_transactions",
+                        description: "Search transactions by keyword, type, or category.",
+                        inputSchema: {
+                            type: "object",
+                            properties: {
+                                query: { type: "string" },
+                                type: { type: "string" },
+                                limit: { type: "number" }
+                            }
+                        }
+                    }
+                ]
+            }
+        };
+    }
+
+    // Call Tool
+    if (method === 'tools/call') {
+        const toolName = params?.name;
+        const args = params?.arguments || {};
+
+        try {
+            if (toolName === "add_transaction") {
+                const txId = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+                const dateTs = parseTimestamp(args.date);
+                const sourceAccId = await resolveAccountId(args.account);
+                const destAccId = await resolveAccountId(args.destination_account);
+
+                await sql`
+                    INSERT INTO transactions (
+                        id, workspace_id, date, amount, type, description,
+                        source_account_id, destination_account_id, expense_category, created_at
+                    ) VALUES (
+                        ${txId}, ${WORKSPACE_ID}, ${dateTs}, ${args.amount}, ${String(args.type).toUpperCase()},
+                        ${args.description || ''}, ${sourceAccId}, ${destAccId}, ${args.category || null}, ${Date.now()}
+                    );
+                `;
+
+                return {
+                    jsonrpc: "2.0",
+                    id: reqId,
+                    result: {
+                        content: [{
+                            type: "text",
+                            text: `✅ Saved to BizFlow! ₹${args.amount} (${args.type}) on ${new Date(dateTs).toLocaleDateString('en-IN')}`
+                        }]
+                    }
+                };
+            }
+
+            if (toolName === "get_account_balances") {
+                const accs = await sql`SELECT name, type, balance, limit_val FROM accounts WHERE workspace_id = ${WORKSPACE_ID};`;
+                return {
+                    jsonrpc: "2.0",
+                    id: reqId,
+                    result: {
+                        content: [{ type: "text", text: JSON.stringify(accs, null, 2) }]
+                    }
+                };
+            }
+
+            if (toolName === "search_transactions") {
+                const limit = args.limit || 20;
+                const rows = await sql`SELECT id, date, amount, type, description FROM transactions WHERE workspace_id = ${WORKSPACE_ID} ORDER BY date DESC LIMIT ${limit};`;
+                return {
+                    jsonrpc: "2.0",
+                    id: reqId,
+                    result: {
+                        content: [{ type: "text", text: JSON.stringify(rows, null, 2) }]
+                    }
+                };
+            }
+
+            return {
+                jsonrpc: "2.0",
+                id: reqId,
+                error: { code: -32601, message: `Tool ${toolName} not found` }
+            };
+        } catch (err: any) {
+            return {
+                jsonrpc: "2.0",
+                id: reqId,
+                error: { code: -32603, message: err.message }
+            };
+        }
+    }
+
+    // Generic fallback for any other method
+    return {
+        jsonrpc: "2.0",
+        id: reqId,
+        result: {}
+    };
+}
+
 export default async function handler(req: any, res: any) {
     // CORS headers - Allow Claude Web, Cursor, and all clients
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -48,25 +211,28 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === 'GET') {
         const acceptHeader = req.headers.accept || '';
+        const host = req.headers.host || 'biz-flow2.vercel.app';
+        const proto = req.headers['x-forwarded-proto'] || 'https';
+        const fullEndpointUrl = `${proto}://${host}/api/mcp`;
+
         if (acceptHeader.includes('text/event-stream')) {
             // SSE Stream Header for MCP Remote SSE protocol
             res.setHeader('Content-Type', 'text/event-stream');
             res.setHeader('Cache-Control', 'no-cache');
             res.setHeader('Connection', 'keep-alive');
             
-            const host = req.headers.host || 'biz-flow2.vercel.app';
-            const proto = req.headers['x-forwarded-proto'] || 'https';
-            res.write(`event: endpoint\ndata: ${proto}://${host}/api/mcp\n\n`);
-            return;
+            res.write(`event: endpoint\ndata: ${fullEndpointUrl}\n\n`);
+            return res.end();
         }
 
         // Standard HTTP GET check (Claude Connector status check / health check)
         return res.status(200).json({
             status: "ok",
-            name: "bizflow-remote-mcp",
+            name: "bizflow",
             version: "1.0.0",
             mcp: true,
-            protocolVersion: "2024-11-05"
+            protocolVersion: "2024-11-05",
+            endpoint: fullEndpointUrl
         });
     }
 
@@ -80,166 +246,13 @@ export default async function handler(req: any, res: any) {
             }
         }
 
-        const { jsonrpc, method, params, id } = body;
-        const reqId = id !== undefined ? id : 1;
-
-        // MCP Initialization
-        if (method === 'initialize') {
-            return res.status(200).json({
-                jsonrpc: "2.0",
-                id: reqId,
-                result: {
-                    protocolVersion: "2024-11-05",
-                    capabilities: { 
-                        tools: {},
-                        resources: {},
-                        prompts: {}
-                    },
-                    serverInfo: { name: "bizflow-remote-mcp", version: "1.0.0" }
-                }
-            });
+        if (Array.isArray(body)) {
+            const responses = await Promise.all(body.map(item => handleRpc(item)));
+            return res.status(200).json(responses);
         }
 
-        // MCP Initialized notification / Ping
-        if (method === 'notifications/initialized' || method === 'initialized' || method === 'ping') {
-            return res.status(200).json({
-                jsonrpc: "2.0",
-                id: reqId,
-                result: {}
-            });
-        }
-
-        // List Resources / Prompts empty defaults
-        if (method === 'resources/list') {
-            return res.status(200).json({ jsonrpc: "2.0", id: reqId, result: { resources: [] } });
-        }
-        if (method === 'prompts/list') {
-            return res.status(200).json({ jsonrpc: "2.0", id: reqId, result: { prompts: [] } });
-        }
-
-        // List Tools
-        if (method === 'tools/list') {
-            return res.status(200).json({
-                jsonrpc: "2.0",
-                id: reqId,
-                result: {
-                    tools: [
-                        {
-                            name: "add_transaction",
-                            description: "Add a financial transaction (Expense, Income, Internal Transfer, Repayment, Profit Withdrawal) directly to BizFlow Neon DB.",
-                            inputSchema: {
-                                type: "object",
-                                properties: {
-                                    amount: { type: "number", description: "Amount in ₹" },
-                                    type: { type: "string", enum: ["EXPENSE", "INCOME", "TRANSFER", "REPAYMENT", "WITHDRAWAL"] },
-                                    description: { type: "string" },
-                                    date: { type: "string", description: "Date (e.g. '2026-08-29', 'today')" },
-                                    account: { type: "string", description: "Bank account name (IDFC, IndusInd, etc.)" },
-                                    destination_account: { type: "string" },
-                                    category: { type: "string", description: "Expense category (FB_ADS, SHIPPING, PRODUCT, etc.)" }
-                                },
-                                required: ["amount", "type"]
-                            }
-                        },
-                        {
-                            name: "get_account_balances",
-                            description: "Get real-time balances for all bank accounts in BizFlow.",
-                            inputSchema: { type: "object", properties: {} }
-                        },
-                        {
-                            name: "search_transactions",
-                            description: "Search transactions by keyword, type, or category.",
-                            inputSchema: {
-                                type: "object",
-                                properties: {
-                                    query: { type: "string" },
-                                    type: { type: "string" },
-                                    limit: { type: "number" }
-                                }
-                            }
-                        }
-                    ]
-                }
-            });
-        }
-
-        // Call Tool
-        if (method === 'tools/call') {
-            const toolName = params?.name;
-            const args = params?.arguments || {};
-
-            try {
-                if (toolName === "add_transaction") {
-                    const txId = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-                    const dateTs = parseTimestamp(args.date);
-                    const sourceAccId = await resolveAccountId(args.account);
-                    const destAccId = await resolveAccountId(args.destination_account);
-
-                    await sql`
-                        INSERT INTO transactions (
-                            id, workspace_id, date, amount, type, description,
-                            source_account_id, destination_account_id, expense_category, created_at
-                        ) VALUES (
-                            ${txId}, ${WORKSPACE_ID}, ${dateTs}, ${args.amount}, ${String(args.type).toUpperCase()},
-                            ${args.description || ''}, ${sourceAccId}, ${destAccId}, ${args.category || null}, ${Date.now()}
-                        );
-                    `;
-
-                    return res.status(200).json({
-                        jsonrpc: "2.0",
-                        id: reqId,
-                        result: {
-                            content: [{
-                                type: "text",
-                                text: `✅ Saved to BizFlow! ₹${args.amount} (${args.type}) on ${new Date(dateTs).toLocaleDateString('en-IN')}`
-                            }]
-                        }
-                    });
-                }
-
-                if (toolName === "get_account_balances") {
-                    const accs = await sql`SELECT name, type, balance, limit_val FROM accounts WHERE workspace_id = ${WORKSPACE_ID};`;
-                    return res.status(200).json({
-                        jsonrpc: "2.0",
-                        id: reqId,
-                        result: {
-                            content: [{ type: "text", text: JSON.stringify(accs, null, 2) }]
-                        }
-                    });
-                }
-
-                if (toolName === "search_transactions") {
-                    const limit = args.limit || 20;
-                    const rows = await sql`SELECT id, date, amount, type, description FROM transactions WHERE workspace_id = ${WORKSPACE_ID} ORDER BY date DESC LIMIT ${limit};`;
-                    return res.status(200).json({
-                        jsonrpc: "2.0",
-                        id: reqId,
-                        result: {
-                            content: [{ type: "text", text: JSON.stringify(rows, null, 2) }]
-                        }
-                    });
-                }
-
-                return res.status(200).json({
-                    jsonrpc: "2.0",
-                    id: reqId,
-                    error: { code: -32601, message: `Tool ${toolName} not found` }
-                });
-            } catch (err: any) {
-                return res.status(200).json({
-                    jsonrpc: "2.0",
-                    id: reqId,
-                    error: { code: -32603, message: err.message }
-                });
-            }
-        }
-
-        // Generic fallback for any other JSON-RPC method
-        return res.status(200).json({
-            jsonrpc: "2.0",
-            id: reqId,
-            result: {}
-        });
+        const response = await handleRpc(body);
+        return res.status(200).json(response);
     }
 
     return res.status(405).json({ error: "Method not allowed" });
