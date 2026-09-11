@@ -94,6 +94,70 @@ const CloudSync: React.FC<Props> = ({ workspaceId, loading, lastSynced, onLogout
             </div>
           </div>
         </div>
+
+        {/* Claude AI & MCP Remote Integration Card */}
+        <div className="mt-8 p-8 bg-slate-900 text-white rounded-[2rem] shadow-2xl border border-slate-800 relative overflow-hidden">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
+            <div className="space-y-2 max-w-xl">
+              <div className="flex items-center gap-3">
+                <div className="px-3 py-1 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5">
+                  <Zap size={12} /> AI Integration Active
+                </div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Model Context Protocol</span>
+              </div>
+              <h4 className="text-xl font-black tracking-tight text-white">Claude AI & Remote MCP Server</h4>
+              <p className="text-xs font-medium text-slate-300 leading-relaxed">
+                Connect Claude Desktop, Cursor, or any AI assistant directly to your BizFlow database. Make entries, check balances, and query analytics using natural language.
+              </p>
+            </div>
+
+            <div className="w-full lg:w-auto flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => {
+                  const mcpUrl = `${window.location.origin}/api/mcp`;
+                  navigator.clipboard.writeText(mcpUrl);
+                  alert(`✅ MCP Server Link Copied!\n\nURL: ${mcpUrl}`);
+                }}
+                className="px-6 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+              >
+                <Copy size={16} /> Copy MCP Server Link
+              </button>
+              <button
+                onClick={() => {
+                  const mcpUrl = `${window.location.origin}/api/mcp`;
+                  const config = JSON.stringify({
+                    mcpServers: {
+                      bizflow: {
+                        "command": "npx",
+                        args: ["-y", "@modelcontextprotocol/server-sse", mcpUrl]
+                      }
+                    }
+                  }, null, 2);
+                  navigator.clipboard.writeText(config);
+                  alert("✅ Claude Desktop Config JSON copied to clipboard!");
+                }}
+                className="px-6 py-4 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-black text-[10px] uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Copy size={16} /> Copy Claude Config
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-6 pt-6 border-t border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-800">
+              <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest block mb-1">Example Prompt #1</span>
+              <p className="text-[11px] font-bold text-slate-300">"Add an expense of ₹15,000 for FB Ads on 29 Aug from IDFC Bank"</p>
+            </div>
+            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-800">
+              <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest block mb-1">Example Prompt #2</span>
+              <p className="text-[11px] font-bold text-slate-300">"What is the current live balance of all my bank accounts?"</p>
+            </div>
+            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-800">
+              <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest block mb-1">Example Prompt #3</span>
+              <p className="text-[11px] font-bold text-slate-300">"Here is my PDF statement text, please add these entries to BizFlow"</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Danger Zone */}
