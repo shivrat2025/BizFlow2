@@ -37,47 +37,91 @@ async function resolveAccountId(accountName?: string) {
 }
 
 export default async function handler(req: any, res: any) {
-    // CORS headers
+    // CORS headers - Allow Claude Web, Cursor, and all clients
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Headers', '*');
 
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
 
     if (req.method === 'GET') {
-        // SSE Stream Header for MCP Remote HTTP
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-        
-        res.write(`event: endpoint\ndata: ${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host}/api/mcp\n\n`);
-        return;
+        const acceptHeader = req.headers.accept || '';
+        if (acceptHeader.includes('text/event-stream')) {
+            // SSE Stream Header for MCP Remote SSE protocol
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('Connection', 'keep-alive');
+            
+            const host = req.headers.host || 'biz-flow2.vercel.app';
+            const proto = req.headers['x-forwarded-proto'] || 'https';
+            res.write(`event: endpoint\ndata: ${proto}://${host}/api/mcp\n\n`);
+            return;
+        }
+
+        // Standard HTTP GET check (Claude Connector status check / health check)
+        return res.status(200).json({
+            status: "ok",
+            name: "bizflow-remote-mcp",
+            version: "1.0.0",
+            mcp: true,
+            protocolVersion: "2024-11-05"
+        });
     }
 
     if (req.method === 'POST') {
-        const body = req.body || {};
+        let body = req.body || {};
+        if (typeof body === 'string') {
+            try {
+                body = JSON.parse(body);
+            } catch (e) {
+                body = {};
+            }
+        }
+
         const { jsonrpc, method, params, id } = body;
+        const reqId = id !== undefined ? id : 1;
 
         // MCP Initialization
         if (method === 'initialize') {
             return res.status(200).json({
                 jsonrpc: "2.0",
-                id,
+                id: reqId,
                 result: {
                     protocolVersion: "2024-11-05",
-                    capabilities: { tools: {} },
+                    capabilities: { 
+                        tools: {},
+                        resources: {},
+                        prompts: {}
+                    },
                     serverInfo: { name: "bizflow-remote-mcp", version: "1.0.0" }
                 }
             });
+        }
+
+        // MCP Initialized notification / Ping
+        if (method === 'notifications/initialized' || method === 'initialized' || method === 'ping') {
+            return res.status(200).json({
+                jsonrpc: "2.0",
+                id: reqId,
+                result: {}
+            });
+        }
+
+        // List Resources / Prompts empty defaults
+        if (method === 'resources/list') {
+            return res.status(200).json({ jsonrpc: "2.0", id: reqId, result: { resources: [] } });
+        }
+        if (method === 'prompts/list') {
+            return res.status(200).json({ jsonrpc: "2.0", id: reqId, result: { prompts: [] } });
         }
 
         // List Tools
         if (method === 'tools/list') {
             return res.status(200).json({
                 jsonrpc: "2.0",
-                id,
+                id: reqId,
                 result: {
                     tools: [
                         {
@@ -99,7 +143,7 @@ export default async function handler(req: any, res: any) {
                         },
                         {
                             name: "get_account_balances",
-                            description: "Get real-time balances for all accounts in BizFlow.",
+                            description: "Get real-time balances for all bank accounts in BizFlow.",
                             inputSchema: { type: "object", properties: {} }
                         },
                         {
@@ -143,7 +187,7 @@ export default async function handler(req: any, res: any) {
 
                     return res.status(200).json({
                         jsonrpc: "2.0",
-                        id,
+                        id: reqId,
                         result: {
                             content: [{
                                 type: "text",
@@ -157,7 +201,7 @@ export default async function handler(req: any, res: any) {
                     const accs = await sql`SELECT name, type, balance, limit_val FROM accounts WHERE workspace_id = ${WORKSPACE_ID};`;
                     return res.status(200).json({
                         jsonrpc: "2.0",
-                        id,
+                        id: reqId,
                         result: {
                             content: [{ type: "text", text: JSON.stringify(accs, null, 2) }]
                         }
@@ -169,20 +213,33 @@ export default async function handler(req: any, res: any) {
                     const rows = await sql`SELECT id, date, amount, type, description FROM transactions WHERE workspace_id = ${WORKSPACE_ID} ORDER BY date DESC LIMIT ${limit};`;
                     return res.status(200).json({
                         jsonrpc: "2.0",
-                        id,
+                        id: reqId,
                         result: {
                             content: [{ type: "text", text: JSON.stringify(rows, null, 2) }]
                         }
                     });
                 }
 
-                return res.status(400).json({ jsonrpc: "2.0", id, error: { code: -32601, message: `Tool ${toolName} not found` } });
+                return res.status(200).json({
+                    jsonrpc: "2.0",
+                    id: reqId,
+                    error: { code: -32601, message: `Tool ${toolName} not found` }
+                });
             } catch (err: any) {
-                return res.status(500).json({ jsonrpc: "2.0", id, error: { code: -32603, message: err.message } });
+                return res.status(200).json({
+                    jsonrpc: "2.0",
+                    id: reqId,
+                    error: { code: -32603, message: err.message }
+                });
             }
         }
 
-        return res.status(400).json({ jsonrpc: "2.0", id, error: { code: -32601, message: "Method not found" } });
+        // Generic fallback for any other JSON-RPC method
+        return res.status(200).json({
+            jsonrpc: "2.0",
+            id: reqId,
+            result: {}
+        });
     }
 
     return res.status(405).json({ error: "Method not allowed" });
