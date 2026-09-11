@@ -24,6 +24,11 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
   const [viewingAttachment, setViewingAttachment] = useState<{ url: string, title: string } | null>(null);
   const [sortKey, setSortKey] = useState<'date' | 'amount' | 'createdAt'>('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [visibleCount, setVisibleCount] = useState(30);
+
+  React.useEffect(() => {
+    setVisibleCount(30);
+  }, [activeFilter, dateFilter, selectedTag, selectedAccountId, searchTerm, sortKey, sortOrder, customStart, customEnd]);
 
   const allTags = useMemo(() => {
     const tags = new Set<string>();
@@ -172,6 +177,10 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
 
     return list;
   }, [transactions, activeFilter, dateFilter, selectedTag, selectedAccountId, searchTerm, customStart, customEnd, sortKey, sortOrder]);
+
+  const displayedTransactions = useMemo(() => {
+    return filteredTransactions.slice(0, visibleCount);
+  }, [filteredTransactions, visibleCount]);
 
   const compressImage = (base64Str: string): Promise<string> => {
     return new Promise((resolve) => {
@@ -406,7 +415,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
                 </td>
               </tr>
             ) : (
-              filteredTransactions.map((t, i) => (
+              displayedTransactions.map((t, i) => (
                 <tr key={t.id} className={`border-b border-slate-50 hover:bg-indigo-50/30 transition-colors ${i % 2 === 0 ? '' : 'bg-slate-50/30'}`}>
 
                   {/* Col 1: Entered At */}
@@ -560,7 +569,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
         {filteredTransactions.length === 0 ? (
           <div className="py-20 text-center text-slate-300 font-black uppercase tracking-widest text-[10px]">No records found.</div>
         ) : (
-          filteredTransactions.map(t => (
+          displayedTransactions.map(t => (
             <div key={t.id} className="bg-white/70 backdrop-blur-xl px-4 py-3 rounded-2xl border border-white/40 shadow-sm active:bg-white/80 transition-colors">
               <div className="flex items-center gap-3">
                 <div className="p-1 bg-slate-50 rounded-lg flex-shrink-0">
@@ -643,6 +652,29 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
           ))
         )}
       </div>
+
+      {/* Load More / Lazy Loading Controls */}
+      {filteredTransactions.length > visibleCount && (
+        <div className="flex flex-col items-center justify-center py-6 gap-3 animate-in fade-in">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            Showing <span className="text-slate-800 font-extrabold">{displayedTransactions.length}</span> of <span className="text-indigo-600 font-extrabold">{filteredTransactions.length.toLocaleString()}</span> entries
+          </p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setVisibleCount(prev => prev + 50)}
+              className="px-6 py-2.5 bg-slate-900 hover:bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center gap-2"
+            >
+              <RefreshCw size={12} /> Load More (+50)
+            </button>
+            <button
+              onClick={() => setVisibleCount(filteredTransactions.length)}
+              className="px-4 py-2.5 bg-white/70 hover:bg-white text-slate-600 border border-white/60 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm"
+            >
+              Show All ({filteredTransactions.length.toLocaleString()})
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Attachment Preview Modal */}
       {viewingAttachment && (
