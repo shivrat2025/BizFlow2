@@ -22,7 +22,7 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [viewingAttachment, setViewingAttachment] = useState<{ url: string, title: string } | null>(null);
-  const [sortKey, setSortKey] = useState<'date' | 'amount' | 'createdAt'>('createdAt');
+  const [sortKey, setSortKey] = useState<'date' | 'amount' | 'createdAt'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [visibleCount, setVisibleCount] = useState(30);
 
