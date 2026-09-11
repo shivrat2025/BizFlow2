@@ -28,57 +28,6 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
 
   const observerTargetRef = React.useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
-    setVisibleCount(30);
-  }, [activeFilter, dateFilter, selectedTag, selectedAccountId, searchTerm, sortKey, sortOrder, customStart, customEnd]);
-
-  React.useEffect(() => {
-    const target = observerTargetRef.current;
-    if (!target) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && filteredTransactions.length > visibleCount) {
-          setVisibleCount(prev => Math.min(prev + 40, filteredTransactions.length));
-        }
-      },
-      { threshold: 0.1, rootMargin: '250px' }
-    );
-
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [filteredTransactions.length, visibleCount]);
-
-  const allTags = useMemo(() => {
-    const tags = new Set<string>();
-    transactions.forEach(t => t.tags?.forEach(tag => tags.add(tag)));
-    return Array.from(tags).sort();
-  }, [transactions]);
-
-  const filters = [
-    { id: 'ALL', label: 'All', icon: Filter },
-    { id: 'COD_POOL', label: 'COD Flow', icon: RefreshCw, color: 'text-indigo-600' },
-    { id: 'PREPAID_POOL', label: 'Prepaid Flow', icon: RefreshCw, color: 'text-emerald-600' },
-    { id: 'FB_ADS', label: 'FB Ads', icon: Facebook, color: 'text-blue-600' },
-    { id: 'SHIPPING', label: 'Shipping', icon: Truck, color: 'text-amber-600' },
-    { id: 'PRODUCT', label: 'Product', icon: Package, color: 'text-indigo-600' },
-    { id: 'TRANSFER', label: 'Transfers', icon: RefreshCw, color: 'text-purple-600' },
-    { id: 'REPAYMENT', label: 'Repayments', icon: CreditCard, color: 'text-blue-500' },
-    { id: 'WITHDRAWAL', label: 'Profit', icon: PiggyBank, color: 'text-amber-500' },
-    { id: 'OTHER', label: 'Others', icon: Landmark, color: 'text-slate-500' },
-  ];
-
-  const dateFilters = [
-    { id: 'ALL_TIME', label: 'All Time' },
-    { id: 'TODAY', label: 'Today' },
-    { id: 'YESTERDAY', label: 'Yesterday' },
-    { id: 'MTD', label: 'This Month (MTD)' },
-    { id: 'LAST_MONTH', label: 'Last Month' },
-    { id: 'THIS_YEAR', label: 'This Year' },
-    { id: 'LAST_YEAR', label: 'Last Year' },
-    { id: 'CUSTOM', label: 'Custom Range' },
-  ];
-
   const getAccountName = (id?: string) => {
     return accounts.find(a => a.id === id)?.name || 'N/A';
   };
@@ -200,6 +149,27 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
   const displayedTransactions = useMemo(() => {
     return filteredTransactions.slice(0, visibleCount);
   }, [filteredTransactions, visibleCount]);
+
+  React.useEffect(() => {
+    setVisibleCount(30);
+  }, [activeFilter, dateFilter, selectedTag, selectedAccountId, searchTerm, sortKey, sortOrder, customStart, customEnd]);
+
+  React.useEffect(() => {
+    const target = observerTargetRef.current;
+    if (!target) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && filteredTransactions.length > visibleCount) {
+          setVisibleCount(prev => Math.min(prev + 40, filteredTransactions.length));
+        }
+      },
+      { threshold: 0.1, rootMargin: '250px' }
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [filteredTransactions.length, visibleCount]);
 
   const compressImage = (base64Str: string): Promise<string> => {
     return new Promise((resolve) => {
