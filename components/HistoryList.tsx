@@ -26,9 +26,28 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [visibleCount, setVisibleCount] = useState(30);
 
+  const observerTargetRef = React.useRef<HTMLDivElement>(null);
+
   React.useEffect(() => {
     setVisibleCount(30);
   }, [activeFilter, dateFilter, selectedTag, selectedAccountId, searchTerm, sortKey, sortOrder, customStart, customEnd]);
+
+  React.useEffect(() => {
+    const target = observerTargetRef.current;
+    if (!target) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && filteredTransactions.length > visibleCount) {
+          setVisibleCount(prev => Math.min(prev + 40, filteredTransactions.length));
+        }
+      },
+      { threshold: 0.1, rootMargin: '250px' }
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [filteredTransactions.length, visibleCount]);
 
   const allTags = useMemo(() => {
     const tags = new Set<string>();
@@ -653,26 +672,21 @@ const HistoryList: React.FC<Props> = ({ transactions, deleteTransaction, onEdit,
         )}
       </div>
 
-      {/* Load More / Lazy Loading Controls */}
+      {/* Infinite Scroll / Automatic Lazy Loading Sentinel */}
       {filteredTransactions.length > visibleCount && (
-        <div className="flex flex-col items-center justify-center py-6 gap-3 animate-in fade-in">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            Showing <span className="text-slate-800 font-extrabold">{displayedTransactions.length}</span> of <span className="text-indigo-600 font-extrabold">{filteredTransactions.length.toLocaleString()}</span> entries
-          </p>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setVisibleCount(prev => prev + 50)}
-              className="px-6 py-2.5 bg-slate-900 hover:bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center gap-2"
-            >
-              <RefreshCw size={12} /> Load More (+50)
-            </button>
-            <button
-              onClick={() => setVisibleCount(filteredTransactions.length)}
-              className="px-4 py-2.5 bg-white/70 hover:bg-white text-slate-600 border border-white/60 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm"
-            >
-              Show All ({filteredTransactions.length.toLocaleString()})
-            </button>
+        <div ref={observerTargetRef} className="flex flex-col items-center justify-center py-6 gap-2 animate-in fade-in">
+          <div className="flex items-center gap-2 px-4 py-2 bg-white/70 backdrop-blur-md rounded-2xl border border-white/60 shadow-sm text-slate-500">
+            <RefreshCw size={14} className="animate-spin text-indigo-600" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">
+              Loading entries... ({displayedTransactions.length} of {filteredTransactions.length.toLocaleString()})
+            </span>
           </div>
+          <button
+            onClick={() => setVisibleCount(filteredTransactions.length)}
+            className="text-[9px] font-black text-indigo-500 uppercase tracking-widest hover:underline mt-1 cursor-pointer"
+          >
+            Show All ({filteredTransactions.length.toLocaleString()})
+          </button>
         </div>
       )}
 
