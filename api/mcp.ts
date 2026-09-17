@@ -192,6 +192,7 @@ async function handleRpc(body: any) {
                         expense_category: args.category || null,
                         created_at: Date.now()
                     });
+                    await supabase.from('workspaces').update({ last_synced: Date.now() }).eq('id', WORKSPACE_ID);
                 } catch (supErr) {
                     console.error("Supabase DB Write Warning:", supErr);
                 }
