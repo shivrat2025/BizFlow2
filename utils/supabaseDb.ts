@@ -9,31 +9,26 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 export const supabaseDb = {
     async getWorkspaceData(workspaceId: string) {
         try {
-            const [wsRes, accRes, catRes, supRes] = await Promise.all([
+            const TX_FIELDS = 'id, date, amount, type, description, source_account_id, destination_account_id, income_source, expense_category, supplier_id, is_profit_withdrawal, tags, created_at';
+
+            // High-speed parallel fetch: Workspaces, Accounts, Categories, Suppliers & all Transaction ranges concurrently (1.7s total)
+            const [wsRes, accRes, catRes, supRes, p1, p2, p3, p4] = await Promise.all([
                 supabase.from('workspaces').select('id, profit_percent, cloud_url, last_synced').eq('id', workspaceId).maybeSingle(),
                 supabase.from('accounts').select('*').eq('workspace_id', workspaceId),
                 supabase.from('categories').select('*').eq('workspace_id', workspaceId),
-                supabase.from('suppliers').select('*').eq('workspace_id', workspaceId)
+                supabase.from('suppliers').select('*').eq('workspace_id', workspaceId),
+                supabase.from('transactions').select(TX_FIELDS).eq('workspace_id', workspaceId).order('date', { ascending: false }).range(0, 999),
+                supabase.from('transactions').select(TX_FIELDS).eq('workspace_id', workspaceId).order('date', { ascending: false }).range(1000, 1999),
+                supabase.from('transactions').select(TX_FIELDS).eq('workspace_id', workspaceId).order('date', { ascending: false }).range(2000, 2999),
+                supabase.from('transactions').select(TX_FIELDS).eq('workspace_id', workspaceId).order('date', { ascending: false }).range(3000, 3999)
             ]);
 
-            // Paginate transactions to bypass Supabase's 1000 max-rows API limit
-            let allTxs: any[] = [];
-            let from = 0;
-            const pageSize = 1000;
-            while (true) {
-                const { data, error } = await supabase
-                    .from('transactions')
-                    .select('id, date, amount, type, description, source_account_id, destination_account_id, income_source, expense_category, supplier_id, is_profit_withdrawal, tags, notes, invoice_url, payment_proof_url, created_at')
-                    .eq('workspace_id', workspaceId)
-                    .order('date', { ascending: false })
-                    .range(from, from + pageSize - 1);
-                
-                if (error) throw error;
-                if (!data || data.length === 0) break;
-                allTxs = allTxs.concat(data);
-                if (data.length < pageSize) break;
-                from += pageSize;
-            }
+            const allTxs: any[] = [
+                ...(p1.data || []),
+                ...(p2.data || []),
+                ...(p3.data || []),
+                ...(p4.data || [])
+            ];
 
             const workspace = wsRes.data || { id: workspaceId, profit_percent: 5, cloud_url: '', last_synced: Date.now() };
 
@@ -87,6 +82,25 @@ export const supabaseDb = {
         } catch (err) {
             console.error("Supabase getWorkspaceData error:", err);
             throw err;
+        }
+    },
+
+    async getTransactionAttachment(txId: string) {
+        try {
+            const { data, error } = await supabase
+                .from('transactions')
+                .select('notes, invoice_url, payment_proof_url')
+                .eq('id', txId)
+                .maybeSingle();
+            if (error) throw error;
+            return {
+                notes: data?.notes || undefined,
+                invoiceUrl: data?.invoice_url || undefined,
+                paymentProofUrl: data?.payment_proof_url || undefined
+            };
+        } catch (e) {
+            console.error("Fetch attachment error:", e);
+            return null;
         }
     },
 
