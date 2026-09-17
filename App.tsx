@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { LayoutDashboard, History, Wallet, Cloud, Plus, RefreshCw, ChevronRight, BarChart3, FileText, Menu, Landmark, Lock, Shield, Zap, AlertCircle, Settings, Eye, EyeOff, Sparkles, X, Trash2 } from 'lucide-react';
+import { LayoutDashboard, History, Wallet, Cloud, Plus, RefreshCw, ChevronRight, BarChart3, FileText, Menu, Landmark, Lock, Shield, Zap, AlertCircle, Settings, Eye, EyeOff, Sparkles, X, Trash2, Check } from 'lucide-react';
 import { initializeApp, getApp, getApps } from "firebase/app";
 import { getFirestore, doc, onSnapshot, setDoc, deleteDoc, updateDoc, collection, writeBatch, getDoc, getDocs, query, where } from "firebase/firestore";
 import { Account, Transaction, DeletedTransaction, DashboardStats, ExpenseCategory, AIRule, APP_VERSION, APP_RELEASE_NOTES } from './types';
@@ -52,17 +52,26 @@ const DEFAULT_CATEGORIES: ExpenseCategory[] = [
 const App: React.FC = () => {
     const [activeTab, setActiveTab] = useState('dashboard');
     const [workspaceId, setWorkspaceId] = useState(() => (localStorage.getItem('bizflow_workspace_id') || '').trim());
-    const [accounts, setAccounts] = useState<Account[]>([]);
+    const [accounts, setAccounts] = useState<Account[]>(() => {
+        try {
+            const ws = (localStorage.getItem('bizflow_workspace_id') || '').trim();
+            const cached = localStorage.getItem(`bizflow_accounts_${ws}`);
+            if (cached) return JSON.parse(cached);
+        } catch (e) { }
+        return [];
+    });
     const [transactions, setTransactions] = useState<Transaction[]>(() => {
         try {
-            const cached = localStorage.getItem(`bizflow_txs_${(localStorage.getItem('bizflow_workspace_id') || '').trim()}`);
+            const ws = (localStorage.getItem('bizflow_workspace_id') || '').trim();
+            const cached = localStorage.getItem(`bizflow_txs_${ws}`);
             if (cached) return JSON.parse(cached);
         } catch (e) { console.warn("Failed to parse cached txs"); }
         return [];
     });
     const [deletedTransactions, setDeletedTransactions] = useState<DeletedTransaction[]>(() => {
         try {
-            const cached = localStorage.getItem(`bizflow_trash_${(localStorage.getItem('bizflow_workspace_id') || '').trim()}`);
+            const ws = (localStorage.getItem('bizflow_workspace_id') || '').trim();
+            const cached = localStorage.getItem(`bizflow_trash_${ws}`);
             if (cached) {
                 const parsed = JSON.parse(cached);
                 const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
@@ -71,11 +80,32 @@ const App: React.FC = () => {
         } catch (e) { console.warn("Failed to parse cached trash"); }
         return [];
     });
-    const [categories, setCategories] = useState<ExpenseCategory[]>(DEFAULT_CATEGORIES);
+    const [categories, setCategories] = useState<ExpenseCategory[]>(() => {
+        try {
+            const ws = (localStorage.getItem('bizflow_workspace_id') || '').trim();
+            const cached = localStorage.getItem(`bizflow_categories_${ws}`);
+            if (cached) return JSON.parse(cached);
+        } catch (e) { }
+        return DEFAULT_CATEGORIES;
+    });
     const [aiRules, setAiRules] = useState<AIRule[]>([]);
-    const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
+    const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>(() => {
+        try {
+            const ws = (localStorage.getItem('bizflow_workspace_id') || '').trim();
+            const cached = localStorage.getItem(`bizflow_suppliers_${ws}`);
+            if (cached) return JSON.parse(cached);
+        } catch (e) { }
+        return [];
+    });
     const [cloudUrl, setCloudUrl] = useState('');
-    const [lastSynced, setLastSynced] = useState<number | null>(null);
+    const [lastSynced, setLastSynced] = useState<number | null>(() => {
+        try {
+            const ws = (localStorage.getItem('bizflow_workspace_id') || '').trim();
+            const cached = localStorage.getItem(`bizflow_last_synced_${ws}`);
+            if (cached) return Number(cached);
+        } catch (e) { }
+        return null;
+    });
 
     const [showForm, setShowForm] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -104,6 +134,14 @@ const App: React.FC = () => {
     });
     const [showChangelogModal, setShowChangelogModal] = useState(false);
     const [showMcpModal, setShowMcpModal] = useState(false);
+    const [dbToast, setDbToast] = useState<{ message: string; visible: boolean } | null>(null);
+
+    const showDbToast = useCallback((message: string = 'Entry saved to database') => {
+        setDbToast({ message, visible: true });
+        setTimeout(() => {
+            setDbToast(prev => prev ? { ...prev, visible: false } : null);
+        }, 2500);
+    }, []);
 
     const handleDismissNotice = () => {
         localStorage.setItem('bizflow_last_seen_ver', APP_VERSION);
@@ -134,35 +172,69 @@ const App: React.FC = () => {
         }
     };
 
-    // Single Source of Truth: Supabase PostgreSQL loader
-    const handleSyncSupabase = useCallback(async (silent = false) => {
+    // Single Source of Truth: Supabase PostgreSQL loader with ultra-low egress handshake
+    const handleSyncSupabase = useCallback(async (silent = false, force = false) => {
         if (!workspaceId) return;
+        const trimmedWs = workspaceId.trim();
         if (!silent) {
             setSyncProgress({ active: true, percent: 15, label: 'Connecting to Supabase...' });
         }
         setFirebaseStatus('SYNCING');
         try {
-            const data = await supabaseDb.getWorkspaceData(workspaceId.trim(), (pct, msg) => {
+            const localLastSynced = Number(localStorage.getItem(`bizflow_last_synced_${trimmedWs}`) || 0);
+            const data = await supabaseDb.getWorkspaceData(
+                trimmedWs,
+                (pct, msg) => {
+                    if (!silent) {
+                        setSyncProgress({ active: true, percent: pct, label: msg });
+                    }
+                },
+                { localLastSynced, force }
+            );
+
+            if (data.profitPercent !== undefined) setProfitPercent(data.profitPercent);
+            if (data.cloudUrl) setCloudUrl(data.cloudUrl);
+
+            if (data.isUpToDate) {
+                setFirebaseStatus('CONNECTED');
                 if (!silent) {
-                    setSyncProgress({ active: true, percent: pct, label: msg });
+                    setSyncProgress({ active: true, percent: 100, label: 'Everything up to date' });
+                    setTimeout(() => {
+                        setSyncProgress(prev => ({ ...prev, active: false }));
+                    }, 400);
                 }
-            });
-            if (data.accounts?.length) setAccounts(data.accounts);
-            if (data.categories?.length) setCategories(data.categories);
-            if (data.suppliers?.length) setSuppliers(data.suppliers);
+                return;
+            }
+
+            if (data.accounts?.length) {
+                setAccounts(data.accounts);
+                try { localStorage.setItem(`bizflow_accounts_${trimmedWs}`, JSON.stringify(data.accounts)); } catch (e) {}
+            }
+            if (data.categories?.length) {
+                setCategories(data.categories);
+                try { localStorage.setItem(`bizflow_categories_${trimmedWs}`, JSON.stringify(data.categories)); } catch (e) {}
+            }
+            if (data.suppliers?.length) {
+                setSuppliers(data.suppliers);
+                try { localStorage.setItem(`bizflow_suppliers_${trimmedWs}`, JSON.stringify(data.suppliers)); } catch (e) {}
+            }
             if (data.transactions && data.transactions.length > 0) {
                 setTransactions(data.transactions);
                 try {
-                    localStorage.setItem(`bizflow_txs_${workspaceId.trim()}`, JSON.stringify(data.transactions));
+                    localStorage.setItem(`bizflow_txs_${trimmedWs}`, JSON.stringify(data.transactions));
                 } catch (e) { console.warn("Failed to cache txs", e); }
             }
-            if (data.profitPercent !== undefined) setProfitPercent(data.profitPercent);
+            if (data.lastSynced) {
+                setLastSynced(data.lastSynced);
+                localStorage.setItem(`bizflow_last_synced_${trimmedWs}`, String(data.lastSynced));
+            }
+
             setFirebaseStatus('CONNECTED');
             if (!silent) {
                 setSyncProgress({ active: true, percent: 100, label: 'Sync Complete' });
                 setTimeout(() => {
                     setSyncProgress(prev => ({ ...prev, active: false }));
-                }, 800);
+                }, 600);
             }
         } catch (err) {
             console.error("Supabase Load Error:", err);
@@ -176,16 +248,10 @@ const App: React.FC = () => {
     useEffect(() => {
         if (!workspaceId) return;
 
-        // 1. Initial Load: Full visual loading bar
+        // 1. Initial Startup Load: Visual progressive bar (runs once on startup)
         handleSyncSupabase(false);
 
-        // 2. Tab switch/focus: Silent background refresh without screen popups
-        const handleFocus = () => {
-            handleSyncSupabase(true);
-        };
-        window.addEventListener('focus', handleFocus);
-
-        // 3. Listen to Workspace Metadata from Firestore (Accounts, Categories, Rules, Cloud Settings)
+        // 2. Listen to Workspace Metadata from Firestore (Accounts, Categories, Rules, Cloud Settings)
         const unsubMeta = onSnapshot(doc(db, "workspaces", workspaceId.trim()), (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
@@ -205,7 +271,6 @@ const App: React.FC = () => {
         });
 
         return () => {
-            window.removeEventListener('focus', handleFocus);
             unsubMeta();
         };
     }, [workspaceId, handleSyncSupabase]);
@@ -482,10 +547,16 @@ const App: React.FC = () => {
                     hasInvoice: updates.hasInvoice !== undefined ? updates.hasInvoice : (updates.invoiceUrl !== undefined ? Boolean(updates.invoiceUrl) : tx.hasInvoice),
                     hasPaymentProof: updates.hasPaymentProof !== undefined ? updates.hasPaymentProof : (updates.paymentProofUrl !== undefined ? Boolean(updates.paymentProofUrl) : tx.hasPaymentProof),
                 };
-                setTransactions(prev => prev.map(t => t.id === id ? updatedTx : t));
+                const updatedList = transactions.map(t => t.id === id ? updatedTx : t);
+                setTransactions(updatedList);
                 if (trimmedWorkspace) {
+                    try {
+                        localStorage.setItem(`bizflow_txs_${trimmedWorkspace}`, JSON.stringify(updatedList));
+                        localStorage.setItem(`bizflow_last_synced_${trimmedWorkspace}`, String(Date.now()));
+                    } catch (e) {}
                     await supabaseDb.saveTransaction(trimmedWorkspace, updatedTx);
                 }
+                showDbToast('Changes saved to database');
             }
             const docRef = doc(db, "workspaces", workspaceId, "transactions", id);
             await updateDoc(docRef, deepClean(updates));
@@ -542,12 +613,19 @@ const App: React.FC = () => {
             // Optimistic local state update for instant UI feedback
             setTransactions(prev => {
                 const existingIdx = prev.findIndex(t => t.id === newTx.id);
+                let copy: Transaction[];
                 if (existingIdx >= 0) {
-                    const copy = [...prev];
+                    copy = [...prev];
                     copy[existingIdx] = newTx;
-                    return copy.sort((a, b) => b.date - a.date);
+                    copy.sort((a, b) => b.date - a.date);
+                } else {
+                    copy = [newTx, ...prev].sort((a, b) => b.date - a.date);
                 }
-                return [newTx, ...prev].sort((a, b) => b.date - a.date);
+                try {
+                    localStorage.setItem(`bizflow_txs_${trimmedWorkspace}`, JSON.stringify(copy));
+                    localStorage.setItem(`bizflow_last_synced_${trimmedWorkspace}`, String(Date.now()));
+                } catch (e) {}
+                return copy;
             });
 
             // Also save to Firebase doc for fallback
@@ -555,6 +633,7 @@ const App: React.FC = () => {
             await setDoc(docRef, deepClean(newTx));
             console.log("Transaction saved successfully to Supabase & Cloud:", txId);
 
+            showDbToast('Entry saved to database');
             setShowForm(false);
             setEditingTransaction(null);
         } catch (e) {
@@ -873,13 +952,26 @@ const App: React.FC = () => {
 
     const deleteTransaction = async (id: string) => {
         const txToDelete = transactions.find(t => t.id === id);
-        setTransactions(prev => prev.filter(t => t.id !== id));
+        const updatedList = transactions.filter(t => t.id !== id);
+        setTransactions(updatedList);
+        if (workspaceId) {
+            try {
+                localStorage.setItem(`bizflow_txs_${workspaceId.trim()}`, JSON.stringify(updatedList));
+                localStorage.setItem(`bizflow_last_synced_${workspaceId.trim()}`, String(Date.now()));
+            } catch (e) {}
+        }
         if (txToDelete) {
             const deletedTx: DeletedTransaction = {
                 ...txToDelete,
                 deletedAt: Date.now()
             };
-            setDeletedTransactions(prev => [deletedTx, ...prev.filter(t => t.id !== id)]);
+            setDeletedTransactions(prev => {
+                const nextTrash = [deletedTx, ...prev.filter(t => t.id !== id)];
+                try {
+                    localStorage.setItem(`bizflow_trash_${workspaceId.trim()}`, JSON.stringify(nextTrash));
+                } catch (e) {}
+                return nextTrash;
+            });
             if (workspaceId) {
                 try {
                     const trashRef = doc(db, "workspaces", workspaceId.trim(), "trash", id);
@@ -893,6 +985,7 @@ const App: React.FC = () => {
             if (workspaceId) await supabaseDb.deleteTransaction(workspaceId.trim(), id);
             const docRef = doc(db, "workspaces", workspaceId, "transactions", id);
             await deleteDoc(docRef);
+            showDbToast('Entry moved to trash');
         } catch (e) {
             console.error("Delete Tx Error:", e);
         }
@@ -901,7 +994,14 @@ const App: React.FC = () => {
     const handleBulkDeleteTransactions = async (ids: string[]) => {
         if (!ids || ids.length === 0) return;
         const txsToDelete = transactions.filter(t => ids.includes(t.id));
-        setTransactions(prev => prev.filter(t => !ids.includes(t.id)));
+        const updatedList = transactions.filter(t => !ids.includes(t.id));
+        setTransactions(updatedList);
+        if (workspaceId) {
+            try {
+                localStorage.setItem(`bizflow_txs_${workspaceId.trim()}`, JSON.stringify(updatedList));
+                localStorage.setItem(`bizflow_last_synced_${workspaceId.trim()}`, String(Date.now()));
+            } catch (e) {}
+        }
 
         if (txsToDelete.length > 0) {
             const now = Date.now();
@@ -909,7 +1009,13 @@ const App: React.FC = () => {
                 ...t,
                 deletedAt: now
             }));
-            setDeletedTransactions(prev => [...deletedTxs, ...prev.filter(t => !ids.includes(t.id))]);
+            setDeletedTransactions(prev => {
+                const nextTrash = [...deletedTxs, ...prev.filter(t => !ids.includes(t.id))];
+                try {
+                    localStorage.setItem(`bizflow_trash_${workspaceId.trim()}`, JSON.stringify(nextTrash));
+                } catch (e) {}
+                return nextTrash;
+            });
             if (workspaceId) {
                 try {
                     const batch = writeBatch(db);
@@ -931,6 +1037,7 @@ const App: React.FC = () => {
                 return deleteDoc(docRef);
             });
             await Promise.all(batchPromises);
+            showDbToast(`${ids.length} entries moved to trash`);
         } catch (e) {
             console.error("Bulk Delete Tx Error:", e);
         }
@@ -941,8 +1048,21 @@ const App: React.FC = () => {
         if (!txToRestore) return;
 
         const { deletedAt, ...restoredTx } = txToRestore;
-        setDeletedTransactions(prev => prev.filter(t => t.id !== id));
-        setTransactions(prev => [restoredTx, ...prev].sort((a, b) => b.date - a.date));
+        setDeletedTransactions(prev => {
+            const nextTrash = prev.filter(t => t.id !== id);
+            try {
+                localStorage.setItem(`bizflow_trash_${workspaceId.trim()}`, JSON.stringify(nextTrash));
+            } catch (e) {}
+            return nextTrash;
+        });
+        const updatedList = [restoredTx, ...transactions].sort((a, b) => b.date - a.date);
+        setTransactions(updatedList);
+        if (workspaceId) {
+            try {
+                localStorage.setItem(`bizflow_txs_${workspaceId.trim()}`, JSON.stringify(updatedList));
+                localStorage.setItem(`bizflow_last_synced_${workspaceId.trim()}`, String(Date.now()));
+            } catch (e) {}
+        }
 
         try {
             if (workspaceId) {
@@ -951,6 +1071,7 @@ const App: React.FC = () => {
                 await setDoc(docRef, deepClean(restoredTx));
                 const trashRef = doc(db, "workspaces", workspaceId.trim(), "trash", id);
                 await deleteDoc(trashRef);
+                showDbToast('Entry restored to database');
             }
         } catch (e) {
             console.error("Restore Tx Error:", e);
@@ -964,8 +1085,21 @@ const App: React.FC = () => {
         if (txsToRestore.length === 0) return;
 
         const cleanedTxs: Transaction[] = txsToRestore.map(({ deletedAt, ...rest }) => rest);
-        setDeletedTransactions(prev => prev.filter(t => !ids.includes(t.id)));
-        setTransactions(prev => [...cleanedTxs, ...prev].sort((a, b) => b.date - a.date));
+        setDeletedTransactions(prev => {
+            const nextTrash = prev.filter(t => !ids.includes(t.id));
+            try {
+                localStorage.setItem(`bizflow_trash_${workspaceId.trim()}`, JSON.stringify(nextTrash));
+            } catch (e) {}
+            return nextTrash;
+        });
+        const updatedList = [...cleanedTxs, ...transactions].sort((a, b) => b.date - a.date);
+        setTransactions(updatedList);
+        if (workspaceId) {
+            try {
+                localStorage.setItem(`bizflow_txs_${workspaceId.trim()}`, JSON.stringify(updatedList));
+                localStorage.setItem(`bizflow_last_synced_${workspaceId.trim()}`, String(Date.now()));
+            } catch (e) {}
+        }
 
         try {
             if (workspaceId) {
@@ -980,6 +1114,7 @@ const App: React.FC = () => {
                     batch.delete(trashRef);
                 });
                 await batch.commit();
+                showDbToast(`${cleanedTxs.length} entries restored to database`);
             }
         } catch (e) {
             console.error("Bulk Restore Error:", e);
@@ -1453,10 +1588,10 @@ const App: React.FC = () => {
                             </button>
 
                             <button
-                                onClick={() => handleSyncSupabase(false)}
+                                onClick={() => handleSyncSupabase(false, true)}
                                 disabled={syncProgress.active}
                                 className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-xs disabled:opacity-60"
-                                title="Sync data with database"
+                                title="Force sync data with database"
                             >
                                 <RefreshCw size={14} className={syncProgress.active ? "animate-spin text-indigo-600" : "text-slate-600"} />
                                 <span>Sync</span>
@@ -1587,6 +1722,7 @@ const App: React.FC = () => {
                                             onChange={e => {
                                                 const v = Math.min(50, Math.max(1, parseFloat(e.target.value) || 1));
                                                 setProfitPercent(v);
+                                                localStorage.setItem('bizflow_profit_pct', String(v));
                                             }}
                                             className="w-16 text-center text-lg font-black text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-xl px-2 py-1 outline-none focus:ring-2 focus:ring-indigo-300"
                                         />
@@ -1600,7 +1736,11 @@ const App: React.FC = () => {
                                         type="range"
                                         min={1} max={50} step={0.5}
                                         value={profitPercent}
-                                        onChange={e => setProfitPercent(parseFloat(e.target.value))}
+                                        onChange={e => {
+                                            const v = parseFloat(e.target.value);
+                                            setProfitPercent(v);
+                                            localStorage.setItem('bizflow_profit_pct', String(v));
+                                        }}
                                         className="w-full h-1.5 rounded-full accent-indigo-600 cursor-pointer"
                                     />
                                     <div className="flex justify-between mt-1">
@@ -1614,7 +1754,10 @@ const App: React.FC = () => {
                                     {[3, 5, 8, 10, 15, 20].map(p => (
                                         <button
                                             key={p}
-                                            onClick={() => setProfitPercent(p)}
+                                            onClick={() => {
+                                                setProfitPercent(p);
+                                                localStorage.setItem('bizflow_profit_pct', String(p));
+                                            }}
                                             className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest transition-all border ${profitPercent === p
                                                 ? 'bg-indigo-600 text-white border-indigo-700 shadow-md shadow-indigo-200'
                                                 : 'bg-white/60 text-slate-500 border-white/60 hover:border-indigo-200 hover:text-indigo-600'
@@ -1627,13 +1770,15 @@ const App: React.FC = () => {
                                 <button
                                     onClick={async () => {
                                         localStorage.setItem('bizflow_profit_pct', String(profitPercent));
+                                        setProfitPercent(profitPercent);
                                         if (workspaceId) {
                                             try {
+                                                await supabaseDb.updateProfitPercent(workspaceId.trim(), profitPercent);
                                                 const docRef = doc(db, 'workspaces', workspaceId);
                                                 await updateDoc(docRef, { profitPercent, lastSynced: Date.now() });
-                                            } catch (e) { console.error(e); }
+                                            } catch (e) { console.error("Save profit percent error:", e); }
                                         }
-                                        alert(`✅ Profit target saved: ${profitPercent}%`);
+                                        showDbToast(`Profit target saved: ${profitPercent}%`);
                                     }}
                                     className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-500/20 hover:scale-[1.02] active:scale-95 transition-all"
                                 >
@@ -1849,6 +1994,21 @@ const App: React.FC = () => {
                             <button onClick={() => setShowChangelogModal(false)} className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-black rounded-xl uppercase tracking-widest shadow-md transition-all active:scale-95">
                                 Close
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Floating Database Save Notification */}
+            {dbToast?.visible && (
+                <div className="fixed top-6 right-6 z-[99999] pointer-events-none animate-in fade-in slide-in-from-top-3 duration-300">
+                    <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-900/95 backdrop-blur-md text-white rounded-2xl border border-emerald-500/30 shadow-2xl shadow-emerald-950/20">
+                        <div className="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                            <Check size={14} strokeWidth={3} />
+                        </div>
+                        <div className="flex flex-col pr-1">
+                            <span className="text-xs font-bold text-white tracking-tight">{dbToast.message}</span>
+                            <span className="text-[9px] font-semibold text-emerald-400">Database Synced</span>
                         </div>
                     </div>
                 </div>

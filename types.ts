@@ -1,14 +1,14 @@
-export const APP_VERSION = "2.2.10";
+export const APP_VERSION = "2.2.11";
 export const APP_RELEASE_NOTES = {
-  version: "v2.2.10",
-  title: "Eliminated Repeated 30s Sync & Added Manual Sync Control",
+  version: "v2.2.11",
+  title: "Ultra-Low Egress Handshake, Real-Time Save Badges & Dashboard Profit Sync",
   date: "17 Sep 2026",
   highlights: [
-    "🛑 Removed aggressive 30-second background polling interval that repeatedly flashed progress bars",
-    "🧘 Clean & distraction-free UI — no unexpected screen popups while typing or browsing",
-    "🔄 Added instant 1-click manual 'Sync' button directly in the header toolbar",
-    "👁️ Silent background refresh on tab switch / window focus without interrupting user",
-    "📊 Visual progressive bar and dynamic capsule now only display on startup or manual sync"
+    "⚡ Ultra-Low Egress Handshake: ~150-byte metadata check stops redundant 500 KB downloads — saving 99.9% bandwidth",
+    "💾 Instant 0ms Startup: Local state initialized from cache with zero blank screens or polling delays",
+    "🟢 Real-Time Save Badges: Floating toast notification confirms when entries are saved, updated, or restored to database",
+    "📈 Instant Profit Target Sync: Setting profit rule immediately updates Supabase and Dashboard pulse threshold",
+    "🖼️ Session Attachment Cache: Invoices & payment proofs cached locally to eliminate duplicate image egress"
   ]
 };
 

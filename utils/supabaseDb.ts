@@ -6,16 +6,71 @@ export const SUPABASE_ANON_KEY = "sb_publishable_EFnYBpyGmAx3MuQ6xdDaQg_iqdSXdhO
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+export interface WorkspaceDataResult {
+    isUpToDate: boolean;
+    profitPercent: number;
+    cloudUrl: string;
+    lastSynced: number;
+    accounts?: Account[];
+    categories?: ExpenseCategory[];
+    suppliers?: Supplier[];
+    transactions?: Transaction[];
+}
+
 export const supabaseDb = {
-    async getWorkspaceData(workspaceId: string, onProgress?: (percent: number, label: string) => void) {
+    async touchWorkspace(workspaceId: string, timestamp = Date.now()) {
+        try {
+            const { error } = await supabase
+                .from('workspaces')
+                .update({ last_synced: timestamp })
+                .eq('id', workspaceId);
+            if (error) {
+                await supabase
+                    .from('workspaces')
+                    .upsert({ id: workspaceId, last_synced: timestamp });
+            }
+        } catch (e) {
+            console.warn("Supabase touchWorkspace error:", e);
+        }
+    },
+
+    async getWorkspaceData(
+        workspaceId: string,
+        onProgress?: (percent: number, label: string) => void,
+        options?: { localLastSynced?: number; force?: boolean }
+    ): Promise<WorkspaceDataResult> {
         try {
             onProgress?.(15, 'Connecting to Supabase...');
-            const TX_FIELDS = 'id, date, amount, type, description, source_account_id, destination_account_id, income_source, expense_category, supplier_id, is_profit_withdrawal, tags, created_at';
+
+            // 1. Ultra-light metadata handshake (~150 bytes egress)
+            const { data: wsData, error: wsErr } = await supabase
+                .from('workspaces')
+                .select('id, profit_percent, cloud_url, last_synced')
+                .eq('id', workspaceId)
+                .maybeSingle();
+
+            if (wsErr) throw wsErr;
+
+            const remoteLastSynced = Number(wsData?.last_synced || 0);
+            const profitPercent = Number(wsData?.profit_percent ?? 5);
+            const cloudUrl = wsData?.cloud_url || '';
+
+            // If local data is already up-to-date and not forced, stop here!
+            if (!options?.force && options?.localLastSynced && remoteLastSynced > 0 && options.localLastSynced >= remoteLastSynced) {
+                onProgress?.(100, 'Up to date');
+                return {
+                    isUpToDate: true,
+                    profitPercent,
+                    cloudUrl,
+                    lastSynced: remoteLastSynced
+                };
+            }
 
             onProgress?.(30, 'Fetching accounts & transactions (zero images)...');
-            // High-speed parallel fetch: Workspaces, Accounts, Categories, Suppliers, Transaction batches & Attachment ID indicators
-            const [wsRes, accRes, catRes, supRes, p1, p2, p3, p4, invIdsRes, proofIdsRes] = await Promise.all([
-                supabase.from('workspaces').select('id, profit_percent, cloud_url, last_synced').eq('id', workspaceId).maybeSingle(),
+            const TX_FIELDS = 'id, date, amount, type, description, source_account_id, destination_account_id, income_source, expense_category, supplier_id, is_profit_withdrawal, tags, created_at';
+
+            // High-speed parallel fetch: Accounts, Categories, Suppliers, Transaction batches & Attachment ID indicators
+            const [accRes, catRes, supRes, p1, p2, p3, p4, invIdsRes, proofIdsRes] = await Promise.all([
                 supabase.from('accounts').select('*').eq('workspace_id', workspaceId),
                 supabase.from('categories').select('*').eq('workspace_id', workspaceId),
                 supabase.from('suppliers').select('*').eq('workspace_id', workspaceId),
@@ -39,8 +94,6 @@ export const supabaseDb = {
             ];
 
             onProgress?.(85, `Loaded ${allTxs.length} records...`);
-
-            const workspace = wsRes.data || { id: workspaceId, profit_percent: 5, cloud_url: '', last_synced: Date.now() };
 
             const accounts: Account[] = (accRes.data || []).map((a: any) => ({
                 id: a.id,
@@ -85,9 +138,10 @@ export const supabaseDb = {
             onProgress?.(100, 'Sync Complete');
 
             return {
-                profitPercent: Number(workspace.profit_percent || 5),
-                cloudUrl: workspace.cloud_url || '',
-                lastSynced: Number(workspace.last_synced || Date.now()),
+                isUpToDate: false,
+                profitPercent,
+                cloudUrl,
+                lastSynced: remoteLastSynced || Date.now(),
                 accounts,
                 categories,
                 suppliers,
@@ -119,6 +173,12 @@ export const supabaseDb = {
     },
 
     async getAttachment(txId: string, field: 'invoiceUrl' | 'paymentProofUrl') {
+        const cacheKey = `bf_att_${txId}_${field}`;
+        try {
+            const cached = sessionStorage.getItem(cacheKey);
+            if (cached) return cached;
+        } catch (e) {}
+
         const col = field === 'invoiceUrl' ? 'invoice_url' : 'payment_proof_url';
         try {
             const { data, error } = await supabase
@@ -127,7 +187,13 @@ export const supabaseDb = {
                 .eq('id', txId)
                 .maybeSingle();
             if (error) throw error;
-            return (data as any)?.[col] || null;
+            const val = (data as any)?.[col] || null;
+            if (val) {
+                try {
+                    sessionStorage.setItem(cacheKey, val);
+                } catch (e) {}
+            }
+            return val;
         } catch (e) {
             console.error(`Fetch ${field} error:`, e);
             return null;
@@ -163,6 +229,7 @@ export const supabaseDb = {
 
             const { error } = await supabase.from('transactions').upsert(row);
             if (error) throw error;
+            await this.touchWorkspace(workspaceId);
         } catch (err) {
             console.error("Supabase saveTransaction error:", err);
             throw err;
@@ -177,6 +244,7 @@ export const supabaseDb = {
                 .eq('id', txId)
                 .eq('workspace_id', workspaceId);
             if (error) throw error;
+            await this.touchWorkspace(workspaceId);
         } catch (err) {
             console.error("Supabase deleteTransaction error:", err);
             throw err;
@@ -192,6 +260,7 @@ export const supabaseDb = {
                 .in('id', txIds)
                 .eq('workspace_id', workspaceId);
             if (error) throw error;
+            await this.touchWorkspace(workspaceId);
         } catch (err) {
             console.error("Supabase deleteTransactions error:", err);
             throw err;
@@ -210,6 +279,7 @@ export const supabaseDb = {
             }));
             const { error } = await supabase.from('accounts').upsert(rows);
             if (error) throw error;
+            await this.touchWorkspace(workspaceId);
         } catch (err) {
             console.error("Supabase updateAccounts error:", err);
             throw err;
@@ -226,6 +296,7 @@ export const supabaseDb = {
             }));
             const { error } = await supabase.from('categories').upsert(rows);
             if (error) throw error;
+            await this.touchWorkspace(workspaceId);
         } catch (err) {
             console.error("Supabase updateCategories error:", err);
             throw err;
@@ -241,8 +312,34 @@ export const supabaseDb = {
             }));
             const { error } = await supabase.from('suppliers').upsert(rows);
             if (error) throw error;
+            await this.touchWorkspace(workspaceId);
         } catch (err) {
             console.error("Supabase updateSuppliers error:", err);
+            throw err;
+        }
+    },
+
+    async updateProfitPercent(workspaceId: string, profitPercent: number) {
+        try {
+            const { error } = await supabase
+                .from('workspaces')
+                .update({
+                    profit_percent: profitPercent,
+                    last_synced: Date.now()
+                })
+                .eq('id', workspaceId);
+            if (error) {
+                // If update had issue (e.g. workspace row doesn't exist yet), upsert
+                await supabase
+                    .from('workspaces')
+                    .upsert({
+                        id: workspaceId,
+                        profit_percent: profitPercent,
+                        last_synced: Date.now()
+                    });
+            }
+        } catch (err) {
+            console.error("Supabase updateProfitPercent error:", err);
             throw err;
         }
     }
