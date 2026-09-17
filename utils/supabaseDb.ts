@@ -9,13 +9,31 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 export const supabaseDb = {
     async getWorkspaceData(workspaceId: string) {
         try {
-            const [wsRes, accRes, catRes, supRes, txRes] = await Promise.all([
+            const [wsRes, accRes, catRes, supRes] = await Promise.all([
                 supabase.from('workspaces').select('id, profit_percent, cloud_url, last_synced').eq('id', workspaceId).maybeSingle(),
                 supabase.from('accounts').select('*').eq('workspace_id', workspaceId),
                 supabase.from('categories').select('*').eq('workspace_id', workspaceId),
-                supabase.from('suppliers').select('*').eq('workspace_id', workspaceId),
-                supabase.from('transactions').select('id, date, amount, type, description, source_account_id, destination_account_id, income_source, expense_category, supplier_id, is_profit_withdrawal, tags, notes, invoice_url, payment_proof_url, created_at').eq('workspace_id', workspaceId).order('date', { ascending: false }).limit(2500)
+                supabase.from('suppliers').select('*').eq('workspace_id', workspaceId)
             ]);
+
+            // Paginate transactions to bypass Supabase's 1000 max-rows API limit
+            let allTxs: any[] = [];
+            let from = 0;
+            const pageSize = 1000;
+            while (true) {
+                const { data, error } = await supabase
+                    .from('transactions')
+                    .select('id, date, amount, type, description, source_account_id, destination_account_id, income_source, expense_category, supplier_id, is_profit_withdrawal, tags, notes, invoice_url, payment_proof_url, created_at')
+                    .eq('workspace_id', workspaceId)
+                    .order('date', { ascending: false })
+                    .range(from, from + pageSize - 1);
+                
+                if (error) throw error;
+                if (!data || data.length === 0) break;
+                allTxs = allTxs.concat(data);
+                if (data.length < pageSize) break;
+                from += pageSize;
+            }
 
             const workspace = wsRes.data || { id: workspaceId, profit_percent: 5, cloud_url: '', last_synced: Date.now() };
 
@@ -38,7 +56,7 @@ export const supabaseDb = {
                 name: s.name
             }));
 
-            const transactions: Transaction[] = (txRes.data || []).map((t: any) => ({
+            const transactions: Transaction[] = (allTxs || []).map((t: any) => ({
                 id: t.id,
                 date: Number(t.date),
                 amount: Number(t.amount),

@@ -1,12 +1,12 @@
-export const APP_VERSION = "2.2.2";
+export const APP_VERSION = "2.2.3";
 export const APP_RELEASE_NOTES = {
-  version: "v2.2.2",
-  title: "Instant Dashboard Load (Zero Delay)",
+  version: "v2.2.3",
+  title: "Critical Balance Fix (Pagination)",
   date: "17 Sep 2026",
   highlights: [
-    "⚡ Offline-First Architecture: Dashboard loads in 0 milliseconds",
-    "🚀 Localized Database Cache ensures you never see a blank screen",
-    "🔧 Background sync keeps everything updated silently"
+    "✅ Fixed negative balance bug caused by missing older transactions",
+    "🔧 Added Supabase pagination to bypass the 1000 row max-limit",
+    "📊 Restored accurate historical balances"
   ]
 };
 
