@@ -1,12 +1,12 @@
-export const APP_VERSION = "2.2.0";
+export const APP_VERSION = "2.2.1";
 export const APP_RELEASE_NOTES = {
-  version: "v2.2.0",
-  title: "Bulk Select & Multi-Delete Feature",
+  version: "v2.2.1",
+  title: "Performance & Sync Upgrade",
   date: "17 Sep 2026",
   highlights: [
-    "☑️ Multi-Select Checkboxes added to transaction table",
-    "🗑️ Bulk Delete feature to delete multiple entries at once",
-    "⚡ Real-time batch removal across Supabase & Cloud"
+    "⚡ Transactions load instantly on startup",
+    "🚀 Instant visual updates when adding/deleting transactions",
+    "🔧 Fixed database timeouts and reduced polling overhead"
   ]
 };
 

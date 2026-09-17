@@ -131,7 +131,7 @@ const App: React.FC = () => {
         };
 
         loadSupabaseData();
-        const interval = setInterval(loadSupabaseData, 5000); // Polling Supabase every 5s for multi-device sync
+        const interval = setInterval(loadSupabaseData, 30000); // Polling Supabase every 30s instead of 5s to avoid DB timeouts
 
         // Listen to Workspace Metadata from Firestore (Accounts, Categories, Rules, Cloud Settings)
         const unsubMeta = onSnapshot(doc(db, "workspaces", workspaceId.trim()), (docSnap) => {
@@ -424,6 +424,17 @@ const App: React.FC = () => {
 
             // Save to Supabase PostgreSQL
             await supabaseDb.saveTransaction(trimmedWorkspace, newTx);
+
+            // Optimistic local state update for instant UI feedback
+            setTransactions(prev => {
+                const existingIdx = prev.findIndex(t => t.id === newTx.id);
+                if (existingIdx >= 0) {
+                    const copy = [...prev];
+                    copy[existingIdx] = newTx;
+                    return copy.sort((a, b) => b.date - a.date);
+                }
+                return [newTx, ...prev].sort((a, b) => b.date - a.date);
+            });
 
             // Also save to Firebase doc for fallback
             const docRef = doc(db, "workspaces", trimmedWorkspace, "transactions", txId);
@@ -747,6 +758,7 @@ const App: React.FC = () => {
 
 
     const deleteTransaction = async (id: string) => {
+        setTransactions(prev => prev.filter(t => t.id !== id));
         try {
             if (workspaceId) await supabaseDb.deleteTransaction(workspaceId.trim(), id);
             const docRef = doc(db, "workspaces", workspaceId, "transactions", id);
@@ -758,6 +770,7 @@ const App: React.FC = () => {
 
     const handleBulkDeleteTransactions = async (ids: string[]) => {
         if (!ids || ids.length === 0) return;
+        setTransactions(prev => prev.filter(t => !ids.includes(t.id)));
         try {
             if (workspaceId) await supabaseDb.deleteTransactions(workspaceId.trim(), ids);
             const batchPromises = ids.map(id => {

@@ -10,11 +10,11 @@ export const supabaseDb = {
     async getWorkspaceData(workspaceId: string) {
         try {
             const [wsRes, accRes, catRes, supRes, txRes] = await Promise.all([
-                supabase.from('workspaces').select('*').eq('id', workspaceId).maybeSingle(),
+                supabase.from('workspaces').select('id, profit_percent, cloud_url, last_synced').eq('id', workspaceId).maybeSingle(),
                 supabase.from('accounts').select('*').eq('workspace_id', workspaceId),
                 supabase.from('categories').select('*').eq('workspace_id', workspaceId),
                 supabase.from('suppliers').select('*').eq('workspace_id', workspaceId),
-                supabase.from('transactions').select('*').eq('workspace_id', workspaceId).order('date', { ascending: false })
+                supabase.from('transactions').select('id, date, amount, type, description, source_account_id, destination_account_id, income_source, expense_category, supplier_id, is_profit_withdrawal, tags, notes, invoice_url, payment_proof_url, created_at').eq('workspace_id', workspaceId).order('date', { ascending: false }).limit(2500)
             ]);
 
             const workspace = wsRes.data || { id: workspaceId, profit_percent: 5, cloud_url: '', last_synced: Date.now() };
