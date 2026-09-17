@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { LayoutDashboard, History, Wallet, Cloud, Plus, RefreshCw, ChevronRight, BarChart3, FileText, Menu, Landmark, Lock, Shield, Zap, AlertCircle, Settings, Eye, EyeOff, Sparkles, X, Trash2, Check } from 'lucide-react';
-import { initializeApp, getApp, getApps } from "firebase/app";
-import { getFirestore, doc, onSnapshot, setDoc, deleteDoc, updateDoc, collection, writeBatch, getDoc, getDocs, query, where } from "firebase/firestore";
 import { Account, Transaction, DeletedTransaction, DashboardStats, ExpenseCategory, AIRule, APP_VERSION, APP_RELEASE_NOTES } from './types';
 import Dashboard from './components/Dashboard';
 import AccountManager from './components/AccountManager';
@@ -13,18 +11,6 @@ import BackupManager from './components/BackupManager';
 import { McpModal } from './components/McpModal';
 import { DeletedEntries } from './components/DeletedEntries';
 import { supabaseDb } from './utils/supabaseDb';
-
-const firebaseConfig = {
-    apiKey: "AIzaSyDIyPAe5qGMrwj51KutR-4Xp99rQdH-Okk",
-    authDomain: "bizflow-fb864.firebaseapp.com",
-    projectId: "bizflow-fb864",
-    storageBucket: "bizflow-fb864.firebasestorage.app",
-    messagingSenderId: "112226518901",
-    appId: "1:112226518901:web:d20278baf81ef2c1c9b53c"
-};
-
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const db = getFirestore(app);
 
 const deepClean = (obj: any): any => {
     if (obj === null || typeof obj !== 'object') return obj;
@@ -110,7 +96,7 @@ const App: React.FC = () => {
     const [showForm, setShowForm] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
     const [loadingSync, setLoadingSync] = useState(false);
-    const [firebaseStatus, setFirebaseStatus] = useState<'IDLE' | 'CONNECTED' | 'SYNCING' | 'ERROR'>('IDLE');
+    const [cloudStatus, setCloudStatus] = useState<'IDLE' | 'CONNECTED' | 'SYNCING' | 'ERROR'>('IDLE');
     const [syncProgress, setSyncProgress] = useState<{ active: boolean; percent: number; label: string }>({
         active: false,
         percent: 0,
@@ -179,7 +165,7 @@ const App: React.FC = () => {
         if (!silent) {
             setSyncProgress({ active: true, percent: 15, label: 'Connecting to Supabase...' });
         }
-        setFirebaseStatus('SYNCING');
+        setCloudStatus('SYNCING');
         try {
             const localLastSynced = Number(localStorage.getItem(`bizflow_last_synced_${trimmedWs}`) || 0);
             const data = await supabaseDb.getWorkspaceData(
@@ -196,7 +182,7 @@ const App: React.FC = () => {
             if (data.cloudUrl) setCloudUrl(data.cloudUrl);
 
             if (data.isUpToDate) {
-                setFirebaseStatus('CONNECTED');
+                setCloudStatus('CONNECTED');
                 if (!silent) {
                     setSyncProgress({ active: true, percent: 100, label: 'Everything up to date' });
                     setTimeout(() => {
@@ -229,7 +215,7 @@ const App: React.FC = () => {
                 localStorage.setItem(`bizflow_last_synced_${trimmedWs}`, String(data.lastSynced));
             }
 
-            setFirebaseStatus('CONNECTED');
+            setCloudStatus('CONNECTED');
             if (!silent) {
                 setSyncProgress({ active: true, percent: 100, label: 'Sync Complete' });
                 setTimeout(() => {
@@ -241,41 +227,18 @@ const App: React.FC = () => {
             if (!silent) {
                 setSyncProgress({ active: false, percent: 0, label: '' });
             }
-            setFirebaseStatus('ERROR');
+            setCloudStatus('ERROR');
         }
     }, [workspaceId]);
 
     useEffect(() => {
         if (!workspaceId) return;
 
-        // 1. Initial Startup Load: Visual progressive bar (runs once on startup)
+        // 1. Initial Startup Load: Visual progressive bar (runs once on startup from Supabase)
         handleSyncSupabase(false);
-
-        // 2. Listen to Workspace Metadata from Firestore (Accounts, Categories, Rules, Cloud Settings)
-        const unsubMeta = onSnapshot(doc(db, "workspaces", workspaceId.trim()), (docSnap) => {
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                if (data.accounts?.length) setAccounts(data.accounts);
-                if (data.categories?.length) setCategories(data.categories);
-                if (data.aiRules) setAiRules(data.aiRules);
-                if (data.suppliers?.length) setSuppliers(data.suppliers);
-                if (data.cloudUrl !== undefined) setCloudUrl(data.cloudUrl);
-                if (data.lastSynced !== undefined) setLastSynced(data.lastSynced);
-                if (data.profitPercent !== undefined) {
-                    setProfitPercent(data.profitPercent);
-                    localStorage.setItem('bizflow_profit_pct', String(data.profitPercent));
-                }
-            }
-        }, (err) => {
-            console.error("Meta Sync Error:", err);
-        });
-
-        return () => {
-            unsubMeta();
-        };
     }, [workspaceId, handleSyncSupabase]);
 
-    // Keep localStorage cache synced with any local pessimistic/optimistic updates
+    // Keep localStorage cache synced with any local updates
     useEffect(() => {
         if (workspaceId && transactions.length > 0) {
             try {
@@ -284,7 +247,7 @@ const App: React.FC = () => {
         }
     }, [transactions, workspaceId]);
 
-    // Keep deletedTransactions synced to localStorage & fetch from Firestore
+    // Keep deletedTransactions synced to localStorage
     useEffect(() => {
         if (workspaceId) {
             try {
@@ -293,87 +256,28 @@ const App: React.FC = () => {
         }
     }, [deletedTransactions, workspaceId]);
 
+    // Handle initial auth check and load local backup snapshots
     useEffect(() => {
         if (!workspaceId) return;
-        const loadTrash = async () => {
+        const trimmedWs = workspaceId.trim();
+        localStorage.setItem('bizflow_workspace_id', trimmedWs);
+
+        const fetchBackups = () => {
             try {
-                const trashRef = collection(db, "workspaces", workspaceId.trim(), "trash");
-                const snap = await getDocs(trashRef);
-                const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-                const activeTrash: DeletedTransaction[] = [];
-                snap.forEach(d => {
-                    const data = d.data() as DeletedTransaction;
-                    if ((data.deletedAt || data.date) > sevenDaysAgo) {
-                        activeTrash.push(data);
-                    } else {
-                        // Purge expired entry (> 7 days)
-                        deleteDoc(d.ref).catch(() => {});
-                    }
-                });
-                if (activeTrash.length > 0) {
-                    setDeletedTransactions(activeTrash);
+                const raw = localStorage.getItem(`bizflow_backups_${trimmedWs}`);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    setAvailableBackups(parsed.map((s: any) => ({
+                        id: s.id,
+                        date: s.date,
+                        label: s.label,
+                        isManual: s.isManual
+                    })));
                 }
-            } catch (e) {
-                console.error("Load Trash Error:", e);
-            }
-        };
-        loadTrash();
-    }, [workspaceId]);
-
-    // Handle initial auth check
-    useEffect(() => {
-        if (workspaceId) localStorage.setItem('bizflow_workspace_id', workspaceId.trim());
-
-        // Fetch historical backups + run 12-hour auto-backup logic
-        const fetchBackups = async () => {
-            if (!workspaceId) return;
-            const backupsQuery = query(
-                collection(db, "backups"),
-                where("__name__", ">=", `${workspaceId}_BACKUP_`),
-                where("__name__", "<=", `${workspaceId}_BACKUP_\uffff`)
-            );
-            const snap = await getDocs(backupsQuery);
-            const history: any[] = [];
-
-            snap.forEach(d => {
-                const data = d.data();
-                const ts = data.snapshotDate;
-                if (ts) {
-                    history.push({
-                        id: d.id,
-                        date: ts,
-                        isManual: !!data.isManual,
-                        label: new Date(ts).toLocaleString('en-IN', {
-                            day: '2-digit', month: 'short', year: 'numeric',
-                            hour: '2-digit', minute: '2-digit', hour12: true
-                        })
-                    });
-                }
-            });
-
-            setSnapshotDates({});
-            const sortedHistory = history.sort((a, b) => b.date - a.date);
-            setAvailableBackups(sortedHistory.slice(0, 12));
-
-            // 12-hour auto-backup: slot = date + AM/PM (00 or 12)
-            const now = new Date();
-            const slotHour = now.getHours() < 12 ? '00' : '12';
-            const slotKey = `${now.toISOString().split('T')[0]}_${slotHour}`;
-            const autoId = `${workspaceId}_BACKUP_AUTO_${slotKey}`;
-            const slotExists = history.some(h => h.id === autoId);
-
-            if (!slotExists && accounts.length > 0) {
-                console.log("Creating 12h auto-backup for slot:", slotKey);
-                // Await so the prune inside handleCreateSnapshot runs correctly
-                await handleCreateSnapshot(slotKey, true);
-            }
+            } catch (e) {}
         };
         fetchBackups();
-
-        // Re-check every 30 minutes so 12h backup triggers automatically while app is open
-        const autoInterval = setInterval(fetchBackups, 30 * 60 * 1000);
-        return () => clearInterval(autoInterval);
-    }, [workspaceId, accounts.length > 0]);
+    }, [workspaceId]);
 
     const calculateStats = (accs: Account[], txs: Transaction[]): DashboardStats => {
         const currentCodAcc = accs.find(a => a.name.toUpperCase().includes('IDFC'));
@@ -456,33 +360,11 @@ const App: React.FC = () => {
         if (!workspaceId) return;
 
         try {
-            if (newAccs) supabaseDb.updateAccounts(workspaceId, newAccs).catch(console.error);
-            if (newCats) supabaseDb.updateCategories(workspaceId, newCats).catch(console.error);
-            if (newSups) supabaseDb.updateSuppliers(workspaceId, newSups).catch(console.error);
-
-            const payload: any = {
-                lastSynced: Date.now()
-            };
-
-            if (newAccs !== undefined) payload.accounts = newAccs;
-            if (newCats !== undefined) payload.categories = newCats;
-            if (newRules !== undefined) payload.aiRules = newRules;
-            if (newSups !== undefined) payload.suppliers = newSups;
-            if (newUrl !== undefined) payload.cloudUrl = newUrl;
-
-            const payloadBytes = JSON.stringify(payload).length;
-            if (payloadBytes > 900000) {
-                alert("Cloud metadata limit reached (1MB). Please reduce data.");
-                return;
-            }
-
-            const docRef = doc(db, "workspaces", workspaceId);
-            await updateDoc(docRef, deepClean(payload));
+            if (newAccs) await supabaseDb.updateAccounts(workspaceId.trim(), newAccs).catch(console.error);
+            if (newCats) await supabaseDb.updateCategories(workspaceId.trim(), newCats).catch(console.error);
+            if (newSups) await supabaseDb.updateSuppliers(workspaceId.trim(), newSups).catch(console.error);
         } catch (e: any) {
             console.error("Sync Error:", e);
-            if (e.code === 'permission-denied') {
-                alert("Cloud Permission Denied: Please update your Firebase Rules.");
-            }
         }
     };
 
@@ -502,15 +384,8 @@ const App: React.FC = () => {
 
     const handleDeleteWorkspace = async () => {
         if (!workspaceId) return;
-        try {
-            setFirebaseStatus('SYNCING');
-            await deleteDoc(doc(db, "workspaces", workspaceId));
-            localStorage.removeItem('bizflow_workspace_id');
-            window.location.reload();
-        } catch (e) {
-            console.error("Delete Error:", e);
-            alert("Failed to delete workspace. Please try again.");
-        }
+        localStorage.removeItem('bizflow_workspace_id');
+        window.location.reload();
     };
 
     const handleAddAccount = (acc: Omit<Account, 'id' | 'balance'>) => {
@@ -558,8 +433,6 @@ const App: React.FC = () => {
                 }
                 showDbToast('Changes saved to database');
             }
-            const docRef = doc(db, "workspaces", workspaceId, "transactions", id);
-            await updateDoc(docRef, deepClean(updates));
         } catch (e) {
             console.error("Update Tx Error:", e);
         }
@@ -607,7 +480,7 @@ const App: React.FC = () => {
                 createdAt: editingTransaction?.createdAt || Date.now()
             };
 
-            // Save to Supabase PostgreSQL
+            // Save strictly to Supabase PostgreSQL (BizFlow 2)
             await supabaseDb.saveTransaction(trimmedWorkspace, newTx);
 
             // Optimistic local state update for instant UI feedback
@@ -628,11 +501,6 @@ const App: React.FC = () => {
                 return copy;
             });
 
-            // Also save to Firebase doc for fallback
-            const docRef = doc(db, "workspaces", trimmedWorkspace, "transactions", txId);
-            await setDoc(docRef, deepClean(newTx));
-            console.log("Transaction saved successfully to Supabase & Cloud:", txId);
-
             showDbToast('Entry saved to database');
             setShowForm(false);
             setEditingTransaction(null);
@@ -644,13 +512,17 @@ const App: React.FC = () => {
 
     const handleBulkAddTransactions = async (newTxs: Transaction[]) => {
         try {
-            const batch = writeBatch(db);
-            newTxs.forEach(tx => {
-                const docRef = doc(db, "workspaces", workspaceId, "transactions", tx.id || crypto.randomUUID());
-                const finalTx = { ...tx, createdAt: tx.createdAt || Date.now() };
-                batch.set(docRef, deepClean(finalTx));
-            });
-            await batch.commit();
+            const trimmedWorkspace = workspaceId.trim();
+            for (const tx of newTxs) {
+                await supabaseDb.saveTransaction(trimmedWorkspace, tx);
+            }
+            const updated = [...newTxs, ...transactions].sort((a, b) => b.date - a.date);
+            setTransactions(updated);
+            try {
+                localStorage.setItem(`bizflow_txs_${trimmedWorkspace}`, JSON.stringify(updated));
+                localStorage.setItem(`bizflow_last_synced_${trimmedWorkspace}`, String(Date.now()));
+            } catch (e) {}
+            showDbToast(`${newTxs.length} entries saved to database`);
         } catch (e) {
             console.error("Bulk Add Error:", e);
         }
@@ -679,32 +551,29 @@ const App: React.FC = () => {
     const handleExport = async () => {
         try {
             setLoadingSync(true);
-            const docRef = doc(db, "workspaces", workspaceId);
-            const docSnap = await getDoc(docRef);
-            const meta = docSnap.data();
-
-            const txsRef = collection(db, "workspaces", workspaceId, "transactions");
-            const txsSnap = await getDocs(txsRef);
-            const txs = txsSnap.docs.map(d => d.data());
-
             const fullBackup = {
-                metadata: meta,
-                transactions: txs,
+                workspaceId,
+                accounts,
+                categories,
+                suppliers,
+                aiRules,
+                profitPercent,
+                transactions,
                 exportDate: new Date().toISOString(),
-                workspaceId
+                version: APP_VERSION
             };
 
             const blob = new Blob([JSON.stringify(fullBackup, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `bizflow_backup_${workspaceId}_${new Date().toISOString().split('T')[0]}.json`;
+            link.download = `bizflow2_backup_${workspaceId}_${new Date().toISOString().split('T')[0]}.json`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
 
-            alert("Backup Downloaded Successfully!");
+            showDbToast("Backup downloaded successfully!");
         } catch (e) {
             console.error("Export Error:", e);
             alert("Failed to export data.");
@@ -715,170 +584,99 @@ const App: React.FC = () => {
 
     const handleCreateSnapshot = async (label: string = 'Protection Point', isAuto = false) => {
         if (!workspaceId) return;
+        const trimmedWs = workspaceId.trim();
         try {
             if (!isAuto) setLoadingSync(true);
             const now = new Date();
-            const dateStr = now.toISOString().split('T')[0];
-            const timeStr = now.getHours().toString().padStart(2, '0') + '-' + now.getMinutes().toString().padStart(2, '0');
-            // Always use AUTO prefix so Firestore rules allow it; isManual is stored in the data
-            const snapshotId = isAuto
-                ? `${workspaceId}_BACKUP_AUTO_${label}`
-                : `${workspaceId}_BACKUP_AUTO_${dateStr}_${timeStr}_M`;
-
-            // 1. Get Metadata
-            const docRef = doc(db, "workspaces", workspaceId);
-            const docSnap = await getDoc(docRef);
-            const meta = docSnap.data();
-
-            if (!meta) return;
+            const snapshotId = `SNAP_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
             const snapshotLabel = isAuto
                 ? `Auto · ${now.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}`
-                : `Manual · ${now.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}`;
+                : `Manual · ${label} (${now.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })})`;
 
-            // 2. Save Backup Metadata
-            const backupRef = doc(db, "backups", snapshotId);
-            await setDoc(backupRef, {
-                ...meta,
-                snapshotDate: Date.now(),
+            const newSnapshot = {
+                id: snapshotId,
+                date: Date.now(),
                 label: snapshotLabel,
                 isManual: !isAuto,
-                originalWorkspace: workspaceId
-            });
-
-            // 3. Save Backup Transactions (Chunked batching)
-            const txsRef = collection(db, "workspaces", workspaceId, "transactions");
-            const txsSnap = await getDocs(txsRef);
-            const backupTxsRef = collection(db, "backups", snapshotId, "transactions");
-
-            const allTxs = txsSnap.docs.map(d => ({ id: d.id, data: d.data() }));
-            for (let i = 0; i < allTxs.length; i += 500) {
-                const chunk = allTxs.slice(i, i + 500);
-                const batch = writeBatch(db);
-                chunk.forEach(tx => {
-                    const bTxRef = doc(backupTxsRef, tx.id);
-                    batch.set(bTxRef, tx.data);
-                });
-                await batch.commit();
-            }
-
-            // 4. Refresh backup list and prune to 12
-            const backupsQuery = query(
-                collection(db, "backups"),
-                where("__name__", ">=", `${workspaceId}_BACKUP_`),
-                where("__name__", "<=", `${workspaceId}_BACKUP_\uffff`)
-            );
-            const snap = await getDocs(backupsQuery);
-            const history: any[] = [];
-            snap.forEach(d => {
-                const data = d.data();
-                if (data.snapshotDate) {
-                    history.push({
-                        id: d.id,
-                        date: data.snapshotDate,
-                        isManual: !!data.isManual,
-                        label: data.label || new Date(data.snapshotDate).toLocaleString('en-IN', {
-                            day: '2-digit', month: 'short', year: 'numeric',
-                            hour: '2-digit', minute: '2-digit', hour12: true
-                        })
-                    });
+                data: {
+                    accounts: deepClean(accounts),
+                    categories: deepClean(categories),
+                    suppliers: deepClean(suppliers),
+                    aiRules: deepClean(aiRules),
+                    profitPercent,
+                    transactions: deepClean(transactions)
                 }
-            });
+            };
 
-            const sortedHistory = history.sort((a, b) => b.date - a.date);
+            const existingRaw = localStorage.getItem(`bizflow_backups_${trimmedWs}`);
+            const existing: any[] = existingRaw ? JSON.parse(existingRaw) : [];
+            const updated = [newSnapshot, ...existing].slice(0, 15);
+            localStorage.setItem(`bizflow_backups_${trimmedWs}`, JSON.stringify(updated));
 
-            // Prune beyond 12
-            if (sortedHistory.length > 12) {
-                const backupsToDelete = sortedHistory.slice(12);
-                for (const oldBackup of backupsToDelete) {
-                    try {
-                        const oldTxsRef = collection(db, "backups", oldBackup.id, "transactions");
-                        const oldTxsSnap = await getDocs(oldTxsRef);
-                        const delBatch = writeBatch(db);
-                        oldTxsSnap.forEach(d => delBatch.delete(doc(oldTxsRef, d.id)));
-                        delBatch.delete(doc(db, "backups", oldBackup.id));
-                        await delBatch.commit();
-                    } catch (err) {
-                        console.error("Cleanup error:", err);
-                    }
-                }
-            }
+            setAvailableBackups(updated.map(s => ({
+                id: s.id,
+                date: s.date,
+                label: s.label,
+                isManual: s.isManual
+            })));
 
-            setAvailableBackups(sortedHistory.slice(0, 12));
-
-            if (!isAuto) alert("✅ Backup Saved Successfully!");
+            if (!isAuto) showDbToast("Protection snapshot created!");
         } catch (e) {
             console.error("Snapshot Error:", e);
-            if (!isAuto) alert("Failed to create backup");
+            if (!isAuto) alert("Failed to create backup snapshot.");
         } finally {
             if (!isAuto) setLoadingSync(false);
         }
     };
 
     const handleRestoreFromSnapshot = async (id: string) => {
-        // Find the backup object to get the timestamp-based date
-        const backupObj = availableBackups.find(b => b.id === id);
-        const label = backupObj ? backupObj.label : "Selected Date";
+        if (!workspaceId) return;
+        const trimmedWs = workspaceId.trim();
+        const existingRaw = localStorage.getItem(`bizflow_backups_${trimmedWs}`);
+        const existing: any[] = existingRaw ? JSON.parse(existingRaw) : [];
+        const snapshot = existing.find(s => s.id === id);
 
-        if (!confirm(`WARNING: This will overwrite your current database with backup from ${label}. Are you sure?`)) return;
+        if (!snapshot || !snapshot.data) {
+            alert("Snapshot data not found.");
+            return;
+        }
+
+        if (!confirm(`WARNING: This will restore your database to snapshot "${snapshot.label}". Are you sure?`)) return;
+
         try {
             setLoadingSync(true);
-            const backupId = id; // The ID is now full ID from availableBackups
-            const backupRef = doc(db, "backups", backupId);
-            const backupSnap = await getDoc(backupRef);
+            const { data } = snapshot;
 
-            if (!backupSnap.exists()) {
-                alert(`No snapshot found for ${label}.`);
-                return;
+            if (data.accounts) {
+                setAccounts(data.accounts);
+                localStorage.setItem(`bizflow_accounts_${trimmedWs}`, JSON.stringify(data.accounts));
+                await supabaseDb.updateAccounts(trimmedWs, data.accounts).catch(console.error);
             }
-
-            const data = backupSnap.data();
-            const { snapshotDate, snapshotSlot, originalWorkspace, ...meta } = data;
-
-            // 1. Wipe current transactions
-            const txsRef = collection(db, "workspaces", workspaceId, "transactions");
-            const txsSnap = await getDocs(txsRef);
-            const wipeBatch = writeBatch(db);
-            txsSnap.forEach(d => wipeBatch.delete(doc(txsRef, d.id)));
-            await wipeBatch.commit();
-
-            // 2. Restore Metadata (Safely Merge to prevent losing newly added accounts/categories)
-            const currentDocRef = doc(db, "workspaces", workspaceId);
-            const currentDocSnap = await getDoc(currentDocRef);
-            let mergedMeta = { ...meta };
-
-            if (currentDocSnap.exists()) {
-                const currentData = currentDocSnap.data();
-                const mergeArrays = (oldArr: any[] = [], currentArr: any[] = []) => {
-                    const map = new Map();
-                    // Put old (backup) items first
-                    oldArr.forEach(item => { if (item && item.id) map.set(item.id, item) });
-                    // Only add current items if they didn't exist in the backup at all
-                    currentArr.forEach(item => {
-                        if (item && item.id && !map.has(item.id)) map.set(item.id, item);
-                    });
-                    return Array.from(map.values());
-                };
-                mergedMeta.accounts = mergeArrays(meta.accounts, currentData.accounts);
-                mergedMeta.categories = mergeArrays(meta.categories, currentData.categories);
-                mergedMeta.suppliers = mergeArrays(meta.suppliers, currentData.suppliers);
-                mergedMeta.aiRules = mergeArrays(meta.aiRules, currentData.aiRules);
+            if (data.categories) {
+                setCategories(data.categories);
+                localStorage.setItem(`bizflow_categories_${trimmedWs}`, JSON.stringify(data.categories));
+                await supabaseDb.updateCategories(trimmedWs, data.categories).catch(console.error);
             }
+            if (data.suppliers) {
+                setSuppliers(data.suppliers);
+                localStorage.setItem(`bizflow_suppliers_${trimmedWs}`, JSON.stringify(data.suppliers));
+                await supabaseDb.updateSuppliers(trimmedWs, data.suppliers).catch(console.error);
+            }
+            if (data.profitPercent !== undefined) {
+                setProfitPercent(data.profitPercent);
+                await supabaseDb.updateProfitPercent(trimmedWs, data.profitPercent).catch(console.error);
+            }
+            if (data.transactions) {
+                setTransactions(data.transactions);
+                localStorage.setItem(`bizflow_txs_${trimmedWs}`, JSON.stringify(data.transactions));
+                for (const tx of data.transactions) {
+                    await supabaseDb.saveTransaction(trimmedWs, tx).catch(console.error);
+                }
+            }
+            localStorage.setItem(`bizflow_last_synced_${trimmedWs}`, String(Date.now()));
 
-            await setDoc(doc(db, "workspaces", workspaceId), mergedMeta);
-
-            // 3. Restore Transactions
-            const backupTxsRef = collection(db, "backups", backupId, "transactions");
-            const bTxsSnap = await getDocs(backupTxsRef);
-
-            const restoreBatch = writeBatch(db);
-            bTxsSnap.forEach(tDoc => {
-                const txRef = doc(db, "workspaces", workspaceId, "transactions", tDoc.id);
-                restoreBatch.set(txRef, tDoc.data());
-            });
-
-            await restoreBatch.commit();
-            alert(`Database Restored to ${label}! App will refresh now.`);
+            alert(`Database Restored to ${snapshot.label}! App will refresh now.`);
             window.location.reload();
         } catch (e) {
             console.error("Restore Error:", e);
@@ -972,19 +770,9 @@ const App: React.FC = () => {
                 } catch (e) {}
                 return nextTrash;
             });
-            if (workspaceId) {
-                try {
-                    const trashRef = doc(db, "workspaces", workspaceId.trim(), "trash", id);
-                    await setDoc(trashRef, deepClean(deletedTx));
-                } catch (e) {
-                    console.error("Save to Trash Error:", e);
-                }
-            }
         }
         try {
             if (workspaceId) await supabaseDb.deleteTransaction(workspaceId.trim(), id);
-            const docRef = doc(db, "workspaces", workspaceId, "transactions", id);
-            await deleteDoc(docRef);
             showDbToast('Entry moved to trash');
         } catch (e) {
             console.error("Delete Tx Error:", e);
@@ -1016,27 +804,10 @@ const App: React.FC = () => {
                 } catch (e) {}
                 return nextTrash;
             });
-            if (workspaceId) {
-                try {
-                    const batch = writeBatch(db);
-                    deletedTxs.forEach(dt => {
-                        const trashRef = doc(db, "workspaces", workspaceId.trim(), "trash", dt.id);
-                        batch.set(trashRef, deepClean(dt));
-                    });
-                    await batch.commit();
-                } catch (e) {
-                    console.error("Bulk Save to Trash Error:", e);
-                }
-            }
         }
 
         try {
             if (workspaceId) await supabaseDb.deleteTransactions(workspaceId.trim(), ids);
-            const batchPromises = ids.map(id => {
-                const docRef = doc(db, "workspaces", workspaceId, "transactions", id);
-                return deleteDoc(docRef);
-            });
-            await Promise.all(batchPromises);
             showDbToast(`${ids.length} entries moved to trash`);
         } catch (e) {
             console.error("Bulk Delete Tx Error:", e);
@@ -1067,10 +838,6 @@ const App: React.FC = () => {
         try {
             if (workspaceId) {
                 await supabaseDb.saveTransaction(workspaceId.trim(), restoredTx);
-                const docRef = doc(db, "workspaces", workspaceId.trim(), "transactions", id);
-                await setDoc(docRef, deepClean(restoredTx));
-                const trashRef = doc(db, "workspaces", workspaceId.trim(), "trash", id);
-                await deleteDoc(trashRef);
                 showDbToast('Entry restored to database');
             }
         } catch (e) {
@@ -1106,14 +873,6 @@ const App: React.FC = () => {
                 for (const tx of cleanedTxs) {
                     await supabaseDb.saveTransaction(workspaceId.trim(), tx);
                 }
-                const batch = writeBatch(db);
-                cleanedTxs.forEach(tx => {
-                    const docRef = doc(db, "workspaces", workspaceId.trim(), "transactions", tx.id);
-                    batch.set(docRef, deepClean(tx));
-                    const trashRef = doc(db, "workspaces", workspaceId.trim(), "trash", tx.id);
-                    batch.delete(trashRef);
-                });
-                await batch.commit();
                 showDbToast(`${cleanedTxs.length} entries restored to database`);
             }
         } catch (e) {
@@ -1123,32 +882,26 @@ const App: React.FC = () => {
     };
 
     const handlePermanentDelete = async (id: string) => {
-        setDeletedTransactions(prev => prev.filter(t => t.id !== id));
-        if (workspaceId) {
-            try {
-                const trashRef = doc(db, "workspaces", workspaceId.trim(), "trash", id);
-                await deleteDoc(trashRef);
-            } catch (e) {
-                console.error("Permanent delete error:", e);
+        setDeletedTransactions(prev => {
+            const next = prev.filter(t => t.id !== id);
+            if (workspaceId) {
+                try {
+                    localStorage.setItem(`bizflow_trash_${workspaceId.trim()}`, JSON.stringify(next));
+                } catch (e) {}
             }
-        }
+            return next;
+        });
+        showDbToast('Permanently deleted');
     };
 
     const handleEmptyTrash = async () => {
-        const ids = deletedTransactions.map(t => t.id);
         setDeletedTransactions([]);
-        if (workspaceId && ids.length > 0) {
+        if (workspaceId) {
             try {
-                const batch = writeBatch(db);
-                ids.forEach(id => {
-                    const trashRef = doc(db, "workspaces", workspaceId.trim(), "trash", id);
-                    batch.delete(trashRef);
-                });
-                await batch.commit();
-            } catch (e) {
-                console.error("Empty trash error:", e);
-            }
+                localStorage.removeItem(`bizflow_trash_${workspaceId.trim()}`);
+            } catch (e) {}
         }
+        showDbToast('Trash emptied');
     };
 
     if (!isAuthenticated) {
@@ -1308,7 +1061,7 @@ const App: React.FC = () => {
                         <div className="login-footer">
                             <div className="login-footer-divider"></div>
                             <p className="login-footer-text">
-                                Secured by Firebase • End-to-End Encrypted
+                                Dedicated Supabase PostgreSQL • End-to-End Encrypted
                             </p>
                         </div>
 
@@ -1491,8 +1244,8 @@ const App: React.FC = () => {
                                         {syncProgress.percent}%
                                     </span>
                                 )}
-                                <div className={`w-2 h-2 rounded-full ${firebaseStatus === 'CONNECTED' ? 'bg-emerald-500' :
-                                    firebaseStatus === 'SYNCING' ? 'bg-amber-500 animate-pulse' : 'bg-rose-500'}`}
+                                <div className={`w-2 h-2 rounded-full ${cloudStatus === 'CONNECTED' ? 'bg-emerald-500' :
+                                    cloudStatus === 'SYNCING' ? 'bg-amber-500 animate-pulse' : 'bg-rose-500'}`}
                                 />
                             </div>
                         </div>
@@ -1518,26 +1271,23 @@ const App: React.FC = () => {
 
                     <button
                         onClick={async () => {
-                            if (!window.confirm("EMERGENCY RESCUE: Are you sure you want to FORCE PUSH your current screen's data to the cloud? This will overwrite the cloud database with what you see here.")) return;
+                            if (!window.confirm("EMERGENCY RESCUE: Are you sure you want to FORCE PUSH your current screen's data to Supabase? This will overwrite the cloud database with what you see here.")) return;
                             try {
-                                const batch = writeBatch(db);
-                                transactions.forEach(tx => {
-                                    const txRef = doc(db, "workspaces", workspaceId, "transactions", tx.id);
-                                    batch.set(txRef, deepClean(tx));
-                                });
-
-                                const wsRef = doc(db, "workspaces", workspaceId);
-                                await updateDoc(wsRef, {
-                                    accounts: deepClean(accounts),
-                                    categories: deepClean(categories),
-                                    suppliers: deepClean(suppliers),
-                                    aiRules: deepClean(aiRules)
-                                });
-
-                                await batch.commit();
-                                alert('Successfully rescued and pushed local data to the cloud!');
+                                if (!workspaceId) return;
+                                const trimmedWs = workspaceId.trim();
+                                setLoadingSync(true);
+                                await supabaseDb.updateAccounts(trimmedWs, accounts);
+                                await supabaseDb.updateCategories(trimmedWs, categories);
+                                await supabaseDb.updateSuppliers(trimmedWs, suppliers);
+                                await supabaseDb.updateProfitPercent(trimmedWs, profitPercent);
+                                for (const tx of transactions) {
+                                    await supabaseDb.saveTransaction(trimmedWs, tx);
+                                }
+                                setLoadingSync(false);
+                                alert('Successfully rescued and pushed local data to Supabase cloud!');
                             } catch (e: any) {
-                                alert('Failed to rescue: ' + e.message);
+                                setLoadingSync(false);
+                                alert('Failed to rescue: ' + (e.message || e));
                             }
                         }}
                         className="w-full bg-slate-100 border border-slate-200 text-slate-700 py-2.5 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-slate-200 transition-all text-xs uppercase tracking-wider"
@@ -1774,8 +1524,6 @@ const App: React.FC = () => {
                                         if (workspaceId) {
                                             try {
                                                 await supabaseDb.updateProfitPercent(workspaceId.trim(), profitPercent);
-                                                const docRef = doc(db, 'workspaces', workspaceId);
-                                                await updateDoc(docRef, { profitPercent, lastSynced: Date.now() });
                                             } catch (e) { console.error("Save profit percent error:", e); }
                                         }
                                         showDbToast(`Profit target saved: ${profitPercent}%`);

@@ -1,14 +1,14 @@
-export const APP_VERSION = "2.2.11";
+export const APP_VERSION = "2.2.12";
 export const APP_RELEASE_NOTES = {
-  version: "v2.2.11",
-  title: "Ultra-Low Egress Handshake, Real-Time Save Badges & Dashboard Profit Sync",
+  version: "v2.2.12",
+  title: "100% Decoupled from BizFlow 1 & Dedicated Supabase Isolation",
   date: "17 Sep 2026",
   highlights: [
-    "⚡ Ultra-Low Egress Handshake: ~150-byte metadata check stops redundant 500 KB downloads — saving 99.9% bandwidth",
-    "💾 Instant 0ms Startup: Local state initialized from cache with zero blank screens or polling delays",
-    "🟢 Real-Time Save Badges: Floating toast notification confirms when entries are saved, updated, or restored to database",
-    "📈 Instant Profit Target Sync: Setting profit rule immediately updates Supabase and Dashboard pulse threshold",
-    "🖼️ Session Attachment Cache: Invoices & payment proofs cached locally to eliminate duplicate image egress"
+    "🔒 100% Decoupled from BizFlow 1: Zero shared database connections or cross-talk with BizFlow 1 Firestore",
+    "🤖 Claude MCP Dedicated to BizFlow 2: Claude AI integration writes strictly and exclusively to BizFlow 2's PostgreSQL database",
+    "🛡️ Self-Contained Local Snapshots: Protection points and backups manage snapshots in local device storage without touching legacy Firestore",
+    "⚡ Fully Autonomous Database Operations: Trash, restores, exports, and batch modifications route solely through Supabase and local cache",
+    "🚀 Pure Independent Cloud Sync: Clean architecture guarantees absolute isolation between BizFlow 1 and BizFlow 2"
   ]
 };
 

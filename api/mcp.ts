@@ -42,30 +42,6 @@ async function resolveAccountId(accountName?: string) {
     }
 }
 
-// Write to Firebase Firestore REST API (Failsafe for Neon quota/downtime)
-async function writeToFirestore(txDoc: any) {
-    try {
-        const fields: any = {};
-        for (const [key, val] of Object.entries(txDoc)) {
-            if (val === null || val === undefined) continue;
-            if (typeof val === 'number') {
-                fields[key] = Number.isInteger(val) ? { integerValue: String(val) } : { doubleValue: val };
-            } else {
-                fields[key] = { stringValue: String(val) };
-            }
-        }
-
-        const url = `https://firestore.googleapis.com/v1/projects/bizflow-fb864/databases/(default)/documents/workspaces/${WORKSPACE_ID}/transactions?documentId=${txDoc.id}`;
-        await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fields })
-        });
-    } catch (err) {
-        console.error("Firestore REST Write Error:", err);
-    }
-}
-
 async function handleRpc(body: any) {
     const { jsonrpc, method, params, id } = body || {};
     const reqId = id !== undefined ? id : 1;
@@ -175,10 +151,7 @@ async function handleRpc(body: any) {
                     createdAt: Date.now()
                 };
 
-                // 1. Dual Write: Save to Firebase Firestore REST API (Instant real-time update in app)
-                await writeToFirestore(txDoc);
-
-                // 2. Dual Write: Save to Supabase
+                // Save strictly to BizFlow 2 (Supabase PostgreSQL)
                 try {
                     await supabase.from('transactions').upsert({
                         id: txId,
