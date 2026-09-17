@@ -51,7 +51,13 @@ const App: React.FC = () => {
     const [activeTab, setActiveTab] = useState('dashboard');
     const [workspaceId, setWorkspaceId] = useState(() => (localStorage.getItem('bizflow_workspace_id') || '').trim());
     const [accounts, setAccounts] = useState<Account[]>([]);
-    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [transactions, setTransactions] = useState<Transaction[]>(() => {
+        try {
+            const cached = localStorage.getItem(`bizflow_txs_${(localStorage.getItem('bizflow_workspace_id') || '').trim()}`);
+            if (cached) return JSON.parse(cached);
+        } catch (e) { console.warn("Failed to parse cached txs"); }
+        return [];
+    });
     const [categories, setCategories] = useState<ExpenseCategory[]>(DEFAULT_CATEGORIES);
     const [aiRules, setAiRules] = useState<AIRule[]>([]);
     const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
@@ -122,6 +128,9 @@ const App: React.FC = () => {
                 if (data.suppliers?.length) setSuppliers(data.suppliers);
                 if (data.transactions && data.transactions.length > 0) {
                     setTransactions(data.transactions);
+                    try {
+                        localStorage.setItem(`bizflow_txs_${workspaceId.trim()}`, JSON.stringify(data.transactions));
+                    } catch (e) { console.warn("Failed to cache txs", e); }
                 }
                 if (data.profitPercent !== undefined) setProfitPercent(data.profitPercent);
                 setFirebaseStatus('CONNECTED');
@@ -158,6 +167,16 @@ const App: React.FC = () => {
         };
     }, [workspaceId]);
 
+    // Keep localStorage cache synced with any local pessimistic/optimistic updates
+    useEffect(() => {
+        if (workspaceId && transactions.length > 0) {
+            try {
+                localStorage.setItem(`bizflow_txs_${workspaceId.trim()}`, JSON.stringify(transactions));
+            } catch (e) { /* ignore quota errors */ }
+        }
+    }, [transactions, workspaceId]);
+
+    // Handle initial auth check
     useEffect(() => {
         if (workspaceId) localStorage.setItem('bizflow_workspace_id', workspaceId.trim());
 
