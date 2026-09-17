@@ -1,13 +1,13 @@
-export const APP_VERSION = "2.2.7";
+export const APP_VERSION = "2.2.8";
 export const APP_RELEASE_NOTES = {
-  version: "v2.2.7",
-  title: "Turbo Supabase Engine (10x Speedup)",
+  version: "v2.2.8",
+  title: "Real-Time Progressive Loading Bar",
   date: "17 Sep 2026",
   highlights: [
-    "⚡ 10x Faster Loading: Reduced database fetch from 16.5s down to 1.7s",
-    "🚀 Parallel Multi-Chunk Querying across Supabase partitions",
-    "🛡️ Completely resolved database statement timeout errors (code: 57014)",
-    "📱 Zero startup delay: instant dashboard render with background sync"
+    "📊 Real-time progressive loading bar showing exact % of data loaded",
+    "🌐 Glowing top-screen progress indicator with smooth animation",
+    "💊 Floating dynamic status capsule showing stages (Connecting, Fetching, Stitching, Complete)",
+    "📶 Live percentage and progress indicator in Sidebar Database widget"
   ]
 };
 

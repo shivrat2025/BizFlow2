@@ -7,10 +7,12 @@ export const SUPABASE_ANON_KEY = "sb_publishable_EFnYBpyGmAx3MuQ6xdDaQg_iqdSXdhO
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export const supabaseDb = {
-    async getWorkspaceData(workspaceId: string) {
+    async getWorkspaceData(workspaceId: string, onProgress?: (percent: number, label: string) => void) {
         try {
+            onProgress?.(15, 'Connecting to Supabase...');
             const TX_FIELDS = 'id, date, amount, type, description, source_account_id, destination_account_id, income_source, expense_category, supplier_id, is_profit_withdrawal, tags, created_at';
 
+            onProgress?.(30, 'Fetching accounts & transactions...');
             // High-speed parallel fetch: Workspaces, Accounts, Categories, Suppliers & all Transaction ranges concurrently (1.7s total)
             const [wsRes, accRes, catRes, supRes, p1, p2, p3, p4] = await Promise.all([
                 supabase.from('workspaces').select('id, profit_percent, cloud_url, last_synced').eq('id', workspaceId).maybeSingle(),
@@ -23,12 +25,15 @@ export const supabaseDb = {
                 supabase.from('transactions').select(TX_FIELDS).eq('workspace_id', workspaceId).order('date', { ascending: false }).range(3000, 3999)
             ]);
 
+            onProgress?.(70, 'Stitching transaction batches...');
             const allTxs: any[] = [
                 ...(p1.data || []),
                 ...(p2.data || []),
                 ...(p3.data || []),
                 ...(p4.data || [])
             ];
+
+            onProgress?.(85, `Loaded ${allTxs.length} records...`);
 
             const workspace = wsRes.data || { id: workspaceId, profit_percent: 5, cloud_url: '', last_synced: Date.now() };
 
@@ -69,6 +74,8 @@ export const supabaseDb = {
                 paymentProofUrl: t.payment_proof_url,
                 createdAt: Number(t.created_at || t.date)
             }));
+
+            onProgress?.(100, 'Sync Complete');
 
             return {
                 profitPercent: Number(workspace.profit_percent || 5),
