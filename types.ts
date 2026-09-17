@@ -1,13 +1,13 @@
-export const APP_VERSION = "2.2.5";
+export const APP_VERSION = "2.2.6";
 export const APP_RELEASE_NOTES = {
-  version: "v2.2.5",
-  title: "7-Day Recycle Bin (Deleted Entries & Restore)",
+  version: "v2.2.6",
+  title: "Searchable Category Dropdown & Smart Auto-Suggest",
   date: "17 Sep 2026",
   highlights: [
-    "🗑️ New 'Deleted Entries' tab: Safely keeps deleted transactions for 7 days",
-    "🔄 1-Click Restore: Instantly recover any accidental deletion back to your ledger & balance",
-    "⏱️ Expiration countdown badges showing remaining time before permanent purge",
-    "☑️ Bulk Restore and Empty Trash controls"
+    "🔍 Replaced 30+ button category grid with a compact Searchable Dropdown",
+    "⚡ Smart Auto-Suggest: Typing in Description auto-detects and sets the category",
+    "➕ Instant Add: Type any new category in the search box to create and select it",
+    "🏷️ Quick-tap chips for top frequent categories (FB Ads, Shipping, Shopify, etc.)"
   ]
 };
 

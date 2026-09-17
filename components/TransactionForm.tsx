@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, TrendingUp, TrendingDown, PiggyBank, CreditCard, Plus, Check, ArrowRight, Tag, FileText, ChevronDown, ChevronUp, Camera, Calendar, ChevronRight, RefreshCw } from 'lucide-react';
+import { X, TrendingUp, TrendingDown, PiggyBank, CreditCard, Plus, Check, ArrowRight, Tag, FileText, ChevronDown, ChevronUp, Camera, Calendar, ChevronRight, RefreshCw, Search } from 'lucide-react';
 import { Account, Transaction, TransactionType, IncomeSource, DashboardStats, ExpenseCategory } from '../types';
 import { optimizeImage } from '../utils/imageOptimization';
 
@@ -30,6 +30,10 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
 
   const [incomeSource, setIncomeSource] = useState<IncomeSource | 'NONE'>('NONE');
   const [expenseCat, setExpenseCat] = useState<string>('FB_ADS');
+  const [categorySearch, setCategorySearch] = useState('');
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const [autoSuggestedCat, setAutoSuggestedCat] = useState<string | null>(null);
+
   const [supplierId, setSupplierId] = useState<string>('');
   const [isWithdrawal, setIsWithdrawal] = useState(false);
   const [isAddingSupplier, setIsAddingSupplier] = useState(false);
@@ -129,6 +133,24 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
     reader.readAsDataURL(file);
   };
 
+
+  const handleDescriptionChange = (val: string) => {
+    setDescription(val);
+    if (type === 'EXPENSE' && val.trim().length >= 2) {
+      const lower = val.toLowerCase();
+      const match = categories.find(c => {
+        const lbl = c.label.toLowerCase();
+        const idStr = c.id.toLowerCase().replace(/_/g, ' ');
+        return lower.includes(lbl) || lower.includes(idStr);
+      });
+      if (match) {
+        setExpenseCat(match.id);
+        setAutoSuggestedCat(match.label);
+      } else {
+        setAutoSuggestedCat(null);
+      }
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -360,16 +382,23 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
 
 
             {type === 'EXPENSE' && (
-              <div className="space-y-2 animate-in fade-in">
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest flex justify-between items-center">
-                  Category
+              <div className="space-y-2 animate-in fade-in relative">
+                <div className="flex justify-between items-center">
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                    Category
+                    {autoSuggestedCat && (
+                      <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                        Auto: {autoSuggestedCat}
+                      </span>
+                    )}
+                  </label>
                   {!isAddingCategory && (
                     <button type="button" onClick={() => setIsAddingCategory(true)} className="text-indigo-500 hover:text-indigo-600 flex items-center gap-1 group">
                       <Plus size={10} className="group-hover:scale-110 transition-transform" />
                       <span className="text-[9px]">Add New</span>
                     </button>
                   )}
-                </label>
+                </div>
 
                 {isAddingCategory ? (
                   <div className="flex gap-2 animate-in slide-in-from-top-1">
@@ -377,15 +406,16 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
                       type="text"
                       value={newCatLabel}
                       onChange={(e) => setNewCatLabel(e.target.value)}
-                      placeholder="Category Name"
-                      className="flex-1 px-3 py-2 bg-slate-50 border border-indigo-200 rounded-xl text-[11px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/10"
+                      placeholder="Category Name..."
+                      className="flex-1 px-3 py-2 bg-slate-50 border border-indigo-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20"
                       autoFocus
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault();
                           if (newCatLabel.trim()) {
                             onAddCategory(newCatLabel.trim());
-                            setExpenseCat(newCatLabel.trim());
+                            const id = newCatLabel.trim().toUpperCase().replace(/\s+/g, '_');
+                            setExpenseCat(id);
                             setNewCatLabel('');
                             setIsAddingCategory(false);
                           }
@@ -397,7 +427,8 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
                       onClick={() => {
                         if (newCatLabel.trim()) {
                           onAddCategory(newCatLabel.trim());
-                          setExpenseCat(newCatLabel.trim());
+                          const id = newCatLabel.trim().toUpperCase().replace(/\s+/g, '_');
+                          setExpenseCat(id);
                           setNewCatLabel('');
                           setIsAddingCategory(false);
                         }
@@ -418,18 +449,116 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
                     </button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 gap-2">
-                    {categories.map(cat => (
-                      <button key={cat.id} type="button" onClick={() => setExpenseCat(cat.id)} className={`py-2 px-1 rounded-xl border text-[9px] font-black uppercase transition-all backdrop-blur-md ${expenseCat === cat.id ? 'bg-slate-900 border-slate-900 text-white shadow-lg shadow-slate-900/20 scale-[1.02]' : 'bg-white/50 border-white/30 text-slate-500 hover:bg-white/70 hover:border-white/50 hover:text-slate-800'}`}>{cat.label}</button>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => setIsAddingCategory(true)}
-                      className="py-2 px-1 rounded-xl border border-dashed border-white/30 bg-white/30 text-slate-400 hover:border-indigo-300 hover:text-indigo-500 hover:bg-white/50 transition-all flex items-center justify-center gap-1 backdrop-blur-sm"
-                    >
-                      <Plus size={10} />
-                      <span className="text-[9px] font-black uppercase">More</span>
-                    </button>
+                  <div className="space-y-2">
+                    {/* Searchable Dropdown / Combobox */}
+                    <div className="relative">
+                      {isCategoryOpen && (
+                        <div 
+                          className="fixed inset-0 z-20" 
+                          onClick={() => setIsCategoryOpen(false)}
+                        />
+                      )}
+                      
+                      <div 
+                        onClick={() => setIsCategoryOpen(true)}
+                        className={`flex items-center justify-between px-3.5 py-2.5 bg-slate-50 border rounded-xl cursor-pointer transition-all ${
+                          isCategoryOpen 
+                            ? 'border-indigo-500 bg-white ring-2 ring-indigo-500/10' 
+                            : 'border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 flex-1 mr-2">
+                          <Search size={14} className="text-slate-400 flex-shrink-0" />
+                          <input
+                            type="text"
+                            value={isCategoryOpen ? categorySearch : (categories.find(c => c.id === expenseCat)?.label || expenseCat)}
+                            onChange={(e) => {
+                              setCategorySearch(e.target.value);
+                              if (!isCategoryOpen) setIsCategoryOpen(true);
+                            }}
+                            onFocus={() => {
+                              setCategorySearch('');
+                              setIsCategoryOpen(true);
+                            }}
+                            placeholder="Type or select category..."
+                            className="bg-transparent text-xs font-bold text-slate-800 placeholder-slate-400 outline-none w-full cursor-pointer"
+                          />
+                        </div>
+                        <ChevronDown size={14} className={`text-slate-400 transition-transform ${isCategoryOpen ? 'rotate-180 text-indigo-600' : ''}`} />
+                      </div>
+
+                      {/* Dropdown Menu */}
+                      {isCategoryOpen && (
+                        <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-xl z-30 max-h-56 overflow-y-auto divide-y divide-slate-100 animate-in fade-in zoom-in-95 duration-150">
+                          {categories
+                            .filter(c => !categorySearch.trim() || c.label.toLowerCase().includes(categorySearch.toLowerCase()) || c.id.toLowerCase().includes(categorySearch.toLowerCase()))
+                            .map(cat => (
+                              <button
+                                key={cat.id}
+                                type="button"
+                                onClick={() => {
+                                  setExpenseCat(cat.id);
+                                  setIsCategoryOpen(false);
+                                  setCategorySearch('');
+                                }}
+                                className={`w-full px-3.5 py-2.5 text-left text-xs font-bold flex items-center justify-between transition-colors ${
+                                  expenseCat === cat.id 
+                                    ? 'bg-indigo-50/80 text-indigo-700' 
+                                    : 'text-slate-700 hover:bg-slate-50'
+                                }`}
+                              >
+                                <span>{cat.label}</span>
+                                {expenseCat === cat.id && <Check size={14} className="text-indigo-600" />}
+                              </button>
+                            ))}
+
+                          {/* Quick Add new category option on-the-fly */}
+                          {categorySearch.trim() && !categories.some(c => c.label.toLowerCase() === categorySearch.trim().toLowerCase()) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const name = categorySearch.trim();
+                                onAddCategory(name);
+                                const id = name.toUpperCase().replace(/\s+/g, '_');
+                                setExpenseCat(id);
+                                setCategorySearch('');
+                                setIsCategoryOpen(false);
+                              }}
+                              className="w-full px-3.5 py-2.5 text-left text-xs font-bold text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100 flex items-center gap-2"
+                            >
+                              <Plus size={14} />
+                              <span>Create "<b>{categorySearch.trim()}</b>"</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Quick Popular Chips */}
+                    <div className="flex flex-wrap gap-1.5 pt-0.5">
+                      {['FB_ADS', 'SHIPPING', 'PRODUCT', 'SHOPIFY', 'SALARY', 'OFFICE_SALARY'].map(favId => {
+                        const favCat = categories.find(c => c.id === favId);
+                        if (!favCat) return null;
+                        const isSelected = expenseCat === favId;
+                        return (
+                          <button
+                            key={favId}
+                            type="button"
+                            onClick={() => {
+                              setExpenseCat(favId);
+                              setIsCategoryOpen(false);
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-tight transition-all ${
+                              isSelected
+                                ? 'bg-slate-900 text-white shadow-xs'
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
+                            }`}
+                          >
+                            {favCat.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
@@ -585,8 +714,21 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
             )}
 
             <div className="space-y-1.5">
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Description</label>
-              <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:border-slate-400 outline-none transition-all placeholder:text-slate-400" placeholder="e.g. FB Ad Payment" />
+              <div className="flex justify-between items-center">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Description</label>
+                {autoSuggestedCat && (
+                  <span className="text-[9px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                    Auto-categorized: {autoSuggestedCat}
+                  </span>
+                )}
+              </div>
+              <input 
+                type="text" 
+                value={description} 
+                onChange={(e) => handleDescriptionChange(e.target.value)} 
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:border-slate-400 outline-none transition-all placeholder:text-slate-400" 
+                placeholder="e.g. FB Ad Payment, Shipping, Fabric, Salary..." 
+              />
             </div>
 
             <div className="pt-2">
