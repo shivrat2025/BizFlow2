@@ -1,12 +1,13 @@
-export const APP_VERSION = "2.2.4";
+export const APP_VERSION = "2.2.5";
 export const APP_RELEASE_NOTES = {
-  version: "v2.2.4",
-  title: "Claude & ChatGPT MCP Server Integration",
+  version: "v2.2.5",
+  title: "7-Day Recycle Bin (Deleted Entries & Restore)",
   date: "17 Sep 2026",
   highlights: [
-    "🔌 Connect Claude Desktop, ChatGPT & Cursor directly to BizFlow via MCP",
-    "⚡ One-click MCP Server URL & setup guides in Header and Settings",
-    "🤖 Ask AI in natural language to add expenses, check balances, & search ledger"
+    "🗑️ New 'Deleted Entries' tab: Safely keeps deleted transactions for 7 days",
+    "🔄 1-Click Restore: Instantly recover any accidental deletion back to your ledger & balance",
+    "⏱️ Expiration countdown badges showing remaining time before permanent purge",
+    "☑️ Bulk Restore and Empty Trash controls"
   ]
 };
 
@@ -59,6 +60,10 @@ export interface Transaction {
   invoiceUrl?: string;
   paymentProofUrl?: string;
   createdAt?: number;
+}
+
+export interface DeletedTransaction extends Transaction {
+  deletedAt: number;
 }
 
 export interface DashboardStats {

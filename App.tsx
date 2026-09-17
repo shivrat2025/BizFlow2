@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { LayoutDashboard, History, Wallet, Cloud, Plus, RefreshCw, ChevronRight, BarChart3, FileText, Menu, Landmark, Lock, Shield, Zap, AlertCircle, Settings, Eye, EyeOff, Sparkles, X } from 'lucide-react';
+import { LayoutDashboard, History, Wallet, Cloud, Plus, RefreshCw, ChevronRight, BarChart3, FileText, Menu, Landmark, Lock, Shield, Zap, AlertCircle, Settings, Eye, EyeOff, Sparkles, X, Trash2 } from 'lucide-react';
 import { initializeApp, getApp, getApps } from "firebase/app";
 import { getFirestore, doc, onSnapshot, setDoc, deleteDoc, updateDoc, collection, writeBatch, getDoc, getDocs, query, where } from "firebase/firestore";
-import { Account, Transaction, DashboardStats, ExpenseCategory, AIRule, APP_VERSION, APP_RELEASE_NOTES } from './types';
+import { Account, Transaction, DeletedTransaction, DashboardStats, ExpenseCategory, AIRule, APP_VERSION, APP_RELEASE_NOTES } from './types';
 import Dashboard from './components/Dashboard';
 import AccountManager from './components/AccountManager';
 import HistoryList from './components/HistoryList';
@@ -11,6 +11,7 @@ import CloudSync from './components/CloudSync';
 import TransactionForm from './components/TransactionForm';
 import BackupManager from './components/BackupManager';
 import { McpModal } from './components/McpModal';
+import { DeletedEntries } from './components/DeletedEntries';
 import { supabaseDb } from './utils/supabaseDb';
 
 const firebaseConfig = {
@@ -57,6 +58,17 @@ const App: React.FC = () => {
             const cached = localStorage.getItem(`bizflow_txs_${(localStorage.getItem('bizflow_workspace_id') || '').trim()}`);
             if (cached) return JSON.parse(cached);
         } catch (e) { console.warn("Failed to parse cached txs"); }
+        return [];
+    });
+    const [deletedTransactions, setDeletedTransactions] = useState<DeletedTransaction[]>(() => {
+        try {
+            const cached = localStorage.getItem(`bizflow_trash_${(localStorage.getItem('bizflow_workspace_id') || '').trim()}`);
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+                return parsed.filter((t: any) => (t.deletedAt || t.date) > sevenDaysAgo);
+            }
+        } catch (e) { console.warn("Failed to parse cached trash"); }
         return [];
     });
     const [categories, setCategories] = useState<ExpenseCategory[]>(DEFAULT_CATEGORIES);
@@ -177,6 +189,42 @@ const App: React.FC = () => {
             } catch (e) { /* ignore quota errors */ }
         }
     }, [transactions, workspaceId]);
+
+    // Keep deletedTransactions synced to localStorage & fetch from Firestore
+    useEffect(() => {
+        if (workspaceId) {
+            try {
+                localStorage.setItem(`bizflow_trash_${workspaceId.trim()}`, JSON.stringify(deletedTransactions));
+            } catch (e) { /* ignore */ }
+        }
+    }, [deletedTransactions, workspaceId]);
+
+    useEffect(() => {
+        if (!workspaceId) return;
+        const loadTrash = async () => {
+            try {
+                const trashRef = collection(db, "workspaces", workspaceId.trim(), "trash");
+                const snap = await getDocs(trashRef);
+                const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+                const activeTrash: DeletedTransaction[] = [];
+                snap.forEach(d => {
+                    const data = d.data() as DeletedTransaction;
+                    if ((data.deletedAt || data.date) > sevenDaysAgo) {
+                        activeTrash.push(data);
+                    } else {
+                        // Purge expired entry (> 7 days)
+                        deleteDoc(d.ref).catch(() => {});
+                    }
+                });
+                if (activeTrash.length > 0) {
+                    setDeletedTransactions(activeTrash);
+                }
+            } catch (e) {
+                console.error("Load Trash Error:", e);
+            }
+        };
+        loadTrash();
+    }, [workspaceId]);
 
     // Handle initial auth check
     useEffect(() => {
@@ -779,7 +827,23 @@ const App: React.FC = () => {
 
 
     const deleteTransaction = async (id: string) => {
+        const txToDelete = transactions.find(t => t.id === id);
         setTransactions(prev => prev.filter(t => t.id !== id));
+        if (txToDelete) {
+            const deletedTx: DeletedTransaction = {
+                ...txToDelete,
+                deletedAt: Date.now()
+            };
+            setDeletedTransactions(prev => [deletedTx, ...prev.filter(t => t.id !== id)]);
+            if (workspaceId) {
+                try {
+                    const trashRef = doc(db, "workspaces", workspaceId.trim(), "trash", id);
+                    await setDoc(trashRef, deepClean(deletedTx));
+                } catch (e) {
+                    console.error("Save to Trash Error:", e);
+                }
+            }
+        }
         try {
             if (workspaceId) await supabaseDb.deleteTransaction(workspaceId.trim(), id);
             const docRef = doc(db, "workspaces", workspaceId, "transactions", id);
@@ -791,7 +855,30 @@ const App: React.FC = () => {
 
     const handleBulkDeleteTransactions = async (ids: string[]) => {
         if (!ids || ids.length === 0) return;
+        const txsToDelete = transactions.filter(t => ids.includes(t.id));
         setTransactions(prev => prev.filter(t => !ids.includes(t.id)));
+
+        if (txsToDelete.length > 0) {
+            const now = Date.now();
+            const deletedTxs: DeletedTransaction[] = txsToDelete.map(t => ({
+                ...t,
+                deletedAt: now
+            }));
+            setDeletedTransactions(prev => [...deletedTxs, ...prev.filter(t => !ids.includes(t.id))]);
+            if (workspaceId) {
+                try {
+                    const batch = writeBatch(db);
+                    deletedTxs.forEach(dt => {
+                        const trashRef = doc(db, "workspaces", workspaceId.trim(), "trash", dt.id);
+                        batch.set(trashRef, deepClean(dt));
+                    });
+                    await batch.commit();
+                } catch (e) {
+                    console.error("Bulk Save to Trash Error:", e);
+                }
+            }
+        }
+
         try {
             if (workspaceId) await supabaseDb.deleteTransactions(workspaceId.trim(), ids);
             const batchPromises = ids.map(id => {
@@ -801,6 +888,86 @@ const App: React.FC = () => {
             await Promise.all(batchPromises);
         } catch (e) {
             console.error("Bulk Delete Tx Error:", e);
+        }
+    };
+
+    const handleRestoreTransaction = async (id: string) => {
+        const txToRestore = deletedTransactions.find(t => t.id === id);
+        if (!txToRestore) return;
+
+        const { deletedAt, ...restoredTx } = txToRestore;
+        setDeletedTransactions(prev => prev.filter(t => t.id !== id));
+        setTransactions(prev => [restoredTx, ...prev].sort((a, b) => b.date - a.date));
+
+        try {
+            if (workspaceId) {
+                await supabaseDb.saveTransaction(workspaceId.trim(), restoredTx);
+                const docRef = doc(db, "workspaces", workspaceId.trim(), "transactions", id);
+                await setDoc(docRef, deepClean(restoredTx));
+                const trashRef = doc(db, "workspaces", workspaceId.trim(), "trash", id);
+                await deleteDoc(trashRef);
+            }
+        } catch (e) {
+            console.error("Restore Tx Error:", e);
+            alert("Failed to restore transaction.");
+        }
+    };
+
+    const handleBulkRestoreTransactions = async (ids: string[]) => {
+        if (!ids || ids.length === 0) return;
+        const txsToRestore = deletedTransactions.filter(t => ids.includes(t.id));
+        if (txsToRestore.length === 0) return;
+
+        const cleanedTxs: Transaction[] = txsToRestore.map(({ deletedAt, ...rest }) => rest);
+        setDeletedTransactions(prev => prev.filter(t => !ids.includes(t.id)));
+        setTransactions(prev => [...cleanedTxs, ...prev].sort((a, b) => b.date - a.date));
+
+        try {
+            if (workspaceId) {
+                for (const tx of cleanedTxs) {
+                    await supabaseDb.saveTransaction(workspaceId.trim(), tx);
+                }
+                const batch = writeBatch(db);
+                cleanedTxs.forEach(tx => {
+                    const docRef = doc(db, "workspaces", workspaceId.trim(), "transactions", tx.id);
+                    batch.set(docRef, deepClean(tx));
+                    const trashRef = doc(db, "workspaces", workspaceId.trim(), "trash", tx.id);
+                    batch.delete(trashRef);
+                });
+                await batch.commit();
+            }
+        } catch (e) {
+            console.error("Bulk Restore Error:", e);
+            alert("Failed to restore some transactions.");
+        }
+    };
+
+    const handlePermanentDelete = async (id: string) => {
+        setDeletedTransactions(prev => prev.filter(t => t.id !== id));
+        if (workspaceId) {
+            try {
+                const trashRef = doc(db, "workspaces", workspaceId.trim(), "trash", id);
+                await deleteDoc(trashRef);
+            } catch (e) {
+                console.error("Permanent delete error:", e);
+            }
+        }
+    };
+
+    const handleEmptyTrash = async () => {
+        const ids = deletedTransactions.map(t => t.id);
+        setDeletedTransactions([]);
+        if (workspaceId && ids.length > 0) {
+            try {
+                const batch = writeBatch(db);
+                ids.forEach(id => {
+                    const trashRef = doc(db, "workspaces", workspaceId.trim(), "trash", id);
+                    batch.delete(trashRef);
+                });
+                await batch.commit();
+            } catch (e) {
+                console.error("Empty trash error:", e);
+            }
         }
     };
 
@@ -1075,6 +1242,7 @@ const App: React.FC = () => {
                         { id: 'accounts', icon: Wallet, label: 'Accounts' },
                         { id: 'history', icon: History, label: 'Transaction' },
                         { id: 'invoices', icon: FileText, label: 'Invoices' },
+                        { id: 'trash', icon: Trash2, label: 'Deleted Entries', count: deletedTransactions.length },
                         { id: 'backup', icon: Shield, label: 'Backups' },
                         { id: 'cloud', icon: Cloud, label: 'Cloud' },
                         { id: 'settings', icon: Settings, label: 'Settings' },
@@ -1085,13 +1253,22 @@ const App: React.FC = () => {
                                 setActiveTab(item.id);
                                 setIsMobileMenuOpen(false);
                             }}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all relative overflow-hidden group/item ${activeTab === item.id
+                            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-semibold transition-all relative overflow-hidden group/item ${activeTab === item.id
                                 ? 'bg-slate-900 text-white shadow-xs'
                                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                                 }`}
                         >
-                            <item.icon size={18} className={activeTab === item.id ? "text-white" : "group-hover/item:text-slate-900 transition-colors"} />
-                            <span className="text-sm tracking-tight">{item.label}</span>
+                            <div className="flex items-center gap-3">
+                                <item.icon size={18} className={activeTab === item.id ? "text-white" : "group-hover/item:text-slate-900 transition-colors"} />
+                                <span className="text-sm tracking-tight">{item.label}</span>
+                            </div>
+                            {item.count !== undefined && item.count > 0 && (
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                                    activeTab === item.id ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-700'
+                                }`}>
+                                    {item.count}
+                                </span>
+                            )}
                         </button>
                     ))}
                 </div>
@@ -1159,15 +1336,17 @@ const App: React.FC = () => {
                     <div className="space-y-1">
                         <div className="flex items-center gap-2 mb-1">
                             <span className="px-2.5 py-0.5 bg-slate-200/70 text-slate-700 rounded text-[10px] font-bold uppercase tracking-wider border border-slate-300/50">
-                                {activeTab === 'history' ? 'Ledger' : activeTab === 'dashboard' ? 'Core' : activeTab}
+                                {activeTab === 'history' ? 'Ledger' : activeTab === 'dashboard' ? 'Core' : activeTab === 'trash' ? 'Trash Bin' : activeTab}
                             </span>
                             <div className="h-1 w-1 rounded-full bg-slate-300" />
                             <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Enterprise Ledger</span>
                         </div>
                         <h2 className="text-2xl font-extrabold text-slate-900 capitalize tracking-tight">
-                            {activeTab === 'history' ? 'Transactions' : activeTab}
+                            {activeTab === 'history' ? 'Transactions' : activeTab === 'trash' ? 'Deleted Entries' : activeTab}
                         </h2>
-                        <p className="text-slate-500 font-medium text-xs">BizFlow intelligence platform.</p>
+                        <p className="text-slate-500 font-medium text-xs">
+                            {activeTab === 'trash' ? 'Restore accidentally deleted entries from the last 7 days.' : 'BizFlow intelligence platform.'}
+                        </p>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -1252,6 +1431,18 @@ const App: React.FC = () => {
                             setShowForm(true);
                         }}
                         suppliers={suppliers}
+                    />
+                )}
+
+                {activeTab === 'trash' && (
+                    <DeletedEntries
+                        deletedTransactions={deletedTransactions}
+                        accounts={computedAccounts}
+                        categories={categories}
+                        onRestore={handleRestoreTransaction}
+                        onBulkRestore={handleBulkRestoreTransactions}
+                        onPermanentDelete={handlePermanentDelete}
+                        onEmptyTrash={handleEmptyTrash}
                     />
                 )}
 

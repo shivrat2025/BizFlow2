@@ -258,7 +258,7 @@ const HistoryListContent: React.FC<Props> = ({
 
   const handleBulkDelete = () => {
     if (selectedTxIds.length === 0) return;
-    if (window.confirm(`Are you sure you want to delete ${selectedTxIds.length} selected transaction(s)? This action cannot be undone.`)) {
+    if (window.confirm(`Are you sure you want to delete ${selectedTxIds.length} selected transaction(s)? They will be safely moved to 'Deleted Entries' where you can restore them within 7 days.`)) {
       if (onBulkDelete) {
         onBulkDelete(selectedTxIds);
       } else {
@@ -731,7 +731,7 @@ const HistoryListContent: React.FC<Props> = ({
                       <div className="flex items-center justify-center gap-0.5">
                         <button onClick={() => onDuplicate(t)} className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all" title="Duplicate"><Copy size={13} /></button>
                         <button onClick={() => onEdit(t)} className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all" title="Edit"><Pencil size={13} /></button>
-                        <button onClick={() => deleteTransaction(t.id)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Delete"><Trash2 size={13} /></button>
+                        <button onClick={() => deleteTransaction(t.id)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Move to Deleted Entries (7-day trash)"><Trash2 size={13} /></button>
                       </div>
                     </td>
                   </tr>
