@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { LayoutDashboard, History, Wallet, Cloud, Plus, RefreshCw, ChevronRight, BarChart3, FileText, Menu, Landmark, Lock, Shield, Zap, AlertCircle, Settings, Eye, EyeOff, Sparkles, X, Trash2 } from 'lucide-react';
 import { initializeApp, getApp, getApps } from "firebase/app";
 import { getFirestore, doc, onSnapshot, setDoc, deleteDoc, updateDoc, collection, writeBatch, getDoc, getDocs, query, where } from "firebase/firestore";
@@ -134,43 +134,58 @@ const App: React.FC = () => {
         }
     };
 
-    useEffect(() => {
+    // Single Source of Truth: Supabase PostgreSQL loader
+    const handleSyncSupabase = useCallback(async (silent = false) => {
         if (!workspaceId) return;
-        setFirebaseStatus('SYNCING');
-
-        // Load data directly from Supabase PostgreSQL (Single Source of Truth)
-        const loadSupabaseData = async () => {
+        if (!silent) {
             setSyncProgress({ active: true, percent: 15, label: 'Connecting to Supabase...' });
-            try {
-                const data = await supabaseDb.getWorkspaceData(workspaceId.trim(), (pct, msg) => {
+        }
+        setFirebaseStatus('SYNCING');
+        try {
+            const data = await supabaseDb.getWorkspaceData(workspaceId.trim(), (pct, msg) => {
+                if (!silent) {
                     setSyncProgress({ active: true, percent: pct, label: msg });
-                });
-                if (data.accounts?.length) setAccounts(data.accounts);
-                if (data.categories?.length) setCategories(data.categories);
-                if (data.suppliers?.length) setSuppliers(data.suppliers);
-                if (data.transactions && data.transactions.length > 0) {
-                    setTransactions(data.transactions);
-                    try {
-                        localStorage.setItem(`bizflow_txs_${workspaceId.trim()}`, JSON.stringify(data.transactions));
-                    } catch (e) { console.warn("Failed to cache txs", e); }
                 }
-                if (data.profitPercent !== undefined) setProfitPercent(data.profitPercent);
-                setFirebaseStatus('CONNECTED');
+            });
+            if (data.accounts?.length) setAccounts(data.accounts);
+            if (data.categories?.length) setCategories(data.categories);
+            if (data.suppliers?.length) setSuppliers(data.suppliers);
+            if (data.transactions && data.transactions.length > 0) {
+                setTransactions(data.transactions);
+                try {
+                    localStorage.setItem(`bizflow_txs_${workspaceId.trim()}`, JSON.stringify(data.transactions));
+                } catch (e) { console.warn("Failed to cache txs", e); }
+            }
+            if (data.profitPercent !== undefined) setProfitPercent(data.profitPercent);
+            setFirebaseStatus('CONNECTED');
+            if (!silent) {
                 setSyncProgress({ active: true, percent: 100, label: 'Sync Complete' });
                 setTimeout(() => {
                     setSyncProgress(prev => ({ ...prev, active: false }));
                 }, 800);
-            } catch (err) {
-                console.error("Supabase Load Error:", err);
-                setSyncProgress({ active: false, percent: 0, label: '' });
-                setFirebaseStatus('ERROR');
             }
+        } catch (err) {
+            console.error("Supabase Load Error:", err);
+            if (!silent) {
+                setSyncProgress({ active: false, percent: 0, label: '' });
+            }
+            setFirebaseStatus('ERROR');
+        }
+    }, [workspaceId]);
+
+    useEffect(() => {
+        if (!workspaceId) return;
+
+        // 1. Initial Load: Full visual loading bar
+        handleSyncSupabase(false);
+
+        // 2. Tab switch/focus: Silent background refresh without screen popups
+        const handleFocus = () => {
+            handleSyncSupabase(true);
         };
+        window.addEventListener('focus', handleFocus);
 
-        loadSupabaseData();
-        const interval = setInterval(loadSupabaseData, 30000); // Polling Supabase every 30s instead of 5s to avoid DB timeouts
-
-        // Listen to Workspace Metadata from Firestore (Accounts, Categories, Rules, Cloud Settings)
+        // 3. Listen to Workspace Metadata from Firestore (Accounts, Categories, Rules, Cloud Settings)
         const unsubMeta = onSnapshot(doc(db, "workspaces", workspaceId.trim()), (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
@@ -190,10 +205,10 @@ const App: React.FC = () => {
         });
 
         return () => {
-            clearInterval(interval);
+            window.removeEventListener('focus', handleFocus);
             unsubMeta();
         };
-    }, [workspaceId]);
+    }, [workspaceId, handleSyncSupabase]);
 
     // Keep localStorage cache synced with any local pessimistic/optimistic updates
     useEffect(() => {
@@ -1435,6 +1450,16 @@ const App: React.FC = () => {
                             >
                                 {privacyMode ? <EyeOff size={14} /> : <Eye size={14} />}
                                 <span className="hidden sm:inline">{privacyMode ? 'Hidden' : 'Visible'}</span>
+                            </button>
+
+                            <button
+                                onClick={() => handleSyncSupabase(false)}
+                                disabled={syncProgress.active}
+                                className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-xs disabled:opacity-60"
+                                title="Sync data with database"
+                            >
+                                <RefreshCw size={14} className={syncProgress.active ? "animate-spin text-indigo-600" : "text-slate-600"} />
+                                <span>Sync</span>
                             </button>
 
                             <button

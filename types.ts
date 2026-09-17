@@ -1,14 +1,14 @@
-export const APP_VERSION = "2.2.9";
+export const APP_VERSION = "2.2.10";
 export const APP_RELEASE_NOTES = {
-  version: "v2.2.9",
-  title: "Zero-Lag On-Demand Image & Attachment Fetching",
+  version: "v2.2.10",
+  title: "Eliminated Repeated 30s Sync & Added Manual Sync Control",
   date: "17 Sep 2026",
   highlights: [
-    "⚡️ Initial data load no longer downloads heavy base64 images, cutting payload from ~50MB to <150KB",
-    "🚀 Instant dashboard & transactions ledger load in 1-2 seconds with zero timeout errors",
-    "🖼️ Bill and payment proof images pull on-demand from database only when clicked by user",
-    "🔄 Automatic in-memory caching so viewed attachments open instantly on repeat clicks",
-    "📄 PDF reports dynamically pull bills on-the-fly without slowing initial app startup"
+    "🛑 Removed aggressive 30-second background polling interval that repeatedly flashed progress bars",
+    "🧘 Clean & distraction-free UI — no unexpected screen popups while typing or browsing",
+    "🔄 Added instant 1-click manual 'Sync' button directly in the header toolbar",
+    "👁️ Silent background refresh on tab switch / window focus without interrupting user",
+    "📊 Visual progressive bar and dynamic capsule now only display on startup or manual sync"
   ]
 };
 
