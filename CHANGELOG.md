@@ -2,6 +2,13 @@
 
 All notable updates, feature releases, and database changes to BizFlow Ledger Pro are documented in this file.
 
+## [v2.2.0] - 2026-09-17
+
+### 🗑️ Bulk Selection & Multi-Delete
+- **Table Checkboxes**: Added checkboxes to select individual transaction rows or select all visible transactions.
+- **Bulk Action Bar**: Floating/Header bar displays selected count with a 1-click **"Bulk Delete (X)"** action.
+- **Batch Removal**: Deletes selected entries in batch across Supabase PostgreSQL and cloud database.
+
 ---
 
 ## [v2.1.0] - 2026-09-17

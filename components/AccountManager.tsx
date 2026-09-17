@@ -284,7 +284,7 @@ const AccountCard: React.FC<{
   return (
     <div
       onClick={() => onViewStatement(acc)}
-      className={`bg-white/70 backdrop-blur-xl p-4 rounded-[1.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border transition-all group relative cursor-pointer hover:scale-[1.02] hover:shadow-lg duration-200 ${editingId === acc.id ? 'border-indigo-400 ring-2 ring-indigo-50' : 'border-white/50 hover:border-indigo-200'}`}
+      className={`bg-white p-4 rounded-2xl shadow-xs border transition-all group relative cursor-pointer hover:border-slate-300 duration-200 ${editingId === acc.id ? 'border-slate-900 ring-1 ring-slate-900' : 'border-slate-200/80'}`}
     >
       {/* Tap hint */}
       <div className="absolute top-3 right-12 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -414,24 +414,24 @@ const AccountManager: React.FC<Props> = ({ accounts, transactions, onAdd, onUpda
       <CashFlowSummary accounts={accounts} privacyMode={privacyMode} />
 
       {/* Add / Edit Form */}
-      <div className="bg-white/70 backdrop-blur-3xl p-5 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50">
+      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-sm font-black text-slate-800 flex items-center gap-2 uppercase tracking-tight">
-            {editingId ? <Pencil className="text-amber-500" size={14} /> : <Plus className="text-indigo-600" size={14} />}
+          <h3 className="text-xs font-bold text-slate-900 flex items-center gap-2 uppercase tracking-wider">
+            {editingId ? <Pencil className="text-amber-500" size={14} /> : <Plus className="text-slate-900" size={14} />}
             {editingId ? 'Edit Financial Hub' : 'Add Financial Hub'}
           </h3>
           {editingId && (
-            <button onClick={() => setEditingId(null)} className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-rose-500 transition-colors">Cancel</button>
+            <button onClick={() => setEditingId(null)} className="text-xs font-semibold text-slate-500 hover:text-rose-600 transition-colors">Cancel</button>
           )}
         </div>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div className="md:col-span-1">
             <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Account Name"
-              className="w-full px-4 py-2 bg-white/50 border border-white/60 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500/10 transition-all backdrop-blur-md placeholder:text-slate-400 focus:bg-white/80" required />
+              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-slate-400 transition-all placeholder:text-slate-400" required />
           </div>
           <div>
             <select value={type} onChange={e => setType(e.target.value as AccountType)}
-              className="w-full px-4 py-2 bg-white/50 border border-white/60 rounded-xl text-xs font-bold outline-none appearance-none backdrop-blur-md focus:bg-white/80">
+              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 outline-none appearance-none cursor-pointer focus:bg-white transition-all">
               <option value="BANK">Savings</option>
               <option value="CURRENT">Current</option>
               <option value="OD">OD/Limit</option>
@@ -441,10 +441,10 @@ const AccountManager: React.FC<Props> = ({ accounts, transactions, onAdd, onUpda
           <div>
             <input type="number" value={limit} onChange={e => setLimit(e.target.value)}
               placeholder={['BANK', 'CURRENT'].includes(type) ? 'Initial Balance' : 'Credit Limit'}
-              className="w-full px-4 py-2 bg-white/50 border border-white/60 rounded-xl text-xs font-bold outline-none backdrop-blur-md placeholder:text-slate-400 focus:bg-white/80" />
+              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-slate-400 transition-all placeholder:text-slate-400" />
           </div>
           <button type="submit"
-            className={`py-2 px-6 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md active:scale-95 ${editingId ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/20' : 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/20'}`}>
+            className={`py-2 px-6 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-xs active:scale-95 ${editingId ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-slate-900 hover:bg-black text-white'}`}>
             {editingId ? 'Save Hub' : 'Add Hub'}
           </button>
         </form>

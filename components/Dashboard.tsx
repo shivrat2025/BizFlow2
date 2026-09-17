@@ -126,76 +126,76 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
 
       {/* Compact Stat Grid — Row 1 */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <div className="bg-white/70 backdrop-blur-xl p-4 rounded-[1.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60 active:bg-white/80 transition-all group hover:scale-[1.02] duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs hover:border-slate-300 transition-all">
           <div className="flex items-center gap-2 mb-2">
-            <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg group-active:bg-indigo-600 group-active:text-white transition-colors">
-              <Box size={12} />
+            <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+              <Box size={14} />
             </div>
-            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">COD Pool</p>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">COD Pool</p>
           </div>
-          <p className="text-lg font-black text-slate-900 tracking-tight">{m(stats.codPool)}</p>
-          <div className="mt-2 pt-2 border-t border-slate-50">
-            <div className="flex justify-between items-center text-[7px] font-black text-slate-400 uppercase tracking-tight">
+          <p className="text-xl font-black text-slate-900 tracking-tight">{m(stats.codPool)}</p>
+          <div className="mt-2 pt-2 border-t border-slate-100">
+            <div className="flex justify-between items-center text-[8px] font-bold text-slate-400 uppercase tracking-tight">
               <span>{accounts.find(a => a.name.toUpperCase().includes('IDFC'))?.name || 'IDFC BANK'}</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white/70 backdrop-blur-xl p-4 rounded-[1.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60 active:bg-white/80 transition-all group hover:scale-[1.02] duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs hover:border-slate-300 transition-all">
           <div className="flex items-center gap-2 mb-2">
-            <div className="p-1.5 bg-amber-50 text-amber-600 rounded-lg group-active:bg-amber-600 group-active:text-white transition-colors">
-              <RefreshCw size={12} />
+            <div className="p-1.5 bg-amber-50 text-amber-600 rounded-lg">
+              <RefreshCw size={14} />
             </div>
-            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Prepaid Pool</p>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Prepaid Pool</p>
           </div>
-          <p className="text-lg font-black text-slate-900 tracking-tight">{m(stats.prepaidPool)}</p>
-          <div className="mt-2 pt-2 border-t border-slate-50">
-            <div className="flex justify-between items-center text-[7px] font-black text-slate-400 uppercase tracking-tight">
+          <p className="text-xl font-black text-slate-900 tracking-tight">{m(stats.prepaidPool)}</p>
+          <div className="mt-2 pt-2 border-t border-slate-100">
+            <div className="flex justify-between items-center text-[8px] font-bold text-slate-400 uppercase tracking-tight">
               <span>{accounts.find(a => a.name.toUpperCase().includes('INDUSIND'))?.name || 'INDUSIND BANK'}</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white/70 backdrop-blur-xl p-4 rounded-[1.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60 active:bg-white/80 transition-all group hover:scale-[1.02] duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs hover:border-slate-300 transition-all">
           <div className="flex items-center gap-2 mb-2">
-            <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg group-active:bg-emerald-600 group-active:text-white transition-colors">
-              <Wallet size={12} />
+            <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg">
+              <Wallet size={14} />
             </div>
-            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Total Bank Balance</p>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Bank Balance</p>
           </div>
-          <p className="text-lg font-black text-emerald-600 tracking-tight">{m(totalAssets)}</p>
-          <div className="mt-2 space-y-1 pt-2 border-t border-slate-50">
+          <p className="text-xl font-black text-emerald-600 tracking-tight">{m(totalAssets)}</p>
+          <div className="mt-2 space-y-1 pt-2 border-t border-slate-100">
             {bankAccounts.map(acc => {
               const logo = getBankLogo(acc.name);
               return (
-                <div key={acc.id} className="flex justify-between items-center text-[7px] font-black text-slate-400 uppercase tracking-tight">
+                <div key={acc.id} className="flex justify-between items-center text-[8px] font-bold text-slate-500 uppercase tracking-tight">
                   <div className="flex items-center gap-1">
-                    {logo && <img src={logo.url} alt={acc.name} className="w-4 h-4 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
-                    <span className="truncate max-w-[50px]">{acc.name}</span>
+                    {logo && <img src={logo.url} alt={acc.name} className="w-3.5 h-3.5 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
+                    <span className="truncate max-w-[65px]">{acc.name}</span>
                   </div>
-                  <span className="text-slate-600">{m(acc.balance)}</span>
+                  <span className="text-slate-700">{m(acc.balance)}</span>
                 </div>
               );
             })}
           </div>
         </div>
 
-        <div className="bg-white/70 backdrop-blur-xl p-4 rounded-[1.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60 active:bg-white/80 transition-all group hover:scale-[1.02] duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs hover:border-slate-300 transition-all">
           <div className="flex items-center gap-2 mb-2">
-            <div className="p-1.5 bg-red-50 text-red-600 rounded-lg group-active:bg-red-600 group-active:text-white transition-colors">
-              <CreditCard size={12} />
+            <div className="p-1.5 bg-rose-50 text-rose-600 rounded-lg">
+              <CreditCard size={14} />
             </div>
-            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Debt</p>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Debt</p>
           </div>
-          <p className="text-lg font-black text-red-600 tracking-tight">{m(stats.totalExternalCap)}</p>
-          <div className="mt-2 space-y-1 pt-2 border-t border-slate-50">
+          <p className="text-xl font-black text-rose-600 tracking-tight">{m(stats.totalExternalCap)}</p>
+          <div className="mt-2 space-y-1 pt-2 border-t border-slate-100">
             {debtAccounts.map(acc => {
               const logo = getBankLogo(acc.name);
               return (
-                <div key={acc.id} className="flex justify-between items-center text-[7px] font-black text-slate-400 uppercase tracking-tight">
+                <div key={acc.id} className="flex justify-between items-center text-[8px] font-bold text-slate-500 uppercase tracking-tight">
                   <div className="flex items-center gap-1">
-                    {logo && <img src={logo.url} alt={acc.name} className="w-4 h-4 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
-                    <span className="truncate max-w-[50px]">{acc.name}</span>
+                    {logo && <img src={logo.url} alt={acc.name} className="w-3.5 h-3.5 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
+                    <span className="truncate max-w-[65px]">{acc.name}</span>
                   </div>
                   <span className="text-rose-600">{m(acc.debt)}</span>
                 </div>
@@ -204,18 +204,18 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
           </div>
         </div>
 
-        <div className="col-span-2 lg:col-span-1 bg-gradient-to-br from-indigo-600 to-purple-600 backdrop-blur-md p-4 rounded-[1.5rem] shadow-lg shadow-indigo-500/20 text-white relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 border border-white/20">
+        <div className="col-span-2 lg:col-span-1 bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-sm text-white relative overflow-hidden group hover:border-slate-700 transition-all">
           <Sparkles className="absolute -top-2 -right-2 text-indigo-400/20 w-16 h-16 rotate-12" />
           <div className="relative z-10">
-            <p className="text-[8px] font-black text-indigo-200 uppercase tracking-widest mb-1">Available Profit</p>
-            <p className="text-lg font-black tracking-tight">{m(availableToWithdraw)}</p>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Available Profit</p>
+            <p className="text-xl font-black tracking-tight text-white">{m(availableToWithdraw)}</p>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Trend Analysis - More compact on mobile */}
-        <div className="lg:col-span-2 bg-white/70 backdrop-blur-xl p-5 rounded-[1.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all">
+        <div className="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:border-slate-300 transition-all">
           <div className="flex justify-between items-center mb-6">
             <div>
               <h3 className="text-sm font-black text-slate-800 tracking-tight">Cash Flow</h3>
@@ -258,7 +258,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
         </div>
 
         {/* Expense Breakdown - More compact */}
-        <div className="bg-white/70 backdrop-blur-xl p-5 rounded-[1.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60 flex flex-col hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:border-slate-300 transition-all flex flex-col">
           <h3 className="text-sm font-black text-slate-800 tracking-tight text-center mb-1">Top Sources</h3>
           <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-center mb-4">Expenditure Radius</p>
 
@@ -290,26 +290,26 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
       </div>
 
       {/* ── Row 3: Cash Position — lightest green / red ───────────────────── */}
-      <div className="rounded-[1.5rem] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60">
+      <div className="rounded-2xl overflow-hidden border border-slate-200/80 shadow-xs bg-white">
         <div className="grid grid-cols-2">
 
           {/* LEFT — Balances */}
-          <div className="bg-green-50/80 backdrop-blur-xl px-5 py-4 flex flex-col gap-1 border-r border-green-100">
+          <div className="bg-emerald-50/50 px-5 py-4 flex flex-col gap-1 border-r border-emerald-100">
             <div className="flex items-center gap-1.5 mb-0.5">
-              <div className="p-1 bg-green-100 rounded-lg"><TrendingUp size={10} className="text-green-600" /></div>
-              <p className="text-[8px] font-black text-green-700/70 uppercase tracking-widest">Total Balances</p>
+              <div className="p-1 bg-emerald-100/80 rounded-lg"><TrendingUp size={10} className="text-emerald-700" /></div>
+              <p className="text-[8px] font-black text-emerald-800 uppercase tracking-widest">Total Balances</p>
             </div>
-            <p className="text-2xl font-black text-green-700 tracking-tight leading-none">
+            <p className="text-2xl font-black text-emerald-700 tracking-tight leading-none">
               {m(snapshotBalance)}
             </p>
-            <p className="text-[7px] font-black text-green-500/60 uppercase tracking-widest mt-0.5">Bank &amp; Current Accounts</p>
+            <p className="text-[7px] font-black text-emerald-600/70 uppercase tracking-widest mt-0.5">Bank &amp; Current Accounts</p>
             <div className="flex gap-1 flex-wrap mt-2">
               {accounts
                 .filter(a => ['BANK', 'CURRENT'].includes(a.type) && !a.name.toUpperCase().includes('OD'))
                 .map(a => {
                   const logo = getBankLogo(a.name);
                   return (
-                    <span key={a.id} className="flex items-center gap-0.5 bg-white/80 text-green-700 text-[6px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border border-green-100">
+                    <span key={a.id} className="flex items-center gap-0.5 bg-white text-emerald-800 text-[6px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border border-emerald-200 shadow-2xs">
                       {logo && <img src={logo.url} alt={a.name} className="w-2.5 h-2.5 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
                       {a.name.split(' ')[0]}
                     </span>
@@ -319,7 +319,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
           </div>
 
           {/* RIGHT — Debt */}
-          <div className="bg-red-50/80 backdrop-blur-xl px-5 py-4 flex flex-col gap-1">
+          <div className="bg-rose-50/50 px-5 py-4 flex flex-col gap-1">
             <div className="flex items-center gap-1.5 mb-0.5">
               <div className="p-1 bg-red-100 rounded-lg"><TrendingDown size={10} className="text-red-500" /></div>
               <p className="text-[8px] font-black text-red-600/70 uppercase tracking-widest">Total Debt</p>

@@ -770,6 +770,20 @@ const App: React.FC = () => {
         }
     };
 
+    const handleBulkDeleteTransactions = async (ids: string[]) => {
+        if (!ids || ids.length === 0) return;
+        try {
+            if (workspaceId) await supabaseDb.deleteTransactions(workspaceId.trim(), ids);
+            const batchPromises = ids.map(id => {
+                const docRef = doc(db, "workspaces", workspaceId, "transactions", id);
+                return deleteDoc(docRef);
+            });
+            await Promise.all(batchPromises);
+        } catch (e) {
+            console.error("Bulk Delete Tx Error:", e);
+        }
+    };
+
     if (!isAuthenticated) {
         return (
             <div className="login-page">
@@ -1192,6 +1206,7 @@ const App: React.FC = () => {
                     <HistoryList
                         transactions={transactions}
                         deleteTransaction={deleteTransaction}
+                        onBulkDelete={handleBulkDeleteTransactions}
                         onEdit={(tx) => {
                             setEditingTransaction(tx);
                             setShowForm(true);

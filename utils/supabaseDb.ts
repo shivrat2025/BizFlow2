@@ -116,6 +116,21 @@ export const supabaseDb = {
         }
     },
 
+    async deleteTransactions(workspaceId: string, txIds: string[]) {
+        try {
+            if (!txIds || txIds.length === 0) return;
+            const { error } = await supabase
+                .from('transactions')
+                .delete()
+                .in('id', txIds)
+                .eq('workspace_id', workspaceId);
+            if (error) throw error;
+        } catch (err) {
+            console.error("Supabase deleteTransactions error:", err);
+            throw err;
+        }
+    },
+
     async updateAccounts(workspaceId: string, accounts: Account[]) {
         try {
             const rows = accounts.map(acc => ({
