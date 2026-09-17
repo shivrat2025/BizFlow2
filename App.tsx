@@ -57,8 +57,6 @@ const App: React.FC = () => {
     const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
     const [cloudUrl, setCloudUrl] = useState('');
     const [lastSynced, setLastSynced] = useState<number | null>(null);
-    const [legacyTransactions, setLegacyTransactions] = useState<Transaction[]>([]);
-    const [realtimeTransactions, setRealtimeTransactions] = useState<Transaction[]>([]);
 
     const [showForm, setShowForm] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -115,14 +113,16 @@ const App: React.FC = () => {
         if (!workspaceId) return;
         setFirebaseStatus('SYNCING');
 
-        // Load data directly from Supabase PostgreSQL
+        // Load data directly from Supabase PostgreSQL (Single Source of Truth)
         const loadSupabaseData = async () => {
             try {
-                const data = await supabaseDb.getWorkspaceData(workspaceId);
+                const data = await supabaseDb.getWorkspaceData(workspaceId.trim());
                 if (data.accounts?.length) setAccounts(data.accounts);
                 if (data.categories?.length) setCategories(data.categories);
                 if (data.suppliers?.length) setSuppliers(data.suppliers);
-                if (data.transactions) setRealtimeTransactions(data.transactions);
+                if (data.transactions && data.transactions.length > 0) {
+                    setTransactions(data.transactions);
+                }
                 if (data.profitPercent !== undefined) setProfitPercent(data.profitPercent);
                 setFirebaseStatus('CONNECTED');
             } catch (err) {
@@ -133,17 +133,16 @@ const App: React.FC = () => {
         loadSupabaseData();
         const interval = setInterval(loadSupabaseData, 5000); // Polling Supabase every 5s for multi-device sync
 
-        // 1. Listen to Workspace Metadata (Accounts, Categories, Rules)
-        const unsubMeta = onSnapshot(doc(db, "workspaces", workspaceId), (docSnap) => {
+        // Listen to Workspace Metadata from Firestore (Accounts, Categories, Rules, Cloud Settings)
+        const unsubMeta = onSnapshot(doc(db, "workspaces", workspaceId.trim()), (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
-                if (data.accounts) setAccounts(data.accounts);
-                if (data.categories) setCategories(data.categories);
+                if (data.accounts?.length) setAccounts(data.accounts);
+                if (data.categories?.length) setCategories(data.categories);
                 if (data.aiRules) setAiRules(data.aiRules);
-                if (data.suppliers) setSuppliers(data.suppliers);
+                if (data.suppliers?.length) setSuppliers(data.suppliers);
                 if (data.cloudUrl !== undefined) setCloudUrl(data.cloudUrl);
                 if (data.lastSynced !== undefined) setLastSynced(data.lastSynced);
-                if (data.transactions) setLegacyTransactions(data.transactions);
                 if (data.profitPercent !== undefined) {
                     setProfitPercent(data.profitPercent);
                     localStorage.setItem('bizflow_profit_pct', String(data.profitPercent));
@@ -153,32 +152,11 @@ const App: React.FC = () => {
             console.error("Meta Sync Error:", err);
         });
 
-        // 2. Listen to Transactions Sub-collection
-        const unsubTxs = onSnapshot(collection(db, "workspaces", workspaceId, "transactions"), (querySnap) => {
-            const txs: Transaction[] = [];
-            querySnap.forEach((doc) => {
-                txs.push({ ...doc.data(), id: doc.id } as Transaction);
-            });
-            if (txs.length > 0) setRealtimeTransactions(txs);
-            setFirebaseStatus('CONNECTED');
-        }, (err) => {
-            console.error("Transaction Sync Error:", err);
-        });
-
         return () => {
             clearInterval(interval);
             unsubMeta();
-            unsubTxs();
         };
     }, [workspaceId]);
-
-    useEffect(() => {
-        const combined = [...legacyTransactions, ...realtimeTransactions];
-        // Deduplicate by ID
-        const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
-        unique.sort((a, b) => b.date - a.date);
-        setTransactions(unique);
-    }, [legacyTransactions, realtimeTransactions]);
 
     useEffect(() => {
         if (workspaceId) localStorage.setItem('bizflow_workspace_id', workspaceId.trim());
