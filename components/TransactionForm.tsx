@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, TrendingUp, TrendingDown, PiggyBank, CreditCard, Plus, Check, ArrowRight, Tag, FileText, ChevronDown, ChevronUp, Camera, Calendar, ChevronRight, RefreshCw, Search } from 'lucide-react';
 import { Account, Transaction, TransactionType, IncomeSource, DashboardStats, ExpenseCategory } from '../types';
 import { optimizeImage } from '../utils/imageOptimization';
+import { supabaseDb } from '../utils/supabaseDb';
 
 interface Props {
   onClose: () => void;
@@ -45,6 +46,8 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
 
   const [invoiceUrl, setInvoiceUrl] = useState<string | undefined>(undefined);
   const [paymentProofUrl, setPaymentProofUrl] = useState<string | undefined>(undefined);
+  const [isLoadingInvoice, setIsLoadingInvoice] = useState(false);
+  const [isLoadingProof, setIsLoadingProof] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const initializedRef = useRef<string | null>(null);
@@ -75,7 +78,30 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
       setDate(new Date(initialData.date).toISOString().split('T')[0]);
       setInvoiceUrl(initialData.invoiceUrl);
       setPaymentProofUrl(initialData.paymentProofUrl);
-      if (initialData.tags?.length || initialData.notes || initialData.invoiceUrl || initialData.paymentProofUrl || initialData.supplierId) setShowAdvanced(true);
+
+      if (initialData.hasInvoice && !initialData.invoiceUrl) {
+        setIsLoadingInvoice(true);
+        supabaseDb.getAttachment(initialData.id, 'invoiceUrl').then(url => {
+          if (url) {
+            initialData.invoiceUrl = url;
+            setInvoiceUrl(url);
+          }
+          setIsLoadingInvoice(false);
+        }).catch(() => setIsLoadingInvoice(false));
+      }
+
+      if (initialData.hasPaymentProof && !initialData.paymentProofUrl) {
+        setIsLoadingProof(true);
+        supabaseDb.getAttachment(initialData.id, 'paymentProofUrl').then(url => {
+          if (url) {
+            initialData.paymentProofUrl = url;
+            setPaymentProofUrl(url);
+          }
+          setIsLoadingProof(false);
+        }).catch(() => setIsLoadingProof(false));
+      }
+
+      if (initialData.tags?.length || initialData.notes || initialData.invoiceUrl || initialData.hasInvoice || initialData.paymentProofUrl || initialData.hasPaymentProof || initialData.supplierId) setShowAdvanced(true);
       initializedRef.current = txId;
     } else if (accounts.length > 0) {
       // Default initialization for new entries when accounts load
@@ -187,8 +213,8 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
       tags: processedTags,
       notes: notes.trim() || undefined,
       date: new Date(date).getTime(),
-      invoiceUrl,
-      paymentProofUrl
+      invoiceUrl: invoiceUrl !== undefined ? invoiceUrl : (initialData?.hasInvoice ? initialData.invoiceUrl : undefined),
+      paymentProofUrl: paymentProofUrl !== undefined ? paymentProofUrl : (initialData?.hasPaymentProof ? initialData.paymentProofUrl : undefined)
     });
   };
 
@@ -647,7 +673,12 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
                       htmlFor="invoice-upload"
                       className={`w-full flex flex-col items-center justify-center p-3 border-2 border-dashed rounded-xl transition-all cursor-pointer bg-white/50 backdrop-blur-sm ${invoiceUrl ? 'border-indigo-500 bg-indigo-50/50' : 'border-white/60 hover:border-indigo-300 hover:bg-white/70'}`}
                     >
-                      {invoiceUrl ? (
+                      {isLoadingInvoice ? (
+                        <div className="flex flex-col items-center gap-1 text-indigo-600">
+                          <RefreshCw size={16} className="animate-spin" />
+                          <span className="text-[8px] font-black uppercase">Loading Bill...</span>
+                        </div>
+                      ) : invoiceUrl ? (
                         <div className="flex flex-col items-center gap-1">
                           <Check size={16} className="text-indigo-600" />
                           <span className="text-[8px] font-black text-indigo-600 uppercase">Uploaded</span>
@@ -662,7 +693,7 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
                     {invoiceUrl && (
                       <button
                         type="button"
-                        onClick={() => setInvoiceUrl(undefined)}
+                        onClick={() => setInvoiceUrl('')}
                         className="absolute -top-1 -right-1 bg-white border border-slate-200 rounded-full p-0.5 text-slate-400 hover:text-red-500 shadow-sm"
                       >
                         <X size={10} />
@@ -687,7 +718,12 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
                       htmlFor="proof-upload"
                       className={`w-full flex flex-col items-center justify-center p-3 border-2 border-dashed rounded-xl transition-all cursor-pointer bg-white/50 backdrop-blur-sm ${paymentProofUrl ? 'border-emerald-500 bg-emerald-50/50' : 'border-white/60 hover:border-emerald-300 hover:bg-white/70'}`}
                     >
-                      {paymentProofUrl ? (
+                      {isLoadingProof ? (
+                        <div className="flex flex-col items-center gap-1 text-emerald-600">
+                          <RefreshCw size={16} className="animate-spin" />
+                          <span className="text-[8px] font-black uppercase">Loading Proof...</span>
+                        </div>
+                      ) : paymentProofUrl ? (
                         <div className="flex flex-col items-center gap-1">
                           <Check size={16} className="text-emerald-600" />
                           <span className="text-[8px] font-black text-emerald-600 uppercase">Attached</span>
@@ -702,7 +738,7 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
                     {paymentProofUrl && (
                       <button
                         type="button"
-                        onClick={() => setPaymentProofUrl(undefined)}
+                        onClick={() => setPaymentProofUrl('')}
                         className="absolute -top-1 -right-1 bg-white border border-slate-200 rounded-full p-0.5 text-slate-400 hover:text-red-500 shadow-sm"
                       >
                         <X size={10} />

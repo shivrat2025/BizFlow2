@@ -12,9 +12,9 @@ export const supabaseDb = {
             onProgress?.(15, 'Connecting to Supabase...');
             const TX_FIELDS = 'id, date, amount, type, description, source_account_id, destination_account_id, income_source, expense_category, supplier_id, is_profit_withdrawal, tags, created_at';
 
-            onProgress?.(30, 'Fetching accounts & transactions...');
-            // High-speed parallel fetch: Workspaces, Accounts, Categories, Suppliers & all Transaction ranges concurrently (1.7s total)
-            const [wsRes, accRes, catRes, supRes, p1, p2, p3, p4] = await Promise.all([
+            onProgress?.(30, 'Fetching accounts & transactions (zero images)...');
+            // High-speed parallel fetch: Workspaces, Accounts, Categories, Suppliers, Transaction batches & Attachment ID indicators
+            const [wsRes, accRes, catRes, supRes, p1, p2, p3, p4, invIdsRes, proofIdsRes] = await Promise.all([
                 supabase.from('workspaces').select('id, profit_percent, cloud_url, last_synced').eq('id', workspaceId).maybeSingle(),
                 supabase.from('accounts').select('*').eq('workspace_id', workspaceId),
                 supabase.from('categories').select('*').eq('workspace_id', workspaceId),
@@ -22,8 +22,13 @@ export const supabaseDb = {
                 supabase.from('transactions').select(TX_FIELDS).eq('workspace_id', workspaceId).order('date', { ascending: false }).range(0, 999),
                 supabase.from('transactions').select(TX_FIELDS).eq('workspace_id', workspaceId).order('date', { ascending: false }).range(1000, 1999),
                 supabase.from('transactions').select(TX_FIELDS).eq('workspace_id', workspaceId).order('date', { ascending: false }).range(2000, 2999),
-                supabase.from('transactions').select(TX_FIELDS).eq('workspace_id', workspaceId).order('date', { ascending: false }).range(3000, 3999)
+                supabase.from('transactions').select(TX_FIELDS).eq('workspace_id', workspaceId).order('date', { ascending: false }).range(3000, 3999),
+                supabase.from('transactions').select('id').eq('workspace_id', workspaceId).not('invoice_url', 'is', null),
+                supabase.from('transactions').select('id').eq('workspace_id', workspaceId).not('payment_proof_url', 'is', null)
             ]);
+
+            const invoiceIdSet = new Set((invIdsRes.data || []).map((r: any) => r.id));
+            const proofIdSet = new Set((proofIdsRes.data || []).map((r: any) => r.id));
 
             onProgress?.(70, 'Stitching transaction batches...');
             const allTxs: any[] = [
@@ -70,8 +75,10 @@ export const supabaseDb = {
                 isProfitWithdrawal: Boolean(t.is_profit_withdrawal),
                 tags: Array.isArray(t.tags) ? t.tags : [],
                 notes: t.notes,
-                invoiceUrl: t.invoice_url,
-                paymentProofUrl: t.payment_proof_url,
+                hasInvoice: invoiceIdSet.has(t.id),
+                hasPaymentProof: proofIdSet.has(t.id),
+                invoiceUrl: undefined, // Pull on-demand when user clicks
+                paymentProofUrl: undefined, // Pull on-demand when user clicks
                 createdAt: Number(t.created_at || t.date)
             }));
 
@@ -111,9 +118,25 @@ export const supabaseDb = {
         }
     },
 
+    async getAttachment(txId: string, field: 'invoiceUrl' | 'paymentProofUrl') {
+        const col = field === 'invoiceUrl' ? 'invoice_url' : 'payment_proof_url';
+        try {
+            const { data, error } = await supabase
+                .from('transactions')
+                .select(col)
+                .eq('id', txId)
+                .maybeSingle();
+            if (error) throw error;
+            return (data as any)?.[col] || null;
+        } catch (e) {
+            console.error(`Fetch ${field} error:`, e);
+            return null;
+        }
+    },
+
     async saveTransaction(workspaceId: string, tx: Transaction) {
         try {
-            const row = {
+            const row: any = {
                 id: tx.id,
                 workspace_id: workspaceId,
                 date: tx.date,
@@ -128,10 +151,15 @@ export const supabaseDb = {
                 is_profit_withdrawal: Boolean(tx.isProfitWithdrawal),
                 tags: tx.tags || [],
                 notes: tx.notes || null,
-                invoice_url: tx.invoiceUrl || null,
-                payment_proof_url: tx.paymentProofUrl || null,
                 created_at: tx.createdAt || tx.date
             };
+
+            if (tx.invoiceUrl !== undefined) {
+                row.invoice_url = tx.invoiceUrl || null;
+            }
+            if (tx.paymentProofUrl !== undefined) {
+                row.payment_proof_url = tx.paymentProofUrl || null;
+            }
 
             const { error } = await supabase.from('transactions').upsert(row);
             if (error) throw error;

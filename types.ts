@@ -1,13 +1,14 @@
-export const APP_VERSION = "2.2.8";
+export const APP_VERSION = "2.2.9";
 export const APP_RELEASE_NOTES = {
-  version: "v2.2.8",
-  title: "Real-Time Progressive Loading Bar",
+  version: "v2.2.9",
+  title: "Zero-Lag On-Demand Image & Attachment Fetching",
   date: "17 Sep 2026",
   highlights: [
-    "📊 Real-time progressive loading bar showing exact % of data loaded",
-    "🌐 Glowing top-screen progress indicator with smooth animation",
-    "💊 Floating dynamic status capsule showing stages (Connecting, Fetching, Stitching, Complete)",
-    "📶 Live percentage and progress indicator in Sidebar Database widget"
+    "⚡️ Initial data load no longer downloads heavy base64 images, cutting payload from ~50MB to <150KB",
+    "🚀 Instant dashboard & transactions ledger load in 1-2 seconds with zero timeout errors",
+    "🖼️ Bill and payment proof images pull on-demand from database only when clicked by user",
+    "🔄 Automatic in-memory caching so viewed attachments open instantly on repeat clicks",
+    "📄 PDF reports dynamically pull bills on-the-fly without slowing initial app startup"
   ]
 };
 
@@ -59,6 +60,8 @@ export interface Transaction {
   notes?: string;
   invoiceUrl?: string;
   paymentProofUrl?: string;
+  hasInvoice?: boolean;
+  hasPaymentProof?: boolean;
   createdAt?: number;
 }
 

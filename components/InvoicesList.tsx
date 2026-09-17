@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { jsPDF } from 'jspdf';
-import { Search, Filter, Download, Plus, FileText, Check, Trash2, Calendar, LayoutGrid, FileSpreadsheet, Printer, X, Pencil, Package, Eye, ArrowUpDown, ArrowUp, ArrowDown, AlertCircle } from 'lucide-react';
+import { Search, Filter, Download, Plus, FileText, Check, Trash2, Calendar, LayoutGrid, FileSpreadsheet, Printer, X, Pencil, Package, Eye, ArrowUpDown, ArrowUp, ArrowDown, AlertCircle, RefreshCw } from 'lucide-react';
 import { Transaction, Account, ExpenseCategory } from '../types';
+import { supabaseDb } from '../utils/supabaseDb';
 
 interface Props {
     transactions: Transaction[];
@@ -19,6 +20,7 @@ const InvoicesList: React.FC<Props> = ({ transactions, accounts, categories, onU
     const [statusFilter, setStatusFilter] = useState<'ALL' | 'PAID' | 'PENDING'>('ALL');
     const [supplierFilter, setSupplierFilter] = useState('ALL');
     const [viewingAttachment, setViewingAttachment] = useState<{ url: string; title: string } | null>(null);
+    const [loadingAttachmentKey, setLoadingAttachmentKey] = useState<string | null>(null);
     const [sortKey, setSortKey] = useState<'date' | 'amount' | 'status' | 'createdAt'>('createdAt');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
@@ -38,7 +40,7 @@ const InvoicesList: React.FC<Props> = ({ transactions, accounts, categories, onU
 
     const invoiceTransactions = useMemo(() => {
         return transactions
-            .filter(t => (t.type === 'EXPENSE' && t.expenseCategory === 'PRODUCT') || t.invoiceUrl || t.paymentProofUrl);
+            .filter(t => (t.type === 'EXPENSE' && t.expenseCategory === 'PRODUCT') || t.invoiceUrl || t.paymentProofUrl || t.hasInvoice || t.hasPaymentProof);
     }, [transactions]);
 
     const filteredInvoices = useMemo(() => {
@@ -74,7 +76,7 @@ const InvoicesList: React.FC<Props> = ({ transactions, accounts, categories, onU
 
         if (statusFilter !== 'ALL') {
             list = list.filter(t => {
-                const isPaid = !!t.paymentProofUrl;
+                const isPaid = !!(t.paymentProofUrl || t.hasPaymentProof);
                 return statusFilter === 'PAID' ? isPaid : !isPaid;
             });
         }
@@ -85,8 +87,8 @@ const InvoicesList: React.FC<Props> = ({ transactions, accounts, categories, onU
             if (sortKey === 'date') return (a.date - b.date) * multiplier;
             if (sortKey === 'amount') return (a.amount - b.amount) * multiplier;
             if (sortKey === 'status') {
-                const aPaid = !!a.paymentProofUrl;
-                const bPaid = !!b.paymentProofUrl;
+                const aPaid = !!(a.paymentProofUrl || a.hasPaymentProof);
+                const bPaid = !!(b.paymentProofUrl || b.hasPaymentProof);
                 if (aPaid === bPaid) return 0;
                 return (aPaid ? 1 : -1) * multiplier;
             }
@@ -123,7 +125,7 @@ const InvoicesList: React.FC<Props> = ({ transactions, accounts, categories, onU
             getCategoryLabel(t.expenseCategory),
             getAccountName(t.sourceAccountId),
             t.amount,
-            t.paymentProofUrl ? 'Paid' : 'Unpaid'
+            (t.paymentProofUrl || t.hasPaymentProof) ? 'Paid' : 'Unpaid'
         ]);
 
         const csvContent = "data:text/csv;charset=utf-8,"
@@ -174,25 +176,32 @@ const InvoicesList: React.FC<Props> = ({ transactions, accounts, categories, onU
             doc.text(new Date(t.date).toLocaleDateString(), 20, yPos);
             doc.text((t.description || 'N/A').substring(0, 40), 50, yPos);
             doc.text(`Rs. ${t.amount.toLocaleString()}`, 140, yPos);
-            doc.text(t.paymentProofUrl ? "PAID" : "PENDING", 170, yPos);
+            doc.text((t.paymentProofUrl || t.hasPaymentProof) ? "PAID" : "PENDING", 170, yPos);
             yPos += 10;
         });
 
         // Bills
-        const billsToInclude = filteredInvoices.filter(t => t.invoiceUrl && t.invoiceUrl.startsWith('data:image/'));
+        const billsToInclude = filteredInvoices.filter(t => t.invoiceUrl || t.hasInvoice);
         for (const t of billsToInclude) {
-            doc.addPage();
-            doc.setFontSize(16);
-            doc.setFont("helvetica", "bold");
-            doc.text(`Bill For: ${t.description}`, 20, 20);
-            doc.setFontSize(10);
-            doc.setFont("helvetica", "normal");
-            doc.text(`Date: ${new Date(t.date).toLocaleDateString()} | Amount: Rs. ${t.amount.toLocaleString()}`, 20, 30);
+            let imgUrl = t.invoiceUrl;
+            if (!imgUrl && t.hasInvoice) {
+                imgUrl = await supabaseDb.getAttachment(t.id, 'invoiceUrl');
+                if (imgUrl) t.invoiceUrl = imgUrl;
+            }
+            if (imgUrl && imgUrl.startsWith('data:image/')) {
+                doc.addPage();
+                doc.setFontSize(16);
+                doc.setFont("helvetica", "bold");
+                doc.text(`Bill For: ${t.description}`, 20, 20);
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "normal");
+                doc.text(`Date: ${new Date(t.date).toLocaleDateString()} | Amount: Rs. ${t.amount.toLocaleString()}`, 20, 30);
 
-            try {
-                doc.addImage(t.invoiceUrl!, 'JPEG', 20, 40, 170, 0);
-            } catch (e) {
-                doc.text("Image rendering failed.", 20, 50);
+                try {
+                    doc.addImage(imgUrl, 'JPEG', 20, 40, 170, 0);
+                } catch (e) {
+                    doc.text("Image rendering failed.", 20, 50);
+                }
             }
         }
 
@@ -231,6 +240,29 @@ const InvoicesList: React.FC<Props> = ({ transactions, accounts, categories, onU
         });
     };
 
+    const handleViewAttachment = async (t: Transaction, field: 'invoiceUrl' | 'paymentProofUrl', title: string) => {
+        if (t[field]) {
+            setViewingAttachment({ url: t[field]!, title });
+            return;
+        }
+        const key = `${t.id}-${field}`;
+        setLoadingAttachmentKey(key);
+        try {
+            const url = await supabaseDb.getAttachment(t.id, field);
+            if (url) {
+                t[field] = url;
+                setViewingAttachment({ url, title });
+            } else {
+                alert('Attachment could not be loaded.');
+            }
+        } catch (err) {
+            console.error('Failed to load attachment:', err);
+            alert('Failed to load attachment.');
+        } finally {
+            setLoadingAttachmentKey(null);
+        }
+    };
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, id: string, field: 'invoiceUrl' | 'paymentProofUrl') => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -241,7 +273,8 @@ const InvoicesList: React.FC<Props> = ({ transactions, accounts, categories, onU
             if (file.type.startsWith('image/')) {
                 dataUrl = await compressImage(dataUrl);
             }
-            onUpdate(id, { [field]: dataUrl });
+            const flagKey = field === 'invoiceUrl' ? 'hasInvoice' : 'hasPaymentProof';
+            onUpdate(id, { [field]: dataUrl, [flagKey]: true });
         };
         reader.readAsDataURL(file);
     };
@@ -282,13 +315,13 @@ const InvoicesList: React.FC<Props> = ({ transactions, accounts, categories, onU
                             />
                         </div>
 
-                        {invoiceTransactions.filter(t => !t.paymentProofUrl).length > 0 && (
+                        {invoiceTransactions.filter(t => !t.paymentProofUrl && !t.hasPaymentProof).length > 0 && (
                             <div className="flex h-10 px-4 items-center gap-2.5 bg-amber-50 rounded-xl border border-amber-200 shrink-0">
                                 <AlertCircle size={14} className="text-amber-600" />
                                 <div className="flex flex-col">
                                     <span className="text-[8px] font-bold text-amber-700 uppercase tracking-wider leading-none">Due</span>
                                     <span className="text-xs font-bold text-slate-900 leading-none mt-0.5">
-                                        {invoiceTransactions.filter(t => !t.paymentProofUrl).length}
+                                        {invoiceTransactions.filter(t => !t.paymentProofUrl && !t.hasPaymentProof).length}
                                     </span>
                                 </div>
                             </div>
@@ -416,7 +449,7 @@ const InvoicesList: React.FC<Props> = ({ transactions, accounts, categories, onU
                                         </td>
                                         <td className="px-8 py-6">
                                             <div className="flex justify-center">
-                                                {t.paymentProofUrl ? (
+                                                {(t.paymentProofUrl || t.hasPaymentProof) ? (
                                                     <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full border border-emerald-100">
                                                         <Check size={10} />
                                                         <span className="text-[8px] font-black uppercase">Paid</span>
@@ -432,16 +465,22 @@ const InvoicesList: React.FC<Props> = ({ transactions, accounts, categories, onU
                                         <td className="px-8 py-6">
                                             <div className="flex items-center justify-center gap-3">
                                                 <div className="flex flex-col gap-2 min-w-[120px]">
-                                                    {t.invoiceUrl ? (
+                                                    {(t.hasInvoice || t.invoiceUrl) ? (
                                                         <div className="flex items-center gap-1">
                                                             <button
-                                                                onClick={() => setViewingAttachment({ url: t.invoiceUrl!, title: 'Invoice/Bill' })}
+                                                                onClick={() => handleViewAttachment(t, 'invoiceUrl', 'Invoice/Bill')}
+                                                                disabled={loadingAttachmentKey === `${t.id}-invoiceUrl`}
                                                                 className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-100 rounded-lg text-[8px] font-black uppercase text-indigo-600 hover:bg-indigo-100 transition-all"
                                                             >
-                                                                <FileText size={10} /> View Bill
+                                                                {loadingAttachmentKey === `${t.id}-invoiceUrl` ? (
+                                                                    <RefreshCw size={10} className="animate-spin" />
+                                                                ) : (
+                                                                    <FileText size={10} />
+                                                                )}
+                                                                View Bill
                                                             </button>
                                                             <button
-                                                                onClick={() => { if (confirm('Remove this bill?')) onUpdate(t.id, { invoiceUrl: '' }) }}
+                                                                onClick={() => { if (confirm('Remove this bill?')) onUpdate(t.id, { invoiceUrl: '', hasInvoice: false }) }}
                                                                 className="p-1.5 bg-rose-50 border border-rose-100 rounded-lg text-rose-500 hover:bg-rose-100 transition-all"
                                                                 title="Delete Bill"
                                                             >
@@ -457,16 +496,22 @@ const InvoicesList: React.FC<Props> = ({ transactions, accounts, categories, onU
                                                         </div>
                                                     )}
 
-                                                    {t.paymentProofUrl ? (
+                                                    {(t.hasPaymentProof || t.paymentProofUrl) ? (
                                                         <div className="flex items-center gap-1">
                                                             <button
-                                                                onClick={() => setViewingAttachment({ url: t.paymentProofUrl!, title: 'Payment Proof' })}
+                                                                onClick={() => handleViewAttachment(t, 'paymentProofUrl', 'Payment Proof')}
+                                                                disabled={loadingAttachmentKey === `${t.id}-paymentProofUrl`}
                                                                 className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-100 rounded-lg text-[8px] font-black uppercase text-emerald-600 hover:bg-emerald-100 transition-all"
                                                             >
-                                                                <Check size={10} /> View Proof
+                                                                {loadingAttachmentKey === `${t.id}-paymentProofUrl` ? (
+                                                                    <RefreshCw size={10} className="animate-spin" />
+                                                                ) : (
+                                                                    <Check size={10} />
+                                                                )}
+                                                                View Proof
                                                             </button>
                                                             <button
-                                                                onClick={() => { if (confirm('Remove this proof?')) onUpdate(t.id, { paymentProofUrl: '' }) }}
+                                                                onClick={() => { if (confirm('Remove this proof?')) onUpdate(t.id, { paymentProofUrl: '', hasPaymentProof: false }) }}
                                                                 className="p-1.5 bg-rose-50 border border-rose-100 rounded-lg text-rose-500 hover:bg-rose-100 transition-all"
                                                                 title="Delete Proof"
                                                             >
@@ -535,19 +580,23 @@ const InvoicesList: React.FC<Props> = ({ transactions, accounts, categories, onU
 
                         <div className="flex items-center justify-between pt-3 border-t border-slate-200/50">
                             <div className="flex gap-2">
-                                {t.invoiceUrl && (
+                                {(t.hasInvoice || t.invoiceUrl) && (
                                     <button
-                                        onClick={() => setViewingAttachment({ url: t.invoiceUrl!, title: 'Invoice' })}
-                                        className="px-3 py-2 bg-indigo-600 text-white rounded-xl text-[8px] font-black uppercase tracking-widest"
+                                        onClick={() => handleViewAttachment(t, 'invoiceUrl', 'Invoice')}
+                                        disabled={loadingAttachmentKey === `${t.id}-invoiceUrl`}
+                                        className="px-3 py-2 bg-indigo-600 text-white rounded-xl text-[8px] font-black uppercase tracking-widest flex items-center gap-1"
                                     >
+                                        {loadingAttachmentKey === `${t.id}-invoiceUrl` && <RefreshCw size={8} className="animate-spin" />}
                                         Bill
                                     </button>
                                 )}
-                                {t.paymentProofUrl && (
+                                {(t.hasPaymentProof || t.paymentProofUrl) && (
                                     <button
-                                        onClick={() => setViewingAttachment({ url: t.paymentProofUrl!, title: 'Proof' })}
-                                        className="px-3 py-2 bg-emerald-600 text-white rounded-xl text-[8px] font-black uppercase tracking-widest"
+                                        onClick={() => handleViewAttachment(t, 'paymentProofUrl', 'Proof')}
+                                        disabled={loadingAttachmentKey === `${t.id}-paymentProofUrl`}
+                                        className="px-3 py-2 bg-emerald-600 text-white rounded-xl text-[8px] font-black uppercase tracking-widest flex items-center gap-1"
                                     >
+                                        {loadingAttachmentKey === `${t.id}-paymentProofUrl` && <RefreshCw size={8} className="animate-spin" />}
                                         Proof
                                     </button>
                                 )}

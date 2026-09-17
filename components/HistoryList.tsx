@@ -2,6 +2,7 @@ import React, { Component, useState, useMemo } from 'react';
 import { Trash2, TrendingUp, TrendingDown, PiggyBank, Package, Truck, Facebook, CreditCard, Landmark, ArrowRight, Tag, FileText, Pencil, Filter, Calendar, ChevronDown, Clock, Copy, Search, Check, X, Wallet, ArrowUpDown, ArrowUp, ArrowDown, AlertCircle, RefreshCw } from 'lucide-react';
 import { Transaction, Account, ExpenseCategory } from '../types';
 import { getBankLogo } from '../utils/bankLogos';
+import { supabaseDb } from '../utils/supabaseDb';
 
 interface Props {
   transactions?: Transaction[];
@@ -72,6 +73,7 @@ const HistoryListContent: React.FC<Props> = ({
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [viewingAttachment, setViewingAttachment] = useState<{ url: string, title: string } | null>(null);
+  const [loadingAttachmentKey, setLoadingAttachmentKey] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<'date' | 'amount' | 'createdAt'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [visibleCount, setVisibleCount] = useState(30);
@@ -332,6 +334,29 @@ const HistoryListContent: React.FC<Props> = ({
     });
   };
 
+  const handleViewAttachment = async (t: Transaction, field: 'invoiceUrl' | 'paymentProofUrl', title: string) => {
+    if (t[field]) {
+      setViewingAttachment({ url: t[field]!, title });
+      return;
+    }
+    const key = `${t.id}-${field}`;
+    setLoadingAttachmentKey(key);
+    try {
+      const url = await supabaseDb.getAttachment(t.id, field);
+      if (url) {
+        t[field] = url;
+        setViewingAttachment({ url, title });
+      } else {
+        alert('Attachment could not be loaded.');
+      }
+    } catch (err) {
+      console.error('Failed to load attachment:', err);
+      alert('Failed to load attachment.');
+    } finally {
+      setLoadingAttachmentKey(null);
+    }
+  };
+
   const handleRowFileChange = (e: React.ChangeEvent<HTMLInputElement>, id: string, field: 'invoiceUrl' | 'paymentProofUrl') => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -342,7 +367,8 @@ const HistoryListContent: React.FC<Props> = ({
       if (file.type.startsWith('image/')) {
         dataUrl = await compressImage(dataUrl);
       }
-      onUpdate(id, { [field]: dataUrl });
+      const flagKey = field === 'invoiceUrl' ? 'hasInvoice' : 'hasPaymentProof';
+      onUpdate(id, { [field]: dataUrl, [flagKey]: true });
     };
     reader.readAsDataURL(file);
   };
@@ -661,13 +687,19 @@ const HistoryListContent: React.FC<Props> = ({
                     <td className="px-3 py-2 align-middle">
                       {t.expenseCategory === 'PRODUCT' && (
                         <div className="flex flex-col gap-1">
-                          {t.invoiceUrl ? (
+                          {(t.hasInvoice || t.invoiceUrl) ? (
                             <div className="flex items-center gap-1">
-                              <button onClick={() => setViewingAttachment({ url: t.invoiceUrl!, title: 'Invoice/Bill' })}
+                              <button onClick={() => handleViewAttachment(t, 'invoiceUrl', 'Invoice/Bill')}
+                                disabled={loadingAttachmentKey === `${t.id}-invoiceUrl`}
                                 className="flex items-center gap-1 px-2 py-0.5 bg-indigo-50 border border-indigo-200 rounded text-[9px] font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors">
-                                <FileText size={10} /> Bill
+                                {loadingAttachmentKey === `${t.id}-invoiceUrl` ? (
+                                  <RefreshCw size={10} className="animate-spin" />
+                                ) : (
+                                  <FileText size={10} />
+                                )}
+                                Bill
                               </button>
-                              <button onClick={() => { if (confirm('Remove bill?')) onUpdate(t.id, { invoiceUrl: '' }) }}
+                              <button onClick={() => { if (confirm('Remove bill?')) onUpdate(t.id, { invoiceUrl: '', hasInvoice: false }) }}
                                 className="p-0.5 text-slate-400 hover:text-rose-600 transition-colors">
                                 <Trash2 size={10} />
                               </button>
@@ -680,13 +712,19 @@ const HistoryListContent: React.FC<Props> = ({
                               </label>
                             </>
                           )}
-                          {t.paymentProofUrl ? (
+                          {(t.hasPaymentProof || t.paymentProofUrl) ? (
                             <div className="flex items-center gap-1">
-                              <button onClick={() => setViewingAttachment({ url: t.paymentProofUrl!, title: 'Payment Proof' })}
+                              <button onClick={() => handleViewAttachment(t, 'paymentProofUrl', 'Payment Proof')}
+                                disabled={loadingAttachmentKey === `${t.id}-paymentProofUrl`}
                                 className="flex items-center gap-1 px-2 py-0.5 bg-emerald-50 border border-emerald-200 rounded text-[9px] font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors">
-                                <Check size={10} /> Proof
+                                {loadingAttachmentKey === `${t.id}-paymentProofUrl` ? (
+                                  <RefreshCw size={10} className="animate-spin" />
+                                ) : (
+                                  <Check size={10} />
+                                )}
+                                Proof
                               </button>
-                              <button onClick={() => { if (confirm('Remove proof?')) onUpdate(t.id, { paymentProofUrl: '' }) }}
+                              <button onClick={() => { if (confirm('Remove proof?')) onUpdate(t.id, { paymentProofUrl: '', hasPaymentProof: false }) }}
                                 className="p-0.5 text-slate-400 hover:text-rose-600 transition-colors">
                                 <Trash2 size={10} />
                               </button>
@@ -803,21 +841,31 @@ const HistoryListContent: React.FC<Props> = ({
                   <div className="flex gap-2">
                     {t.expenseCategory === 'PRODUCT' && (
                       <>
-                        {!t.invoiceUrl ? (
+                        {!(t.hasInvoice || t.invoiceUrl) ? (
                           <div className="relative">
                             <input type="file" accept="image/*,application/pdf" onChange={(e) => handleRowFileChange(e, t.id, 'invoiceUrl')} className="hidden" id={`mob-bill-${t.id}`} />
                             <label htmlFor={`mob-bill-${t.id}`} className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[9px] font-semibold text-slate-600 cursor-pointer">Attach Bill</label>
                           </div>
                         ) : (
-                          <button onClick={() => setViewingAttachment({ url: t.invoiceUrl!, title: 'Invoice/Bill' })} className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 rounded-lg text-[9px] font-semibold text-indigo-700">View Bill</button>
+                          <button onClick={() => handleViewAttachment(t, 'invoiceUrl', 'Invoice/Bill')}
+                            disabled={loadingAttachmentKey === `${t.id}-invoiceUrl`}
+                            className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 rounded-lg text-[9px] font-semibold text-indigo-700 flex items-center gap-1">
+                            {loadingAttachmentKey === `${t.id}-invoiceUrl` && <RefreshCw size={9} className="animate-spin" />}
+                            View Bill
+                          </button>
                         )}
-                        {!t.paymentProofUrl ? (
+                        {!(t.hasPaymentProof || t.paymentProofUrl) ? (
                           <div className="relative">
                             <input type="file" accept="image/*,application/pdf" onChange={(e) => handleRowFileChange(e, t.id, 'paymentProofUrl')} className="hidden" id={`mob-proof-${t.id}`} />
                             <label htmlFor={`mob-proof-${t.id}`} className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[9px] font-semibold text-slate-600 cursor-pointer">Attach Proof</label>
                           </div>
                         ) : (
-                          <button onClick={() => setViewingAttachment({ url: t.paymentProofUrl!, title: 'Payment Proof' })} className="px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-lg text-[9px] font-semibold text-emerald-700">View Proof</button>
+                          <button onClick={() => handleViewAttachment(t, 'paymentProofUrl', 'Payment Proof')}
+                            disabled={loadingAttachmentKey === `${t.id}-paymentProofUrl`}
+                            className="px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-lg text-[9px] font-semibold text-emerald-700 flex items-center gap-1">
+                            {loadingAttachmentKey === `${t.id}-paymentProofUrl` && <RefreshCw size={9} className="animate-spin" />}
+                            View Proof
+                          </button>
                         )}
                       </>
                     )}

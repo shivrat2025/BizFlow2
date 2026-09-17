@@ -458,6 +458,20 @@ const App: React.FC = () => {
 
     const handleUpdateTransaction = async (id: string, updates: Partial<Transaction>) => {
         try {
+            const trimmedWorkspace = workspaceId.trim();
+            const tx = transactions.find(t => t.id === id);
+            if (tx) {
+                const updatedTx: Transaction = {
+                    ...tx,
+                    ...updates,
+                    hasInvoice: updates.hasInvoice !== undefined ? updates.hasInvoice : (updates.invoiceUrl !== undefined ? Boolean(updates.invoiceUrl) : tx.hasInvoice),
+                    hasPaymentProof: updates.hasPaymentProof !== undefined ? updates.hasPaymentProof : (updates.paymentProofUrl !== undefined ? Boolean(updates.paymentProofUrl) : tx.hasPaymentProof),
+                };
+                setTransactions(prev => prev.map(t => t.id === id ? updatedTx : t));
+                if (trimmedWorkspace) {
+                    await supabaseDb.saveTransaction(trimmedWorkspace, updatedTx);
+                }
+            }
             const docRef = doc(db, "workspaces", workspaceId, "transactions", id);
             await updateDoc(docRef, deepClean(updates));
         } catch (e) {
@@ -502,6 +516,8 @@ const App: React.FC = () => {
                 notes: data.notes,
                 invoiceUrl: data.invoiceUrl,
                 paymentProofUrl: data.paymentProofUrl,
+                hasInvoice: data.hasInvoice !== undefined ? data.hasInvoice : (data.invoiceUrl ? true : Boolean(editingTransaction?.hasInvoice && data.invoiceUrl === undefined)),
+                hasPaymentProof: data.hasPaymentProof !== undefined ? data.hasPaymentProof : (data.paymentProofUrl ? true : Boolean(editingTransaction?.hasPaymentProof && data.paymentProofUrl === undefined)),
                 createdAt: editingTransaction?.createdAt || Date.now()
             };
 
