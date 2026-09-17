@@ -265,29 +265,29 @@ const InvoicesList: React.FC<Props> = ({ transactions, accounts, categories, onU
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
             {/* Professional Toolbar */}
-            <div className="bg-white/70 backdrop-blur-3xl rounded-[2rem] border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
-                <div className="p-4 md:p-6 flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-6 bg-transparent">
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+                <div className="p-4 md:p-5 flex flex-col lg:flex-row lg:items-center gap-4 bg-transparent">
                     {/* Search & Pending Group */}
-                    <div className="flex-1 flex items-center gap-4">
+                    <div className="flex-1 flex items-center gap-3">
                         <div className="relative flex-1 group">
-                            <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors">
-                                <Search size={18} />
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-900 transition-colors">
+                                <Search size={16} />
                             </div>
                             <input
                                 type="text"
                                 placeholder="Search amount, supplier or details..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full h-12 pl-12 pr-6 bg-white/50 border border-white/60 rounded-2xl text-[12px] font-bold text-slate-700 outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 focus:bg-white/80 transition-all duration-300 placeholder:text-slate-400 shadow-inner backdrop-blur-md"
+                                className="w-full h-10 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-slate-400 transition-all placeholder:text-slate-400"
                             />
                         </div>
 
                         {invoiceTransactions.filter(t => !t.paymentProofUrl).length > 0 && (
-                            <div className="flex h-12 px-5 items-center gap-3 bg-amber-50 rounded-2xl border border-amber-100/50 shrink-0">
-                                <AlertCircle size={14} className="text-amber-500" />
+                            <div className="flex h-10 px-4 items-center gap-2.5 bg-amber-50 rounded-xl border border-amber-200 shrink-0">
+                                <AlertCircle size={14} className="text-amber-600" />
                                 <div className="flex flex-col">
-                                    <span className="text-[7px] font-black text-amber-600 uppercase tracking-widest leading-none">Due</span>
-                                    <span className="text-xs font-black text-slate-900 leading-none mt-1">
+                                    <span className="text-[8px] font-bold text-amber-700 uppercase tracking-wider leading-none">Due</span>
+                                    <span className="text-xs font-bold text-slate-900 leading-none mt-0.5">
                                         {invoiceTransactions.filter(t => !t.paymentProofUrl).length}
                                     </span>
                                 </div>
@@ -296,8 +296,8 @@ const InvoicesList: React.FC<Props> = ({ transactions, accounts, categories, onU
                     </div>
 
                     {/* Filter Cluster */}
-                    <div className="flex flex-wrap items-center gap-3">
-                        <div className="flex items-center h-12 px-2 bg-white/50 border border-white/60 rounded-2xl gap-1 backdrop-blur-md">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                        <div className="flex items-center h-10 px-1 bg-slate-50 border border-slate-200 rounded-xl gap-1">
                             {[
                                 { id: 'ALL', label: 'All' },
                                 { id: 'PAID', label: 'Paid' },
@@ -306,7 +306,7 @@ const InvoicesList: React.FC<Props> = ({ transactions, accounts, categories, onU
                                 <button
                                     key={status.id}
                                     onClick={() => setStatusFilter(status.id as any)}
-                                    className={`h-8 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === status.id ? 'bg-white text-indigo-600 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700'}`}
+                                    className={`h-8 px-3 rounded-lg text-xs font-bold transition-all ${statusFilter === status.id ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
                                 >
                                     {status.label}
                                 </button>
@@ -316,7 +316,7 @@ const InvoicesList: React.FC<Props> = ({ transactions, accounts, categories, onU
                         <select
                             value={dateFilter}
                             onChange={(e) => setDateFilter(e.target.value)}
-                            className="h-12 px-5 bg-white/50 border border-white/60 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-700 outline-none hover:bg-white/70 hover:border-indigo-200 transition-all cursor-pointer min-w-[130px] shadow-sm appearance-none backdrop-blur-md"
+                            className="h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 outline-none hover:bg-slate-100 transition-all cursor-pointer min-w-[130px]"
                         >
                             <option value="ALL_TIME">Timeline: All</option>
                             <option value="TODAY">Last 24h</option>
@@ -327,7 +327,7 @@ const InvoicesList: React.FC<Props> = ({ transactions, accounts, categories, onU
                         <select
                             value={supplierFilter}
                             onChange={(e) => setSupplierFilter(e.target.value)}
-                            className="h-12 px-5 bg-white/50 border border-white/60 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-700 outline-none hover:bg-white/70 hover:border-indigo-200 transition-all cursor-pointer min-w-[150px] shadow-sm appearance-none backdrop-blur-md"
+                            className="h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 outline-none hover:bg-slate-100 transition-all cursor-pointer min-w-[140px]"
                         >
                             <option value="ALL">All Suppliers</option>
                             {suppliers.map(s => (
@@ -335,20 +335,20 @@ const InvoicesList: React.FC<Props> = ({ transactions, accounts, categories, onU
                             ))}
                         </select>
 
-                        <div className="flex items-center gap-1.5 h-12 pl-2 pr-2 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-100">
+                        <div className="flex items-center gap-1 h-10 pl-2 pr-2 bg-slate-900 rounded-xl">
                             <button
                                 onClick={exportToCSV}
-                                className="w-8 h-8 flex items-center justify-center text-white/70 hover:text-white transition-colors"
+                                className="w-7 h-7 flex items-center justify-center text-white/70 hover:text-white transition-colors"
                                 title="CSV"
                             >
-                                <FileSpreadsheet size={16} />
+                                <FileSpreadsheet size={15} />
                             </button>
-                            <div className="w-px h-6 bg-white/20" />
+                            <div className="w-px h-5 bg-white/20" />
                             <button
                                 onClick={exportToPDF}
-                                className="flex h-8 items-center gap-2 px-4 text-white font-black text-[10px] uppercase tracking-widest hover:text-indigo-200 transition-all"
+                                className="flex h-7 items-center gap-1.5 px-3 text-white font-bold text-xs uppercase tracking-wider hover:text-slate-200 transition-all"
                             >
-                                <Printer size={16} /> Print Report
+                                <Printer size={14} /> Print
                             </button>
                         </div>
                     </div>
@@ -356,7 +356,7 @@ const InvoicesList: React.FC<Props> = ({ transactions, accounts, categories, onU
             </div>
 
             {/* Desktop View */}
-            <div className="hidden md:block bg-white/70 backdrop-blur-3xl rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50 overflow-hidden">
+            <div className="hidden md:block bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>

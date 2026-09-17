@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { LayoutDashboard, History, Wallet, Cloud, Plus, RefreshCw, ChevronRight, BarChart3, FileText, Menu, Landmark, Lock, Shield, Zap, AlertCircle, Settings, Eye, EyeOff, Sparkles, X } from 'lucide-react';
 import { initializeApp, getApp, getApps } from "firebase/app";
-import { getFirestore, doc, onSnapshot, setDoc, deleteDoc, updateDoc, collection, writeBatch, getDoc, getDocs, query } from "firebase/firestore";
+import { getFirestore, doc, onSnapshot, setDoc, deleteDoc, updateDoc, collection, writeBatch, getDoc, getDocs, query, where } from "firebase/firestore";
 import { Account, Transaction, DashboardStats, ExpenseCategory, AIRule, APP_VERSION, APP_RELEASE_NOTES } from './types';
 import Dashboard from './components/Dashboard';
 import AccountManager from './components/AccountManager';
@@ -186,14 +186,18 @@ const App: React.FC = () => {
         // Fetch historical backups + run 12-hour auto-backup logic
         const fetchBackups = async () => {
             if (!workspaceId) return;
-            const backupsRef = collection(db, "backups");
-            const snap = await getDocs(backupsRef);
+            const backupsQuery = query(
+                collection(db, "backups"),
+                where("__name__", ">=", `${workspaceId}_BACKUP_`),
+                where("__name__", "<=", `${workspaceId}_BACKUP_\uffff`)
+            );
+            const snap = await getDocs(backupsQuery);
             const history: any[] = [];
 
             snap.forEach(d => {
-                if (d.id.startsWith(`${workspaceId}_BACKUP_`)) {
-                    const data = d.data();
-                    const ts = data.snapshotDate;
+                const data = d.data();
+                const ts = data.snapshotDate;
+                if (ts) {
                     history.push({
                         id: d.id,
                         date: ts,
@@ -577,12 +581,16 @@ const App: React.FC = () => {
             }
 
             // 4. Refresh backup list and prune to 12
-            const backupsRef = collection(db, "backups");
-            const snap = await getDocs(backupsRef);
+            const backupsQuery = query(
+                collection(db, "backups"),
+                where("__name__", ">=", `${workspaceId}_BACKUP_`),
+                where("__name__", "<=", `${workspaceId}_BACKUP_\uffff`)
+            );
+            const snap = await getDocs(backupsQuery);
             const history: any[] = [];
             snap.forEach(d => {
-                if (d.id.startsWith(`${workspaceId}_BACKUP_`)) {
-                    const data = d.data();
+                const data = d.data();
+                if (data.snapshotDate) {
                     history.push({
                         id: d.id,
                         date: data.snapshotDate,
@@ -969,27 +977,18 @@ const App: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen bg-[#f0f4f8] flex flex-col md:flex-row font-sans relative overflow-hidden selection:bg-indigo-500 selection:text-white">
-            {/* Ambient Background Mesh */}
-            <div className="fixed inset-0 z-0 pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-purple-400/30 blur-[120px] mix-blend-multiply animate-blob" />
-                <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-400/30 blur-[120px] mix-blend-multiply animate-blob animation-delay-2000" />
-                <div className="absolute bottom-[-10%] left-[20%] w-[40%] h-[40%] rounded-full bg-pink-400/30 blur-[120px] mix-blend-multiply animate-blob animation-delay-4000" />
-                <div className="absolute bottom-[-10%] right-[20%] w-[40%] h-[40%] rounded-full bg-blue-400/30 blur-[120px] mix-blend-multiply animate-blob animation-delay-4000" />
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] brightness-100 contrast-150"></div>
-            </div>
-
+        <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans relative overflow-hidden selection:bg-slate-900 selection:text-white">
             {/* Mobile Top Header */}
-            <div className="md:hidden flex items-center justify-between p-4 bg-slate-50/50 backdrop-blur-md sticky top-0 z-30 px-6">
+            <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-slate-200 sticky top-0 z-30 px-6">
                 <div className="flex items-center gap-2">
-                    <div className="bg-indigo-600 p-1.5 rounded-lg text-white shadow-lg shadow-indigo-100">
+                    <div className="bg-slate-900 p-1.5 rounded-lg text-white">
                         <LayoutDashboard size={18} />
                     </div>
-                    <span className="text-lg font-black text-slate-800 tracking-tighter">BizFlow</span>
+                    <span className="text-lg font-bold text-slate-900 tracking-tight">BizFlow</span>
                 </div>
                 <button
                     onClick={() => setIsMobileMenuOpen(true)}
-                    className="p-2 text-slate-600 hover:text-slate-900 transition-colors bg-white/20 backdrop-blur-xl rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-white/30"
+                    className="p-2 text-slate-600 hover:text-slate-900 transition-colors bg-slate-100 rounded-xl border border-slate-200"
                 >
                     <Menu size={18} />
                 </button>
@@ -998,13 +997,13 @@ const App: React.FC = () => {
             {/* Mobile Backdrop */}
             {isMobileMenuOpen && (
                 <div
-                    className="fixed inset-0 bg-black/40 z-40 md:hidden backdrop-blur-sm"
+                    className="fixed inset-0 bg-slate-900/40 z-40 md:hidden"
                     onClick={() => setIsMobileMenuOpen(false)}
                 />
             )}
 
-            {/* Mobile Bottom Navigation - Glass */}
-            <div className="md:hidden fixed bottom-4 left-4 right-4 bg-white/30 backdrop-blur-2xl border border-white/30 rounded-[2rem] px-6 py-3 z-40 flex justify-between items-center shadow-[0_8px_32px_0_rgba(31,38,135,0.1)] no-select ring-1 ring-white/40">
+            {/* Mobile Bottom Navigation */}
+            <div className="md:hidden fixed bottom-4 left-4 right-4 bg-white border border-slate-200 rounded-2xl px-6 py-3 z-40 flex justify-between items-center shadow-lg no-select">
                 {[
                     { id: 'dashboard', icon: LayoutDashboard, label: 'Home' },
                     { id: 'history', icon: History, label: 'Logs' },
@@ -1017,7 +1016,7 @@ const App: React.FC = () => {
                         <button
                             key={item.id}
                             onClick={() => setShowForm(true)}
-                            className="bg-indigo-600 text-white p-4 rounded-full shadow-lg shadow-indigo-200 -mt-8 relative z-50 transform active:scale-90 transition-transform"
+                            className="bg-slate-900 text-white p-4 rounded-full shadow-md -mt-8 relative z-50 transform active:scale-90 transition-transform"
                         >
                             <item.icon size={24} />
                         </button>
@@ -1025,11 +1024,11 @@ const App: React.FC = () => {
                         <button
                             key={item.id}
                             onClick={() => setActiveTab(item.id)}
-                            className={`flex flex-col items-center gap-1 transition-all ${activeTab === item.id ? 'text-indigo-600' : 'text-slate-400'
+                            className={`flex flex-col items-center gap-1 transition-all ${activeTab === item.id ? 'text-slate-900 font-bold' : 'text-slate-400'
                                 }`}
                         >
                             <item.icon size={20} strokeWidth={activeTab === item.id ? 2.5 : 2} />
-                            <span className="text-[9px] font-black uppercase tracking-tight">{item.label}</span>
+                            <span className="text-[9px] font-bold uppercase tracking-tight">{item.label}</span>
                         </button>
                     )
                 ))}
@@ -1037,24 +1036,24 @@ const App: React.FC = () => {
 
             {/* Sidebar Navigation (Desktop & Mobile Drawer) */}
             <nav className={`
-        fixed md:sticky top-0 h-screen z-50 bg-white/70 backdrop-blur-xl border-r border-white/50 flex-shrink-0 flex flex-col p-6 gap-2 transition-transform duration-300 ease-in-out w-72 shadow-[0_8px_32px_0_rgba(31,38,135,0.05)]
-        ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'}
+        fixed md:sticky top-0 h-screen z-50 bg-white border-r border-slate-200/80 flex-shrink-0 flex flex-col p-5 gap-2 transition-transform duration-300 ease-in-out w-64 shadow-xs
+        ${isMobileMenuOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full md:translate-x-0'}
       `}>
-                <div className="hidden md:flex items-center gap-4 px-3 mb-10">
-                    <div className="bg-indigo-600 p-2 rounded-xl text-white shadow-lg shadow-indigo-100">
-                        <LayoutDashboard size={24} />
+                <div className="hidden md:flex items-center gap-3 px-2 mb-8">
+                    <div className="bg-slate-900 p-2 rounded-xl text-white shadow-xs">
+                        <LayoutDashboard size={20} />
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-lg font-black text-slate-800 tracking-tight leading-none drop-shadow-sm">BizFlow</span>
-                        <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mt-1">Ledger Pro</span>
+                        <span className="text-base font-bold text-slate-900 tracking-tight leading-none">BizFlow</span>
+                        <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mt-1">Ledger Pro</span>
                     </div>
                 </div>
 
                 {/* Mobile Close Button in Nav */}
-                <div className="md:hidden flex justify-between items-center mb-8 px-2">
-                    <span className="text-lg font-black text-slate-800">Menu</span>
-                    <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 bg-slate-50 rounded-full text-slate-500">
-                        <ChevronRight className="rotate-180" size={20} />
+                <div className="md:hidden flex justify-between items-center mb-6 px-2">
+                    <span className="text-base font-bold text-slate-900">Menu</span>
+                    <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 bg-slate-100 rounded-full text-slate-500">
+                        <ChevronRight className="rotate-180" size={18} />
                     </button>
                 </div>
 
@@ -1074,36 +1073,35 @@ const App: React.FC = () => {
                                 setActiveTab(item.id);
                                 setIsMobileMenuOpen(false);
                             }}
-                            className={`w-full flex items-center gap-4 px-5 py-3.5 rounded-2xl font-bold transition-all relative overflow-hidden group/item ${activeTab === item.id
-                                ? 'bg-white/80 backdrop-blur-md text-indigo-700 shadow-[0_4px_20px_rgba(0,0,0,0.05)] border border-white/60 ring-1 ring-white/60'
-                                : 'text-slate-500 hover:text-slate-800 hover:bg-white/50 hover:backdrop-blur-sm'
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all relative overflow-hidden group/item ${activeTab === item.id
+                                ? 'bg-slate-900 text-white shadow-xs'
+                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                                 }`}
                         >
-                            <item.icon size={18} className={activeTab === item.id ? "text-indigo-600 drop-shadow-sm" : "group-hover/item:text-indigo-500 transition-colors"} />
+                            <item.icon size={18} className={activeTab === item.id ? "text-white" : "group-hover/item:text-slate-900 transition-colors"} />
                             <span className="text-sm tracking-tight">{item.label}</span>
                         </button>
                     ))}
                 </div>
 
-                <div className="mt-auto space-y-4 pt-10">
-                    <div className={`px-5 py-3 border rounded-2xl transition-all backdrop-blur-md ${firebaseStatus === 'CONNECTED' ? 'bg-green-50/80 border-green-100' : 'bg-white/50 border-white/60'
-                        } shadow-inner`}>
-                        <div className="flex items-center justify-between mb-1">
-                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Database</span>
-                            <div className={`w-2 h-2 rounded-full shadow-sm ${firebaseStatus === 'CONNECTED' ? 'bg-green-500 shadow-green-200' :
-                                firebaseStatus === 'SYNCING' ? 'bg-amber-500 animate-pulse' : 'bg-red-500'}`}
+                <div className="mt-auto space-y-3 pt-6">
+                    <div className="px-4 py-2.5 border border-slate-200 bg-slate-50 rounded-xl">
+                        <div className="flex items-center justify-between mb-0.5">
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Database</span>
+                            <div className={`w-2 h-2 rounded-full ${firebaseStatus === 'CONNECTED' ? 'bg-emerald-500' :
+                                firebaseStatus === 'SYNCING' ? 'bg-amber-500 animate-pulse' : 'bg-rose-500'}`}
                             />
                         </div>
-                        <p className="text-[11px] font-bold text-slate-700 truncate font-mono tracking-tight opacity-70">{workspaceId}</p>
+                        <p className="text-xs font-bold text-slate-700 truncate font-mono tracking-tight">{workspaceId}</p>
                     </div>
                     <button
                         onClick={() => {
                             setShowForm(true);
                             setIsMobileMenuOpen(false);
                         }}
-                        className="w-full bg-gradient-to-r from-slate-900 to-slate-800 text-white py-4 rounded-2xl font-black flex items-center justify-center gap-2 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-2xl hover:scale-[1.02] transition-all border border-white/10"
+                        className="w-full bg-slate-900 hover:bg-black text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-xs transition-all"
                     >
-                        <Plus size={20} /> New Entry
+                        <Plus size={18} /> New Entry
                     </button>
 
                     <button
@@ -1130,57 +1128,57 @@ const App: React.FC = () => {
                                 alert('Failed to rescue: ' + e.message);
                             }
                         }}
-                        className="w-full bg-emerald-500/10 backdrop-blur-md border border-emerald-500/30 text-emerald-600 py-3 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-emerald-500 hover:text-white transition-all text-[10px] uppercase tracking-widest shadow-sm hover:shadow-md mt-2"
+                        className="w-full bg-slate-100 border border-slate-200 text-slate-700 py-2.5 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-slate-200 transition-all text-xs uppercase tracking-wider"
                     >
                         <Zap size={14} /> Rescue Data To Cloud
                     </button>
 
                     <button
                         onClick={handleLogout}
-                        className="w-full bg-white/70 backdrop-blur-md border border-white/60 text-slate-500 py-4 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-red-50/50 hover:text-red-500 hover:border-red-100 transition-all text-xs uppercase tracking-widest shadow-sm hover:shadow-md mt-2"
+                        className="w-full bg-slate-100 border border-slate-200 text-slate-600 py-2.5 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-all text-xs uppercase tracking-wider"
                     >
                         Sign Out Account
                     </button>
                 </div>
             </nav>
 
-            <main className="flex-1 p-4 md:p-10 max-h-screen overflow-y-auto pb-24 md:pb-10 relative z-10 scrollbar-hide">
-                <header className="mb-6 md:mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6 animate-in fade-in slide-in-from-top-4 duration-700">
+            <main className="flex-1 p-4 md:p-8 max-h-screen overflow-y-auto pb-24 md:pb-10 relative z-10 scrollbar-hide">
+                <header className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div className="space-y-1">
-                        <div className="flex items-center gap-3 mb-1">
-                            <span className="px-3 py-1 bg-white/50 backdrop-blur-md text-indigo-600 rounded-lg text-[9px] font-black uppercase tracking-widest border border-white/60 shadow-sm">
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="px-2.5 py-0.5 bg-slate-200/70 text-slate-700 rounded text-[10px] font-bold uppercase tracking-wider border border-slate-300/50">
                                 {activeTab === 'history' ? 'Ledger' : activeTab === 'dashboard' ? 'Core' : activeTab}
                             </span>
-                            <div className="h-1 w-1 rounded-full bg-slate-400" />
-                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Enterprise Ledger</span>
+                            <div className="h-1 w-1 rounded-full bg-slate-300" />
+                            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Enterprise Ledger</span>
                         </div>
-                        <h2 className="text-2xl md:text-3xl font-black text-slate-800 capitalize tracking-tighter leading-none drop-shadow-sm">
+                        <h2 className="text-2xl font-extrabold text-slate-900 capitalize tracking-tight">
                             {activeTab === 'history' ? 'Transactions' : activeTab}
                         </h2>
-                        <p className="text-slate-500 font-bold text-[9px] uppercase tracking-[0.2em] opacity-70">BizFlow intelligence platform.</p>
+                        <p className="text-slate-500 font-medium text-xs">BizFlow intelligence platform.</p>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
                             {/* Privacy Toggle — always visible */}
                             <button
                                 onClick={() => setPrivacyMode(p => !p)}
                                 title={privacyMode ? 'Show balances' : 'Hide balances'}
-                                className={`flex items-center gap-2 px-4 py-3 rounded-[1.2rem] text-[10px] font-black uppercase tracking-widest border transition-all shadow-sm ${privacyMode
-                                        ? 'bg-slate-900 text-white border-slate-800 shadow-slate-900/20'
-                                        : 'bg-white/40 backdrop-blur-md border-white/60 text-slate-500 hover:bg-white/60'
+                                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all shadow-xs ${privacyMode
+                                        ? 'bg-slate-900 text-white border-slate-800'
+                                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                                     }`}
                             >
-                                {privacyMode ? <EyeOff size={15} /> : <Eye size={15} />}
+                                {privacyMode ? <EyeOff size={14} /> : <Eye size={14} />}
                                 <span className="hidden sm:inline">{privacyMode ? 'Hidden' : 'Visible'}</span>
                             </button>
 
                             {activeTab === 'dashboard' && (
                                 <button
                                     onClick={handleExport}
-                                    className="flex items-center gap-2.5 px-6 py-4 bg-white/40 backdrop-blur-md border border-white/60 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-white/60 transition-all shadow-lg shadow-indigo-500/5 group hover:border-indigo-200 hover:-translate-y-1"
+                                    className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white hover:bg-black rounded-xl text-xs font-semibold shadow-xs transition-all"
                                 >
-                                    <Cloud size={16} className="text-indigo-500 group-hover:scale-110 transition-transform" />
+                                    <Cloud size={14} />
                                     Cloud Backup
                                 </button>
                             )}

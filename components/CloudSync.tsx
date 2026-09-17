@@ -24,23 +24,23 @@ const CloudSync: React.FC<Props> = ({ workspaceId, loading, lastSynced, onLogout
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-20 max-w-5xl">
-      <div className="bg-white/70 backdrop-blur-3xl p-8 rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-10 gap-6">
-          <div className="flex items-center gap-5">
-            <div className="p-4 bg-indigo-50 text-indigo-600 rounded-3xl shadow-lg shadow-indigo-50">
-              <ShieldCheck size={32} />
+    <div className="space-y-6 animate-in fade-in duration-300 pb-20 max-w-5xl">
+      <div className="bg-white p-6 md:p-8 rounded-2xl shadow-xs border border-slate-200/80">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-6">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-slate-900 text-white rounded-xl">
+              <ShieldCheck size={28} />
             </div>
             <div>
-              <h3 className="text-2xl font-black text-slate-800 tracking-tight">Cloud Workspace</h3>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Real-time sync and Ledger Vault</p>
+              <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">Cloud Workspace</h3>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-0.5">Real-time sync and Ledger Vault</p>
             </div>
           </div>
           <button
             onClick={onLogout}
-            className="flex items-center gap-2 text-indigo-600 font-black text-[10px] uppercase tracking-widest bg-indigo-50 px-6 py-4 rounded-2xl hover:bg-indigo-100 transition-all shadow-sm"
+            className="flex items-center gap-2 text-slate-700 font-bold text-xs uppercase tracking-wider bg-slate-100 hover:bg-slate-200 border border-slate-200 px-5 py-3 rounded-xl transition-all"
           >
-            <LogOut size={16} /> Logout from Device
+            <LogOut size={15} /> Logout from Device
           </button>
         </div>
 

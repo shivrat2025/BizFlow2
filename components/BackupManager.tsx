@@ -87,25 +87,24 @@ const BackupManager: React.FC<Props> = ({ backups, onRestore, onCreateSnapshot, 
             </div>
 
             {/* ── BACKUP NOW CTA ────────────────────────────────── */}
-            <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-3xl p-6 shadow-2xl shadow-indigo-200 text-white relative overflow-hidden">
-                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white to-transparent pointer-events-none" />
+            <div className="bg-slate-900 rounded-2xl p-6 shadow-xs border border-slate-800 text-white relative overflow-hidden">
                 <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-5">
                     <div>
-                        <p className="text-xs font-black uppercase tracking-widest text-indigo-200 mb-1">Manual Backup</p>
-                        <h3 className="text-xl font-black tracking-tight">Save Current State Now</h3>
-                        <p className="text-indigo-200 text-sm font-medium mt-1">
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Manual Backup</p>
+                        <h3 className="text-lg font-bold tracking-tight">Save Current State Now</h3>
+                        <p className="text-slate-300 text-xs font-medium mt-1">
                             Captures all transactions, accounts & balances at this exact moment.
                         </p>
                     </div>
                     <button
                         onClick={handleManualBackup}
                         disabled={saving || loading}
-                        className="flex-shrink-0 flex items-center gap-3 bg-white text-indigo-700 hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg transition-all active:scale-95"
+                        className="flex-shrink-0 flex items-center gap-2 bg-white text-slate-900 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-wider shadow-xs transition-all active:scale-95"
                     >
                         {saving ? (
-                            <><RefreshCw size={18} className="animate-spin" /> Saving…</>
+                            <><RefreshCw size={16} className="animate-spin" /> Saving…</>
                         ) : (
-                            <><Download size={18} /> Backup Now</>
+                            <><Download size={16} /> Backup Now</>
                         )}
                     </button>
                 </div>

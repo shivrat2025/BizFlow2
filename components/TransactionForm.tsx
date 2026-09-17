@@ -171,43 +171,41 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-lg flex items-end md:items-center justify-center z-[100] p-0 md:p-4 animate-in fade-in duration-300">
-      <div className="bg-white/95 backdrop-blur-3xl rounded-t-[2.5rem] md:rounded-[2.5rem] w-full max-w-md shadow-2xl overflow-hidden border border-white/50 relative animate-in slide-in-from-bottom-10 duration-500 max-h-[92vh] flex flex-col ring-1 ring-white/40">
+    <div className="fixed inset-0 bg-slate-900/50 flex items-end md:items-center justify-center z-[100] p-0 md:p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-t-2xl md:rounded-2xl w-full max-w-md shadow-xl overflow-hidden border border-slate-200 relative animate-in slide-in-from-bottom-10 duration-300 max-h-[92vh] flex flex-col">
 
         {/* Mobile Drag Handle */}
-        <div className="md:hidden w-12 h-1 bg-white/20 rounded-full mx-auto mt-4 mb-2 flex-shrink-0" />
+        <div className="md:hidden w-12 h-1 bg-slate-200 rounded-full mx-auto mt-3 mb-1 flex-shrink-0" />
 
-        <div className="p-6 border-b border-white/20 bg-white/50 backdrop-blur-md flex items-center justify-between flex-shrink-0 relative z-10">
-          <div className="flex items-center gap-4">
-            <div className={`p-3 rounded-2xl shadow-lg ring-1 ring-white/20 ${isWithdrawal ? 'bg-amber-100/80 text-amber-600 backdrop-blur-sm' :
-              type === 'EXPENSE' ? 'bg-red-100/80 text-red-600 backdrop-blur-sm' :
-                type === 'REPAYMENT' ? 'bg-blue-100/80 text-blue-600 backdrop-blur-sm' : 'bg-green-100/80 text-green-600 backdrop-blur-sm'
+        <div className="p-5 border-b border-slate-200 bg-white flex items-center justify-between flex-shrink-0 relative z-10">
+          <div className="flex items-center gap-3">
+            <div className={`p-2.5 rounded-xl ${isWithdrawal ? 'bg-amber-50 text-amber-600 border border-amber-200' :
+              type === 'EXPENSE' ? 'bg-rose-50 text-rose-600 border border-rose-200' :
+                type === 'REPAYMENT' ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-emerald-50 text-emerald-600 border border-emerald-200'
               }`}>
-              {isWithdrawal ? <PiggyBank size={20} /> :
-                type === 'EXPENSE' ? <TrendingDown size={20} /> :
-                  type === 'REPAYMENT' ? <CreditCard size={20} /> : <TrendingUp size={20} />}
+              {isWithdrawal ? <PiggyBank size={18} /> :
+                type === 'EXPENSE' ? <TrendingDown size={18} /> :
+                  type === 'REPAYMENT' ? <CreditCard size={18} /> : <TrendingUp size={18} />}
             </div>
             <div>
-              <h3 className="text-lg font-black text-slate-800 tracking-tight leading-none drop-shadow-sm">
+              <h3 className="text-base font-bold text-slate-900 tracking-tight leading-none">
                 {initialData ? (initialData.id ? 'Edit Entry' : 'Duplicate Entry') : type === 'REPAYMENT' ? 'Repayment Entry' : 'New Entry'}
               </h3>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Dual-Ledger Sync Engine</p>
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mt-1">Dual-Ledger Sync Engine</p>
             </div>
           </div>
 
           <button
             onClick={onClose}
             type="button"
-            className="p-2 hover:bg-white/50 rounded-xl text-slate-500 hover:text-red-500 transition-colors"
+            className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
-
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto flex-1 bg-white/80 backdrop-blur-3xl">
-          <div className="p-1 bg-white/50 backdrop-blur-md rounded-xl flex border border-white/30 shadow-inner">
+        <form onSubmit={handleSubmit} className="p-5 space-y-5 overflow-y-auto flex-1 bg-white">
+          <div className="p-1 bg-slate-100 rounded-xl flex border border-slate-200">
             {[
               { id: 'EXPENSE', icon: TrendingDown, label: 'Expense', color: 'text-red-600' },
               { id: 'INCOME', icon: TrendingUp, label: 'Income', color: 'text-green-600' },
@@ -587,12 +585,12 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
             )}
 
             <div className="space-y-1.5">
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Description</label>
-              <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} className="w-full px-4 py-3 bg-white/50 border border-white/60 rounded-xl text-[11px] font-medium placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 backdrop-blur-md" placeholder="e.g. FB Ad Payment" />
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Description</label>
+              <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:border-slate-400 outline-none transition-all placeholder:text-slate-400" placeholder="e.g. FB Ad Payment" />
             </div>
 
             <div className="pt-2">
-              <button type="button" onClick={() => setShowAdvanced(!showAdvanced)} className="flex items-center gap-2 text-[10px] font-black text-indigo-500 uppercase tracking-widest hover:text-indigo-600 transition-colors">
+              <button type="button" onClick={() => setShowAdvanced(!showAdvanced)} className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors">
                 {showAdvanced ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                 {showAdvanced ? 'Hide Advanced Context' : 'Add Context & Notes'}
               </button>
@@ -600,8 +598,8 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
               {showAdvanced && (
                 <div className="mt-4 space-y-4 animate-in slide-in-from-top-2">
                   <div className="space-y-1.5">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1"><Tag size={10} /> Tags</label>
-                    <input type="text" value={tags} onChange={(e) => setTags(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-medium" placeholder="comma separated" />
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1"><Tag size={10} /> Tags</label>
+                    <input type="text" value={tags} onChange={(e) => setTags(e.target.value)} className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-slate-400 transition-all" placeholder="comma separated" />
                     {allTags.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {allTags.filter(tag => !tags.toLowerCase().includes(tag.toLowerCase())).slice(0, 8).map(tag => (
@@ -614,7 +612,7 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
                                 setTags([...currentTags, tag].join(', ') + (currentTags.length > 0 ? '' : ''));
                               }
                             }}
-                            className="px-2 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 border border-slate-200 rounded-lg text-[8px] font-black uppercase text-slate-400 transition-all"
+                            className="px-2 py-1 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg text-[9px] font-semibold text-slate-600 transition-all"
                           >
                             + {tag}
                           </button>
@@ -623,8 +621,8 @@ const TransactionForm: React.FC<Props> = ({ onClose, onSubmit, onAddCategory, ac
                     )}
                   </div>
                   <div className="space-y-1.5">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1"><FileText size={10} /> Notes</label>
-                    <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full px-4 py-3 bg-white/50 border border-white/60 rounded-xl text-[11px] font-medium min-h-[80px] resize-none focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 backdrop-blur-md placeholder:text-slate-400" placeholder="Extra details..." />
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1"><FileText size={10} /> Notes</label>
+                    <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 min-h-[80px] resize-none focus:bg-white focus:border-slate-400 outline-none transition-all placeholder:text-slate-400" placeholder="Extra details..." />
                   </div>
                 </div>
               )}
