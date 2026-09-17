@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { Component, useState, useMemo } from 'react';
 import { Trash2, TrendingUp, TrendingDown, PiggyBank, Package, Truck, Facebook, CreditCard, Landmark, ArrowRight, Tag, FileText, Pencil, Filter, Calendar, ChevronDown, Clock, Copy, Search, Check, X, Wallet, ArrowUpDown, ArrowUp, ArrowDown, AlertCircle, RefreshCw } from 'lucide-react';
 import { Transaction, Account, ExpenseCategory } from '../types';
 import { getBankLogo } from '../utils/bankLogos';
@@ -13,7 +13,10 @@ interface Props {
   onUpdate: (id: string, updates: Partial<Transaction>) => void;
 }
 
-class HistoryErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: string }> {
+class HistoryErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean, error: string }> {
+  state: { hasError: boolean; error: string };
+  props: { children: React.ReactNode };
+  setState: any;
   constructor(props: any) {
     super(props);
     this.state = { hasError: false, error: '' };

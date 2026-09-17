@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { LayoutDashboard, History, Wallet, Cloud, Plus, RefreshCw, ChevronRight, BarChart3, FileText, Menu, Landmark, Lock, Shield, Zap, AlertCircle, Settings, Eye, EyeOff } from 'lucide-react';
+import { LayoutDashboard, History, Wallet, Cloud, Plus, RefreshCw, ChevronRight, BarChart3, FileText, Menu, Landmark, Lock, Shield, Zap, AlertCircle, Settings, Eye, EyeOff, Sparkles, X } from 'lucide-react';
 import { initializeApp, getApp, getApps } from "firebase/app";
 import { getFirestore, doc, onSnapshot, setDoc, deleteDoc, updateDoc, collection, writeBatch, getDoc, getDocs, query } from "firebase/firestore";
-import { Account, Transaction, DashboardStats, ExpenseCategory, AIRule } from './types';
+import { Account, Transaction, DashboardStats, ExpenseCategory, AIRule, APP_VERSION, APP_RELEASE_NOTES } from './types';
 import Dashboard from './components/Dashboard';
 import AccountManager from './components/AccountManager';
 import HistoryList from './components/HistoryList';
@@ -10,7 +10,7 @@ import InvoicesList from './components/InvoicesList';
 import CloudSync from './components/CloudSync';
 import TransactionForm from './components/TransactionForm';
 import BackupManager from './components/BackupManager';
-import { neonDb } from './utils/neonDb';
+import { supabaseDb } from './utils/supabaseDb';
 
 const firebaseConfig = {
     apiKey: "AIzaSyDIyPAe5qGMrwj51KutR-4Xp99rQdH-Okk",
@@ -77,6 +77,15 @@ const App: React.FC = () => {
         return saved ? parseFloat(saved) : 5;
     });
     const [privacyMode, setPrivacyMode] = useState(false);
+    const [showUpdateNotice, setShowUpdateNotice] = useState(() => {
+        return localStorage.getItem('bizflow_last_seen_ver') !== APP_VERSION;
+    });
+    const [showChangelogModal, setShowChangelogModal] = useState(false);
+
+    const handleDismissNotice = () => {
+        localStorage.setItem('bizflow_last_seen_ver', APP_VERSION);
+        setShowUpdateNotice(false);
+    };
 
     const handleGoogleLogin = (emailStr = 'shivrat2025@gmail.com') => {
         const cleanUsername = 'SHIVRAT';
@@ -106,10 +115,10 @@ const App: React.FC = () => {
         if (!workspaceId) return;
         setFirebaseStatus('SYNCING');
 
-        // Load data directly from Neon PostgreSQL
-        const loadNeonData = async () => {
+        // Load data directly from Supabase PostgreSQL
+        const loadSupabaseData = async () => {
             try {
-                const data = await neonDb.getWorkspaceData(workspaceId);
+                const data = await supabaseDb.getWorkspaceData(workspaceId);
                 if (data.accounts?.length) setAccounts(data.accounts);
                 if (data.categories?.length) setCategories(data.categories);
                 if (data.suppliers?.length) setSuppliers(data.suppliers);
@@ -117,12 +126,12 @@ const App: React.FC = () => {
                 if (data.profitPercent !== undefined) setProfitPercent(data.profitPercent);
                 setFirebaseStatus('CONNECTED');
             } catch (err) {
-                console.error("Neon Load Error:", err);
+                console.error("Supabase Load Error:", err);
             }
         };
 
-        loadNeonData();
-        const interval = setInterval(loadNeonData, 5000); // Polling Neon every 5s for multi-device sync
+        loadSupabaseData();
+        const interval = setInterval(loadSupabaseData, 5000); // Polling Supabase every 5s for multi-device sync
 
         // 1. Listen to Workspace Metadata (Accounts, Categories, Rules)
         const unsubMeta = onSnapshot(doc(db, "workspaces", workspaceId), (docSnap) => {
@@ -282,7 +291,7 @@ const App: React.FC = () => {
             // For bank accounts, limit acts as the Opening Balance
             let balance = acc.limit || 0;
             transactions.forEach(t => {
-                if (t.type === 'REPAYMENT') {
+                if (t.type === 'REPAYMENT' || t.type === 'TRANSFER') {
                     if (t.sourceAccountId === acc.id) balance -= t.amount;
                     if (t.destinationAccountId === acc.id) balance += t.amount;
                 } else {
@@ -302,6 +311,10 @@ const App: React.FC = () => {
         if (!workspaceId) return;
 
         try {
+            if (newAccs) supabaseDb.updateAccounts(workspaceId, newAccs).catch(console.error);
+            if (newCats) supabaseDb.updateCategories(workspaceId, newCats).catch(console.error);
+            if (newSups) supabaseDb.updateSuppliers(workspaceId, newSups).catch(console.error);
+
             const payload: any = {
                 lastSynced: Date.now()
             };
@@ -427,13 +440,13 @@ const App: React.FC = () => {
                 createdAt: editingTransaction?.createdAt || Date.now()
             };
 
-            // Save to Neon PostgreSQL
-            await neonDb.saveTransaction(trimmedWorkspace, newTx);
+            // Save to Supabase PostgreSQL
+            await supabaseDb.saveTransaction(trimmedWorkspace, newTx);
 
             // Also save to Firebase doc for fallback
             const docRef = doc(db, "workspaces", trimmedWorkspace, "transactions", txId);
             await setDoc(docRef, deepClean(newTx));
-            console.log("Transaction saved successfully to Neon & Cloud:", txId);
+            console.log("Transaction saved successfully to Supabase & Cloud:", txId);
 
             setShowForm(false);
             setEditingTransaction(null);
@@ -749,6 +762,7 @@ const App: React.FC = () => {
 
     const deleteTransaction = async (id: string) => {
         try {
+            if (workspaceId) await supabaseDb.deleteTransaction(workspaceId.trim(), id);
             const docRef = doc(db, "workspaces", workspaceId, "transactions", id);
             await deleteDoc(docRef);
         } catch (e) {
@@ -1158,8 +1172,15 @@ const App: React.FC = () => {
                             )}
                         </div>
                         <div className="hidden lg:flex flex-col items-end px-8 border-l-2 border-white/20">
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Financial Node</span>
-                            <span className="text-base font-black text-slate-800 tracking-tighter">{workspaceId}</span>
+                            <button
+                                onClick={() => setShowChangelogModal(true)}
+                                className="group flex items-center gap-1.5 px-3 py-1 bg-indigo-50/80 hover:bg-indigo-100/90 border border-indigo-200/60 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer mb-1"
+                                title="Click to view Version History & Release Notes"
+                            >
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                <span className="text-[10px] font-black text-indigo-700 tracking-wider">v{APP_VERSION}</span>
+                            </button>
+                            <span className="text-sm font-black text-slate-800 tracking-tighter">{workspaceId}</span>
                         </div>
                     </div>
                 </header>
@@ -1369,6 +1390,96 @@ const App: React.FC = () => {
                                     </button>
                                 )}
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Live Update Toast Notification */}
+            {showUpdateNotice && (
+                <div className="fixed bottom-6 right-6 z-[110] bg-slate-900/95 backdrop-blur-xl text-white p-5 rounded-3xl shadow-2xl border border-slate-700/60 max-w-sm animate-in slide-in-from-bottom duration-300">
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-2.5">
+                            <div className="p-2.5 bg-indigo-500/20 text-indigo-400 rounded-2xl border border-indigo-500/30">
+                                <Sparkles size={18} />
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-black tracking-tight flex items-center gap-2">
+                                    {APP_RELEASE_NOTES.title}
+                                    <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full font-black border border-emerald-500/30">{APP_RELEASE_NOTES.version}</span>
+                                </h4>
+                                <p className="text-[10px] text-slate-300 font-medium mt-1">{APP_RELEASE_NOTES.highlights[0]}</p>
+                            </div>
+                        </div>
+                        <button onClick={handleDismissNotice} className="text-slate-400 hover:text-white transition-colors p-1">
+                            <X size={16} />
+                        </button>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-slate-800 flex justify-between items-center">
+                        <button onClick={() => { handleDismissNotice(); setShowChangelogModal(true); }} className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors">
+                            View Changelog →
+                        </button>
+                        <button onClick={handleDismissNotice} className="text-[10px] font-bold bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-1.5 rounded-xl transition-all shadow-md">
+                            Got It
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Version History & Release Notes Modal */}
+            {showChangelogModal && (
+                <div className="fixed inset-0 z-[120] bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setShowChangelogModal(false)}>
+                    <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-2xl border border-indigo-100">
+                                    <Sparkles size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-black text-slate-800 tracking-tight">System Update Logs</h3>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Version {APP_VERSION} · Released {APP_RELEASE_NOTES.date}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setShowChangelogModal(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-colors">
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="p-6 overflow-y-auto space-y-6 text-sm text-slate-700">
+                            <div className="p-5 bg-gradient-to-br from-indigo-50/80 to-purple-50/80 border border-indigo-100 rounded-2xl">
+                                <h4 className="font-black text-indigo-950 text-sm flex items-center justify-between">
+                                    <span>{APP_RELEASE_NOTES.title}</span>
+                                    <span className="text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded-full font-black">{APP_RELEASE_NOTES.version}</span>
+                                </h4>
+                                <ul className="mt-3 space-y-2 text-xs text-indigo-900 font-medium">
+                                    {APP_RELEASE_NOTES.highlights.map((h, i) => (
+                                        <li key={i} className="flex items-center gap-2">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 flex-shrink-0"></span>
+                                            {h}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Version History (CHANGELOG.md)</h4>
+                                <div className="space-y-4 text-xs text-slate-600">
+                                    <div className="border-l-2 border-indigo-500 pl-4 py-0.5">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="font-black text-slate-900 text-xs">v2.1.0</span>
+                                            <span className="text-[9px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-black border border-emerald-200">Current</span>
+                                        </div>
+                                        <p className="text-[11px] text-slate-600">Migrated database engine to Supabase PostgreSQL, imported 1,385 transactions & fixed target account credit logic on self-transfers.</p>
+                                    </div>
+                                    <div className="border-l-2 border-slate-200 pl-4 py-0.5">
+                                        <span className="font-black text-slate-700 text-xs">v2.0.0</span>
+                                        <p className="text-[11px] text-slate-500 mt-0.5">Added multi-account enterprise architecture (IDFC, IndusInd, Credit Cards, ODs) + AI rule assistant.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex justify-end">
+                            <button onClick={() => setShowChangelogModal(false)} className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-black rounded-xl uppercase tracking-widest shadow-md transition-all active:scale-95">
+                                Close
+                            </button>
                         </div>
                     </div>
                 </div>

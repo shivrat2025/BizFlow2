@@ -32,7 +32,7 @@ const BackupManager: React.FC<Props> = ({ backups, onRestore, onCreateSnapshot, 
     const manualBackups = backups.filter(b => b.isManual);
     const autoBackups = backups.filter(b => !b.isManual);
 
-    const BackupCard = ({ entry }: { entry: BackupEntry }) => (
+    const BackupCard: React.FC<{ entry: BackupEntry }> = ({ entry }) => (
         <div className="group bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-lg hover:border-indigo-200 transition-all duration-200 flex flex-col gap-4">
             {/* Header */}
             <div className="flex items-start gap-3">

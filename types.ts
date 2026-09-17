@@ -1,3 +1,15 @@
+export const APP_VERSION = "2.1.0";
+export const APP_RELEASE_NOTES = {
+  version: "v2.1.0",
+  title: "Supabase Database Engine & Self-Transfer Fix",
+  date: "17 Sep 2026",
+  highlights: [
+    "⚡ Migrated database engine to Supabase (Unlimited & Fast)",
+    "🔄 Fixed Self-Transfer calculation bug for target accounts",
+    "🔔 Added Live Version Indicator & Changelog Updates"
+  ]
+};
+
 export type TransactionType = 'INCOME' | 'EXPENSE' | 'WITHDRAWAL' | 'REPAYMENT' | 'TRANSFER';
 export type IncomeSource = 'COD' | 'PREPAID';
 export type AccountType = 'BANK' | 'CREDIT_CARD' | 'OD' | 'CURRENT';

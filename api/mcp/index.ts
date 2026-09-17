@@ -1,9 +1,10 @@
-import { neon } from '@neondatabase/serverless';
+import { createClient } from '@supabase/supabase-js';
 
-const NEON_URL = process.env.NEON_DATABASE_URL || "postgresql://neondb_owner:npg_MQYpxwa17zRV@ep-jolly-grass-b3c2d7vr-pooler.c-4.ap-southeast-1.aws.neon.tech/neondb?sslmode=require";
+const SUPABASE_URL = process.env.SUPABASE_URL || "https://cooszfjabepkoymaiivc.supabase.co";
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || "sb_publishable_EFnYBpyGmAx3MuQ6xdDaQg_iqdSXdhO";
 const WORKSPACE_ID = process.env.BIZFLOW_WORKSPACE_ID || "SHIVRAT";
 
-const sql = neon(NEON_URL);
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Helper to parse dates flexibly
 function parseTimestamp(dateInput: any) {
@@ -30,7 +31,8 @@ function parseTimestamp(dateInput: any) {
 async function resolveAccountId(accountName?: string) {
     if (!accountName) return null;
     try {
-        const accounts = await sql`SELECT id, name FROM accounts WHERE workspace_id = ${WORKSPACE_ID};`;
+        const { data: accounts } = await supabase.from('accounts').select('id, name').eq('workspace_id', WORKSPACE_ID);
+        if (!accounts || accounts.length === 0) return null;
         const search = accountName.toLowerCase().trim();
         const match = accounts.find((a: any) => a.name.toLowerCase().includes(search) || search.includes(a.name.toLowerCase()));
         if (match) return match.id;
@@ -176,19 +178,22 @@ async function handleRpc(body: any) {
                 // 1. Dual Write: Save to Firebase Firestore REST API (Instant real-time update in app)
                 await writeToFirestore(txDoc);
 
-                // 2. Dual Write: Attempt Neon DB (Catch HTTP 402 quota error gracefully)
+                // 2. Dual Write: Save to Supabase
                 try {
-                    await sql`
-                        INSERT INTO transactions (
-                            id, workspace_id, date, amount, type, description,
-                            source_account_id, destination_account_id, expense_category, created_at
-                        ) VALUES (
-                            ${txId}, ${WORKSPACE_ID}, ${dateTs}, ${args.amount}, ${String(args.type).toUpperCase()},
-                            ${args.description || ''}, ${sourceAccId}, ${destAccId}, ${args.category || null}, ${Date.now()}
-                        );
-                    `;
-                } catch (neonErr) {
-                    console.error("Neon DB Write Quota Warning:", neonErr);
+                    await supabase.from('transactions').upsert({
+                        id: txId,
+                        workspace_id: WORKSPACE_ID,
+                        date: dateTs,
+                        amount: args.amount,
+                        type: String(args.type).toUpperCase(),
+                        description: args.description || '',
+                        source_account_id: sourceAccId,
+                        destination_account_id: destAccId,
+                        expense_category: args.category || null,
+                        created_at: Date.now()
+                    });
+                } catch (supErr) {
+                    console.error("Supabase DB Write Warning:", supErr);
                 }
 
                 return {
@@ -205,12 +210,12 @@ async function handleRpc(body: any) {
 
             if (toolName === "get_account_balances") {
                 try {
-                    const accs = await sql`SELECT name, type, balance, limit_val FROM accounts WHERE workspace_id = ${WORKSPACE_ID};`;
+                    const { data: accs } = await supabase.from('accounts').select('name, type, balance, limit_val').eq('workspace_id', WORKSPACE_ID);
                     return {
                         jsonrpc: "2.0",
                         id: reqId,
                         result: {
-                            content: [{ type: "text", text: JSON.stringify(accs, null, 2) }]
+                            content: [{ type: "text", text: JSON.stringify(accs || [], null, 2) }]
                         }
                     };
                 } catch (e) {
@@ -227,12 +232,12 @@ async function handleRpc(body: any) {
             if (toolName === "search_transactions") {
                 const limit = args.limit || 20;
                 try {
-                    const rows = await sql`SELECT id, date, amount, type, description FROM transactions WHERE workspace_id = ${WORKSPACE_ID} ORDER BY date DESC LIMIT ${limit};`;
+                    const { data: rows } = await supabase.from('transactions').select('id, date, amount, type, description').eq('workspace_id', WORKSPACE_ID).order('date', { ascending: false }).limit(limit);
                     return {
                         jsonrpc: "2.0",
                         id: reqId,
                         result: {
-                            content: [{ type: "text", text: JSON.stringify(rows, null, 2) }]
+                            content: [{ type: "text", text: JSON.stringify(rows || [], null, 2) }]
                         }
                     };
                 } catch (e) {
