@@ -10,6 +10,7 @@ import InvoicesList from './components/InvoicesList';
 import CloudSync from './components/CloudSync';
 import TransactionForm from './components/TransactionForm';
 import BackupManager from './components/BackupManager';
+import { McpModal } from './components/McpModal';
 import { supabaseDb } from './utils/supabaseDb';
 
 const firebaseConfig = {
@@ -85,6 +86,7 @@ const App: React.FC = () => {
         return localStorage.getItem('bizflow_last_seen_ver') !== APP_VERSION;
     });
     const [showChangelogModal, setShowChangelogModal] = useState(false);
+    const [showMcpModal, setShowMcpModal] = useState(false);
 
     const handleDismissNotice = () => {
         localStorage.setItem('bizflow_last_seen_ver', APP_VERSION);
@@ -1183,6 +1185,15 @@ const App: React.FC = () => {
                                 <span className="hidden sm:inline">{privacyMode ? 'Hidden' : 'Visible'}</span>
                             </button>
 
+                            <button
+                                onClick={() => setShowMcpModal(true)}
+                                className="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-xl text-xs font-bold transition-all shadow-xs"
+                                title="Connect ChatGPT & Claude via MCP"
+                            >
+                                <Sparkles size={14} className="text-indigo-600" />
+                                <span>MCP Server</span>
+                            </button>
+
                             {activeTab === 'dashboard' && (
                                 <button
                                     onClick={handleExport}
@@ -1358,6 +1369,52 @@ const App: React.FC = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* AI & MCP Integration (Claude & ChatGPT) */}
+                        <div className="bg-white/70 backdrop-blur-xl p-6 rounded-[1.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-1.5 bg-indigo-50 rounded-xl"><Sparkles size={14} className="text-indigo-600" /></div>
+                                    <h3 className="text-sm font-black text-slate-800 tracking-tight">AI & MCP Server (Claude / ChatGPT)</h3>
+                                </div>
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    Online
+                                </span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                                Connect Claude Desktop, ChatGPT, or Cursor directly to BizFlow via Model Context Protocol (MCP) to query balances, add expenses, and view statements using natural language.
+                            </p>
+
+                            <div className="space-y-2">
+                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">Remote MCP Server URL</span>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="text"
+                                        readOnly
+                                        value={typeof window !== 'undefined' ? `${window.location.origin}/api/mcp` : 'https://bizflow.admagic.in/api/mcp'}
+                                        className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono font-semibold text-slate-800 select-all outline-none"
+                                    />
+                                    <button
+                                        onClick={() => {
+                                            const url = typeof window !== 'undefined' ? `${window.location.origin}/api/mcp` : 'https://bizflow.admagic.in/api/mcp';
+                                            navigator.clipboard.writeText(url);
+                                            alert('✅ Copied MCP URL: ' + url);
+                                        }}
+                                        className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition-all shadow-xs"
+                                    >
+                                        Copy
+                                    </button>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => setShowMcpModal(true)}
+                                className="w-full py-2.5 bg-slate-900 hover:bg-black text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all"
+                            >
+                                <Sparkles size={14} /> Open Claude & ChatGPT Setup Guide
+                            </button>
+                        </div>
                     </div>
                 )}
 
@@ -1507,6 +1564,9 @@ const App: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            {/* MCP AI Integration Modal */}
+            <McpModal isOpen={showMcpModal} onClose={() => setShowMcpModal(false)} />
         </div>
     );
 };

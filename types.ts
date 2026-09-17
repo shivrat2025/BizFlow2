@@ -1,12 +1,12 @@
-export const APP_VERSION = "2.2.3";
+export const APP_VERSION = "2.2.4";
 export const APP_RELEASE_NOTES = {
-  version: "v2.2.3",
-  title: "Critical Balance Fix (Pagination)",
+  version: "v2.2.4",
+  title: "Claude & ChatGPT MCP Server Integration",
   date: "17 Sep 2026",
   highlights: [
-    "✅ Fixed negative balance bug caused by missing older transactions",
-    "🔧 Added Supabase pagination to bypass the 1000 row max-limit",
-    "📊 Restored accurate historical balances"
+    "🔌 Connect Claude Desktop, ChatGPT & Cursor directly to BizFlow via MCP",
+    "⚡ One-click MCP Server URL & setup guides in Header and Settings",
+    "🤖 Ask AI in natural language to add expenses, check balances, & search ledger"
   ]
 };
 

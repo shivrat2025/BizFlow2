@@ -1,33 +1,32 @@
-# BizFlow MCP Server for Claude Desktop
+# BizFlow MCP Server for Claude Desktop & ChatGPT
 
-Connect **Claude Desktop** (or Cursor / Antigravity) directly to your **BizFlow Neon PostgreSQL Database** to perform financial entries, query balances, search transactions, and bulk import statements using natural language!
+Connect **Claude Desktop**, **ChatGPT**, or **Cursor** directly to your **BizFlow Supabase Ledger** to perform financial entries, query live bank balances, search transactions, and bulk import statements using natural language!
 
 ---
 
-## 🚀 How to Setup in Claude Desktop
+## 🚀 Easy Setup (Remote MCP Server)
 
-### Step 1: Open Claude Desktop Configuration File
-- **macOS Path:** `~/Library/Application Support/Claude/claude_desktop_config.json`
-
-### Step 2: Add `bizflow` MCP Server
-Add the following JSON block to `mcpServers` inside `claude_desktop_config.json`:
+### Option 1: Claude Desktop (Recommended)
+Open `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS and add:
 
 ```json
 {
   "mcpServers": {
     "bizflow": {
-      "command": "node",
-      "args": [
-        "/Users/shivangkoshia/Documents/Apps/BizFlow-main/mcp-server/index.mjs"
-      ],
-      "env": {
-        "NEON_DATABASE_URL": "postgresql://neondb_owner:npg_MQYpxwa17zRV@ep-jolly-grass-b3c2d7vr-pooler.c-4.ap-southeast-1.aws.neon.tech/neondb?sslmode=require",
-        "BIZFLOW_WORKSPACE_ID": "SHIVRAT"
-      }
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://bizflow.admagic.in/api/mcp"]
     }
   }
 }
 ```
+
+### Option 2: Cursor / Windsurf
+Go to **Settings** > **Features** > **MCP** > **Add New MCP Server**:
+- **Type:** `SSE`
+- **URL:** `https://bizflow.admagic.in/api/mcp`
+
+### Option 3: ChatGPT Custom GPT
+Add an Action with the Base URL: `https://bizflow.admagic.in/api/mcp`
 
 ### Step 3: Restart Claude Desktop App
 Close and re-open Claude Desktop. You will see the **🔨 Hammer icon (MCP Tools)** active with **BizFlow Tools**:
