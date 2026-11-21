@@ -32,7 +32,7 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, categories, onBackup, profitPercent = 5, privacyMode = false }) => {
-  const [period, setPeriod] = useState<'TODAY' | '7D' | 'MONTH' | 'ALL'>('MONTH');
+  const [period, setPeriod] = useState<'TODAY' | '7D' | 'MONTH' | 'LAST' | 'ALL'>('ALL');
   // Privacy mask helper
   const m = (n: number, prefix = '₹') => privacyMode ? '₹ ••••••' : `${prefix}${n.toLocaleString('en-IN')}`;
   const mpct = (n: number) => privacyMode ? '••%' : `${Math.round(n)}%`;
@@ -112,9 +112,11 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
     if (period === 'TODAY') return new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime();
     if (period === '7D') return new Date(n.getFullYear(), n.getMonth(), n.getDate() - 6).getTime();
     if (period === 'MONTH') return new Date(n.getFullYear(), n.getMonth(), 1).getTime();
+    if (period === 'LAST') return new Date(n.getFullYear(), n.getMonth() - 1, 1).getTime();
     return 0;
   })();
-  const inPeriod = transactions.filter(t => Number(t.date) >= periodStart);
+  const periodEnd = period === 'LAST' ? new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime() : Infinity;
+  const inPeriod = transactions.filter(t => Number(t.date) >= periodStart && Number(t.date) < periodEnd);
   const periodSales = inPeriod.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0);
   const periodAdSpend = inPeriod.filter(t => t.type === 'EXPENSE' && t.expenseCategory === 'FB_ADS').reduce((s, t) => s + t.amount, 0);
   const periodPurchase = inPeriod.filter(t => t.type === 'EXPENSE' && t.expenseCategory === 'PRODUCT').reduce((s, t) => s + t.amount, 0);
@@ -276,7 +278,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
         <div className="flex items-center justify-between mb-3 gap-2">
           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Sales · Ad Spend · Purchase</p>
           <div className="flex bg-slate-100 rounded-lg p-0.5">
-            {([['TODAY', 'Today'], ['7D', '7 Days'], ['MONTH', 'This Month'], ['ALL', 'All']] as const).map(([k, label]) => (
+            {([['TODAY', 'Today'], ['7D', '7 Days'], ['MONTH', 'This Month'], ['LAST', 'Last Month'], ['ALL', 'All']] as const).map(([k, label]) => (
               <button key={k} onClick={() => setPeriod(k)}
                 className={`px-2.5 py-1 rounded-md text-[10px] font-semibold transition-all ${period === k ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-500 hover:text-slate-700'}`}>
                 {label}

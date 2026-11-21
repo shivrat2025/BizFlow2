@@ -1,9 +1,10 @@
-export const APP_VERSION = "2.2.15";
+export const APP_VERSION = "2.2.16";
 export const APP_RELEASE_NOTES = {
-  version: "v2.2.15",
-  title: "OD Parked funds shown separately (not debt)",
+  version: "v2.2.16",
+  title: "Sales / Ad Spend / Purchase default to All time, Last Month filter added",
   date: "21 Nov 2026",
   highlights: [
+    "📊 Sales / Ad Spend / Purchase now default to All time (was showing 0 for the empty current month); Last Month filter added",
     "💼 ICICI OD: parked own money shown as Parked / Usable / Used (debt) and as a separate line under Total Bank Balance",
     "📊 Dashboard: bank-wise balance cards and Sales / Ad Spend / Purchase with Today / 7 Days / Month / All filter",
     "🎨 New calm theme: warm cream background, terracotta accent, soft sage/brick for income/expense",
