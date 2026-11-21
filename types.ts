@@ -1,9 +1,10 @@
-export const APP_VERSION = "2.2.24";
+export const APP_VERSION = "2.2.25";
 export const APP_RELEASE_NOTES = {
-  version: "v2.2.24",
-  title: "OD: separate Parked and Used cards",
+  version: "v2.2.25",
+  title: "Purchase card includes Fabric and Stitching",
   date: "21 Nov 2026",
   highlights: [
+    "🧵 Purchase card now = Product + Fabric + Stitching, with the three amounts shown inside the card",
     "💼 ICICI OD now has two cards: Parked (own money, new OD spend is deducted from it first) and Used (debt, stays ₹2,99,999 until repaid)",
     "💼 ICICI OD: Parked (own money moved in) and Used (debt) are now shown separately instead of netted; Used also counts in Total Debt",
     "🏦 COD pool = IDFC balance and Prepaid pool = IndusInd balance (bank-wise again), so pools match the bank statements and no longer go negative from tag mismatches",

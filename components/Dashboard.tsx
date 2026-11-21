@@ -146,7 +146,12 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
   const inPeriod = transactions.filter(t => Number(t.date) >= periodStart && Number(t.date) < periodEnd);
   const periodSales = inPeriod.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0);
   const periodAdSpend = inPeriod.filter(t => t.type === 'EXPENSE' && t.expenseCategory === 'FB_ADS').reduce((s, t) => s + t.amount, 0);
-  const periodPurchase = inPeriod.filter(t => t.type === 'EXPENSE' && t.expenseCategory === 'PRODUCT').reduce((s, t) => s + t.amount, 0);
+  const purchaseOf = (cat: string) => inPeriod.filter(t => t.type === 'EXPENSE' && t.expenseCategory === cat).reduce((s, t) => s + t.amount, 0);
+  // Purchase = product + fabric + stitching (all go into making the product)
+  const periodProduct = purchaseOf('PRODUCT');
+  const periodFabric = purchaseOf('FABRIC');
+  const periodStitching = purchaseOf('STITCHING');
+  const periodPurchase = periodProduct + periodFabric + periodStitching;
   const periodCourier = inPeriod.filter(t => t.type === 'EXPENSE' && t.expenseCategory === 'SHIPPING').reduce((s, t) => s + t.amount, 0);
   const courierPct = periodSales > 0 ? (periodCourier / periodSales) * 100 : 0;
   const adPct = periodSales > 0 ? (periodAdSpend / periodSales) * 100 : 0;
@@ -340,6 +345,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
             <div className="flex items-center gap-1.5 text-amber-700 mb-1"><ShoppingBag size={13} /><span className="text-[10px] font-bold uppercase tracking-wide">Purchase</span></div>
             <p className="text-xl font-bold text-amber-700 tracking-tight">{m(periodPurchase)}</p>
             <p className="text-[10px] font-medium text-slate-500 mt-0.5">{mpct(purchasePct)} of sales</p>
+            <p className="text-[9px] font-medium text-slate-500 mt-1">Product {m(periodProduct)} · Fabric {m(periodFabric)} · Stitching {m(periodStitching)}</p>
           </div>
           <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-100">
             <div className="flex items-center gap-1.5 text-blue-700 mb-1"><Truck size={13} /><span className="text-[10px] font-bold uppercase tracking-wide">Courier</span></div>
