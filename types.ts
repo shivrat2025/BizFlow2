@@ -1,9 +1,10 @@
-export const APP_VERSION = "2.2.16";
+export const APP_VERSION = "2.2.17";
 export const APP_RELEASE_NOTES = {
-  version: "v2.2.16",
-  title: "Sales / Ad Spend / Purchase default to All time, Last Month filter added",
+  version: "v2.2.17",
+  title: "Courier card added; Sales / Ad Spend / Purchase default to All time",
   date: "21 Nov 2026",
   highlights: [
+    "🚚 Courier (Shipping) card added next to Sales, Ad Spend and Purchase",
     "📊 Sales / Ad Spend / Purchase now default to All time (was showing 0 for the empty current month); Last Month filter added",
     "💼 ICICI OD: parked own money shown as Parked / Usable / Used (debt) and as a separate line under Total Bank Balance",
     "📊 Dashboard: bank-wise balance cards and Sales / Ad Spend / Purchase with Today / 7 Days / Month / All filter",

@@ -120,6 +120,8 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
   const periodSales = inPeriod.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0);
   const periodAdSpend = inPeriod.filter(t => t.type === 'EXPENSE' && t.expenseCategory === 'FB_ADS').reduce((s, t) => s + t.amount, 0);
   const periodPurchase = inPeriod.filter(t => t.type === 'EXPENSE' && t.expenseCategory === 'PRODUCT').reduce((s, t) => s + t.amount, 0);
+  const periodCourier = inPeriod.filter(t => t.type === 'EXPENSE' && t.expenseCategory === 'SHIPPING').reduce((s, t) => s + t.amount, 0);
+  const courierPct = periodSales > 0 ? (periodCourier / periodSales) * 100 : 0;
   const adPct = periodSales > 0 ? (periodAdSpend / periodSales) * 100 : 0;
   const purchasePct = periodSales > 0 ? (periodPurchase / periodSales) * 100 : 0;
 
@@ -276,7 +278,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
       {/* Sales / Ad Spend / Purchase */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
         <div className="flex items-center justify-between mb-3 gap-2">
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Sales · Ad Spend · Purchase</p>
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Sales · Ad Spend · Purchase · Courier</p>
           <div className="flex bg-slate-100 rounded-lg p-0.5">
             {([['TODAY', 'Today'], ['7D', '7 Days'], ['MONTH', 'This Month'], ['LAST', 'Last Month'], ['ALL', 'All']] as const).map(([k, label]) => (
               <button key={k} onClick={() => setPeriod(k)}
@@ -286,7 +288,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
             ))}
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-100">
             <div className="flex items-center gap-1.5 text-emerald-700 mb-1"><TrendingUp size={13} /><span className="text-[10px] font-bold uppercase tracking-wide">Sales</span></div>
             <p className="text-xl font-bold text-emerald-700 tracking-tight">{m(periodSales)}</p>
@@ -300,6 +302,11 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
             <div className="flex items-center gap-1.5 text-amber-700 mb-1"><ShoppingBag size={13} /><span className="text-[10px] font-bold uppercase tracking-wide">Purchase</span></div>
             <p className="text-xl font-bold text-amber-700 tracking-tight">{m(periodPurchase)}</p>
             <p className="text-[10px] font-medium text-slate-500 mt-0.5">{mpct(purchasePct)} of sales</p>
+          </div>
+          <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-100">
+            <div className="flex items-center gap-1.5 text-blue-700 mb-1"><Truck size={13} /><span className="text-[10px] font-bold uppercase tracking-wide">Courier</span></div>
+            <p className="text-xl font-bold text-blue-700 tracking-tight">{m(periodCourier)}</p>
+            <p className="text-[10px] font-medium text-slate-500 mt-0.5">{mpct(courierPct)} of sales</p>
           </div>
         </div>
       </div>
