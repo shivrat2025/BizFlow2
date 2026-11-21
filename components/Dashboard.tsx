@@ -35,6 +35,8 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
   const [period, setPeriod] = useState<'TODAY' | '7D' | 'MONTH' | 'LAST' | 'ALL'>('ALL');
   // Privacy mask helper
   const m = (n: number, prefix = '₹') => privacyMode ? '₹ ••••••' : `${prefix}${n.toLocaleString('en-IN')}`;
+  // IDFC is the most-used bank, so it always comes first
+  const idfcFirst = <T extends { name: string }>(list: T[]) => [...list].sort((a, b) => Number(b.name.toUpperCase().includes('IDFC')) - Number(a.name.toUpperCase().includes('IDFC')));
   const mpct = (n: number) => privacyMode ? '••%' : `${Math.round(n)}%`;
   if (accounts.length === 0 && transactions.length === 0) {
     return (
@@ -86,7 +88,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
     .filter(a => ['BANK', 'CURRENT'].includes(a.type))
     .reduce((sum, a) => sum + Math.max(0, a.balance), 0);
 
-  const bankAccounts = accounts.filter(a => ['BANK', 'CURRENT'].includes(a.type));
+  const bankAccounts = idfcFirst(accounts.filter(a => ['BANK', 'CURRENT'].includes(a.type)));
 
   const categoryData = (Object.entries(stats.categoryBreakdown) as [string, number][]).map(([id, value]) => {
     const label = categories.find(c => c.id === id)?.label || id;
@@ -246,7 +248,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
       <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Bank-wise Balance</p>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {accounts.map(acc => {
+          {idfcFirst(accounts).map(acc => {
             const logo = getBankLogo(acc.name);
             const isCredit = acc.type === 'OD' || acc.type === 'CREDIT_CARD';
             return (

@@ -1,9 +1,10 @@
-export const APP_VERSION = "2.2.18";
+export const APP_VERSION = "2.2.19";
 export const APP_RELEASE_NOTES = {
-  version: "v2.2.18",
-  title: "COD / Prepaid pools now purely tag-based (no bank link)",
+  version: "v2.2.19",
+  title: "IDFC card first on dashboard; pools purely tag-based",
   date: "21 Nov 2026",
   highlights: [
+    "🏦 IDFC FIRST Bank card now comes first in Bank-wise Balance and Total Bank Balance",
     "🏷️ COD and Prepaid pools are now calculated only from each entry's tag, independent of which bank it is in; bank balances still match the statements",
     "🚚 Courier (Shipping) card added next to Sales, Ad Spend and Purchase",
     "📊 Sales / Ad Spend / Purchase now default to All time (was showing 0 for the empty current month); Last Month filter added",
