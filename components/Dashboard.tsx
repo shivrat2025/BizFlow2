@@ -96,8 +96,28 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
   }).filter(item => item.value > 0);
 
   // Parked = own money transferred in (gross); Used = limit + parked - balance, shown separately (not netted).
-  const odParkedIn = (id: string) => transactions.filter(t => t.type === 'TRANSFER' && t.destinationAccountId === id).reduce((s, t) => s + t.amount, 0);
-  const odUsed = (a: Account) => Math.max(0, (a.limit || 0) + odParkedIn(a.id) - a.balance);
+  // OD split, replayed in date order: old spend/repayments = Used (debt); transfers in = Parked (own money);
+  // any new spend from the OD is taken from Parked first, then adds to Used.
+  const odSplit = (a: Account) => {
+    let parked = 0, used = 0;
+    transactions
+      .filter(t => t.sourceAccountId === a.id || t.destinationAccountId === a.id)
+      .sort((x, y) => x.date - y.date)
+      .forEach(t => {
+        const out = t.sourceAccountId === a.id;
+        if (t.type === 'TRANSFER') {
+          if (out) { const take = Math.min(parked, t.amount); parked -= take; used += t.amount - take; }
+          else parked += t.amount;
+        } else if (t.type === 'EXPENSE' || t.type === 'WITHDRAWAL') {
+          const take = Math.min(parked, t.amount); parked -= take; used += t.amount - take;
+        } else if (t.type === 'REPAYMENT' || t.type === 'INCOME') {
+          used = Math.max(0, used - t.amount);
+        }
+      });
+    return { parked, used };
+  };
+  const odParkedIn = (id: string) => { const a = accounts.find(x => x.id === id); return a ? odSplit(a).parked : 0; };
+  const odUsed = (a: Account) => odSplit(a).used;
   const debtAccounts = accounts.filter(a =>
     ((a.type === 'OD' && odUsed(a) > 0) || (a.type === 'CREDIT_CARD' && (a.limit || 0) > a.balance)) ||
     (['BANK', 'CURRENT'].includes(a.type) && a.balance < 0)
@@ -257,7 +277,8 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
             const logo = getBankLogo(acc.name);
             const isCredit = acc.type === 'OD' || acc.type === 'CREDIT_CARD';
             return (
-              <div key={acc.id} className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+              <React.Fragment key={acc.id}>
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
                 <div className="flex items-center gap-2 mb-1.5">
                   {logo && <img src={logo.url} alt={acc.name} className="w-4 h-4 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
                   <span className="text-[10px] font-bold text-slate-600 truncate">{acc.name}</span>
@@ -265,8 +286,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
                 {acc.type === 'OD' ? (
                   <>
                     <p className="text-base font-bold tracking-tight text-emerald-700">{m(odParkedIn(acc.id))} <span className="text-[9px] font-semibold text-emerald-600 uppercase">Parked</span></p>
-                    <p className="text-[9px] font-medium text-slate-500 mt-0.5">Net balance {m(acc.balance)} · Limit {m(acc.limit || 0)}</p>
-                    <p className="text-[9px] font-medium text-slate-400">Used (debt) {m(odUsed(acc))}</p>
+                    <p className="text-[9px] font-medium text-slate-400 mt-0.5">Own money · new spend is deducted from here</p>
                   </>
                 ) : (
                   <>
@@ -277,6 +297,17 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
                   </>
                 )}
               </div>
+              {acc.type === 'OD' && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-100">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    {logo && <img src={logo.url} alt={acc.name} className="w-4 h-4 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
+                    <span className="text-[10px] font-bold text-slate-600 truncate">{acc.name}</span>
+                  </div>
+                  <p className="text-base font-bold tracking-tight text-rose-600">{m(odUsed(acc))} <span className="text-[9px] font-semibold uppercase">Used (debt)</span></p>
+                  <p className="text-[9px] font-medium text-slate-400 mt-0.5">Limit {m(acc.limit || 0)}</p>
+                </div>
+              )}
+              </React.Fragment>
             );
           })}
         </div>
