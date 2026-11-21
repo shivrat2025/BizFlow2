@@ -1,9 +1,10 @@
-export const APP_VERSION = "2.2.20";
+export const APP_VERSION = "2.2.21";
 export const APP_RELEASE_NOTES = {
-  version: "v2.2.20",
-  title: "IDFC card first on dashboard; pools purely tag-based",
+  version: "v2.2.21",
+  title: "Available Profit shows negative when over-withdrawn",
   date: "21 Nov 2026",
   highlights: [
+    "💰 Available Profit now shows the real figure, in red with a minus sign, when withdrawals exceed the profit limit (was clamped to 0)",
     "🏦 IDFC FIRST Bank card now comes first in Bank-wise Balance and Total Bank Balance",
     "🏷️ COD and Prepaid pools are now calculated only from each entry's tag, independent of which bank it is in; bank balances still match the statements",
     "🚚 Courier (Shipping) card added next to Sales, Ad Spend and Purchase",

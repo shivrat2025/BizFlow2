@@ -79,7 +79,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
 
   const totalSuggestedWithdrawal = (stats.totalCodIncome + stats.totalPrepaidIncome) * (profitPercent / 100);
   const alreadyWithdrawn = stats.totalWithdrawals;
-  const availableToWithdraw = Math.max(0, totalSuggestedWithdrawal - alreadyWithdrawn);
+  const availableToWithdraw = totalSuggestedWithdrawal - alreadyWithdrawn;
   const withdrawalProgress = totalSuggestedWithdrawal > 0
     ? (alreadyWithdrawn / totalSuggestedWithdrawal) * 100
     : 0;
@@ -239,7 +239,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
           <Sparkles className="absolute -top-2 -right-2 text-indigo-400/20 w-16 h-16 rotate-12" />
           <div className="relative z-10">
             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Available Profit</p>
-            <p className="text-xl font-black tracking-tight text-white">{m(availableToWithdraw)}</p>
+            <p className={`text-xl font-black tracking-tight ${availableToWithdraw < 0 ? 'text-rose-400' : 'text-white'}`}>{availableToWithdraw < 0 ? '-' : ''}{m(Math.abs(availableToWithdraw))}</p>
           </div>
         </div>
       </div>
@@ -497,7 +497,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
                 </div>
                 <div className="bg-white/5 p-2.5 rounded-xl border border-white/5 text-center">
                   <p className="text-[7px] font-black text-indigo-200 uppercase mb-0.5">Remaining</p>
-                  <p className="text-xs font-black text-amber-400">{m(availableToWithdraw)}</p>
+                  <p className={`text-xs font-black ${availableToWithdraw < 0 ? 'text-rose-400' : 'text-amber-400'}`}>{availableToWithdraw < 0 ? '-' : ''}{m(Math.abs(availableToWithdraw))}</p>
                 </div>
               </div>
             </div>
