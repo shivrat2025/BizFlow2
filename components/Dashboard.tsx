@@ -160,15 +160,16 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
   // OD parked funds: money sitting in an OD above its limit (own money, not debt)
   const odAccounts = accounts.filter(a => a.type === 'OD');
   const odParkedTotal = odAccounts.reduce((s, a) => s + odParkedIn(a.id), 0);
+  const totalWithParked = totalAssets + odParkedTotal;
   const COLORS = ['#D97757', '#f59e0b', '#6F9150', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
   // ── Position snapshot values ─────────────────────────────────────
   const snapshotBalance = accounts
     .filter(a => ['BANK', 'CURRENT'].includes(a.type) && !a.name.toUpperCase().includes('OD'))
-    .reduce((s, a) => s + a.balance, 0);
+    .reduce((s, a) => s + a.balance, 0) + odParkedTotal;
 
   const snapshotDebt = accounts.reduce((debt, a) => {
     if (a.type === 'OD' || a.name.toUpperCase().includes('OD')) {
-      return debt + (a.balance < 0 ? Math.abs(a.balance) : 0);
+      return debt + (a.type === 'OD' ? odUsed(a) : (a.balance < 0 ? Math.abs(a.balance) : 0));
     }
     if (a.type === 'CREDIT_CARD') {
       return debt + (a.limit ? Math.max(0, a.limit - a.balance) : 0);
@@ -221,9 +222,9 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
             </div>
             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Bank Balance</p>
           </div>
-          <p className="text-xl font-black text-emerald-600 tracking-tight">{m(totalAssets)}</p>
+          <p className="text-xl font-black text-emerald-600 tracking-tight">{m(totalWithParked)}</p>
           {odParkedTotal > 0 && (
-            <p className="text-[10px] font-semibold text-emerald-700 mt-0.5">+ OD Parked {m(odParkedTotal)}</p>
+            <p className="text-[10px] font-semibold text-emerald-700 mt-0.5">incl. OD Parked {m(odParkedTotal)}</p>
           )}
           <div className="mt-2 space-y-1 pt-2 border-t border-slate-100">
             {bankAccounts.map(acc => {
@@ -238,6 +239,12 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
                 </div>
               );
             })}
+            {odParkedTotal > 0 && (
+              <div className="flex justify-between items-center text-[8px] font-bold text-emerald-700 uppercase tracking-tight">
+                <span>ICICI OD (Parked)</span>
+                <span>{m(odParkedTotal)}</span>
+              </div>
+            )}
           </div>
         </div>
 

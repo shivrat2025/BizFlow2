@@ -1,9 +1,10 @@
-export const APP_VERSION = "2.2.26";
+export const APP_VERSION = "2.2.27";
 export const APP_RELEASE_NOTES = {
-  version: "v2.2.26",
-  title: "COD / Prepaid pool cards show remittance received",
+  version: "v2.2.27",
+  title: "Parked OD amount included in Total Balance",
   date: "21 Nov 2026",
   highlights: [
+    "💼 OD Parked is now included in Total Bank Balance and Total Balances (listed as its own row); OD Used counts in Total Debt",
     "📦 COD Pool and Prepaid Pool cards now show the total COD / Prepaid remittance received so far; the bank balance (IDFC / IndusInd) is shown small under each",
     "🧵 Purchase card now = Product + Fabric + Stitching, with the three amounts shown inside the card",
     "💼 ICICI OD now has two cards: Parked (own money, new OD spend is deducted from it first) and Used (debt, stays ₹2,99,999 until repaid)",
