@@ -99,9 +99,29 @@ async function handleRpc(body: any) {
                                 date: { type: "string", description: "Date (e.g. '2026-08-29', 'today')" },
                                 account: { type: "string", description: "Bank account name (IDFC, IndusInd, etc.)" },
                                 destination_account: { type: "string" },
-                                category: { type: "string", description: "Expense category (FB_ADS, SHIPPING, PRODUCT, etc.)" }
+                                category: { type: "string", description: "Expense category (FB_ADS, SHIPPING, PRODUCT, etc.)" },
+                                income_source: { type: "string", enum: ["COD", "PREPAID"], description: "Fund allocation / pool for INCOME entries: COD (COD Pool) or PREPAID (Prepaid Pool). Omit for no pool (Debt). If omitted on INCOME, COD couriers/aggregators (Fixfeels, Expressfly, Shiprocket, Delhivery, COD remittance) are auto-detected as COD." }
                             },
                             required: ["amount", "type"]
+                        }
+                    },
+                    {
+                        name: "update_transaction",
+                        description: "Edit an existing BizFlow transaction by id (or many at once via ids). Use search_transactions first to get ids. Only the fields you pass are changed. income_source: COD | PREPAID | NONE (NONE = Debt / no pool).",
+                        inputSchema: {
+                            type: "object",
+                            properties: {
+                                id: { type: "string", description: "Transaction id" },
+                                ids: { type: "array", items: { type: "string" }, description: "Several transaction ids to apply the same change to (bulk)" },
+                                income_source: { type: "string", enum: ["COD", "PREPAID", "NONE"], description: "Fund allocation pool" },
+                                category: { type: "string", description: "Expense category" },
+                                amount: { type: "number" },
+                                type: { type: "string", enum: ["EXPENSE", "INCOME", "TRANSFER", "REPAYMENT", "WITHDRAWAL"] },
+                                description: { type: "string" },
+                                date: { type: "string" },
+                                account: { type: "string", description: "Source bank account name" },
+                                destination_account: { type: "string" }
+                            }
                         }
                     },
                     {
@@ -115,9 +135,12 @@ async function handleRpc(body: any) {
                         inputSchema: {
                             type: "object",
                             properties: {
-                                query: { type: "string" },
-                                type: { type: "string" },
-                                limit: { type: "number" }
+                                query: { type: "string", description: "Text to match in description or category" },
+                                type: { type: "string", description: "EXPENSE | INCOME | TRANSFER | REPAYMENT | WITHDRAWAL" },
+                                income_source: { type: "string", description: "COD | PREPAID | NONE (no pool / Debt)" },
+                                from_date: { type: "string", description: "Only entries on/after this date (e.g. 2026-10-23)" },
+                                to_date: { type: "string", description: "Only entries on/before this date" },
+                                limit: { type: "number", description: "Max rows (default 20, max 2000)" }
                             }
                         }
                     }
@@ -138,6 +161,14 @@ async function handleRpc(body: any) {
                 const sourceAccId = await resolveAccountId(args.account);
                 const destAccId = await resolveAccountId(args.destination_account);
 
+                const txType = String(args.type).toUpperCase();
+                let incomeSource: string | null = null;
+                if (txType === 'INCOME') {
+                    const given = args.income_source ? String(args.income_source).toUpperCase() : '';
+                    if (given === 'COD' || given === 'PREPAID') incomeSource = given;
+                    else if (!given && /fixfeel|expressfly|shiprocket|delhivery|cod\s*(remit|sale|pool)/i.test(String(args.description || ''))) incomeSource = 'COD';
+                }
+
                 const txDoc = {
                     id: txId,
                     workspaceId: WORKSPACE_ID,
@@ -148,6 +179,7 @@ async function handleRpc(body: any) {
                     sourceAccountId: sourceAccId,
                     destinationAccountId: destAccId,
                     expenseCategory: args.category || null,
+                    incomeSource,
                     createdAt: Date.now()
                 };
 
@@ -163,6 +195,7 @@ async function handleRpc(body: any) {
                         source_account_id: sourceAccId,
                         destination_account_id: destAccId,
                         expense_category: args.category || null,
+                        income_source: incomeSource,
                         created_at: Date.now()
                     });
                     await supabase.from('workspaces').update({ last_synced: Date.now() }).eq('id', WORKSPACE_ID);
@@ -176,7 +209,7 @@ async function handleRpc(body: any) {
                     result: {
                         content: [{
                             type: "text",
-                            text: `✅ Saved to BizFlow! ₹${args.amount} (${args.type}) on ${new Date(dateTs).toLocaleDateString('en-IN')}`
+                            text: `✅ Saved to BizFlow! ₹${args.amount} (${args.type}) on ${new Date(dateTs).toLocaleDateString('en-IN')}${incomeSource ? ' → ' + incomeSource + ' Pool' : ''}`
                         }]
                     }
                 };
@@ -204,9 +237,23 @@ async function handleRpc(body: any) {
             }
 
             if (toolName === "search_transactions") {
-                const limit = args.limit || 20;
+                const limit = Math.min(Number(args.limit) || 20, 2000);
                 try {
-                    const { data: rows } = await supabase.from('transactions').select('id, date, amount, type, description').eq('workspace_id', WORKSPACE_ID).order('date', { ascending: false }).limit(limit);
+                    let q = supabase.from('transactions')
+                        .select('id, date, amount, type, description, income_source, expense_category')
+                        .eq('workspace_id', WORKSPACE_ID);
+                    if (args.query) {
+                        const term = String(args.query).replace(/[%,()]/g, ' ').trim();
+                        if (term) q = q.or(`description.ilike.%${term}%,expense_category.ilike.%${term}%`);
+                    }
+                    if (args.type) q = q.eq('type', String(args.type).toUpperCase());
+                    if (args.income_source) {
+                        const src = String(args.income_source).toUpperCase();
+                        q = src === 'NONE' ? q.is('income_source', null) : q.eq('income_source', src);
+                    }
+                    if (args.from_date) q = q.gte('date', parseTimestamp(args.from_date));
+                    if (args.to_date) q = q.lte('date', parseTimestamp(args.to_date) + 86399999);
+                    const { data: rows } = await q.order('date', { ascending: false }).limit(limit);
                     return {
                         jsonrpc: "2.0",
                         id: reqId,
@@ -223,6 +270,42 @@ async function handleRpc(body: any) {
                         }
                     };
                 }
+            }
+
+            if (toolName === "update_transaction") {
+                const ids: string[] = Array.isArray(args.ids) && args.ids.length ? args.ids.map(String) : (args.id ? [String(args.id)] : []);
+                if (ids.length === 0) {
+                    return { jsonrpc: "2.0", id: reqId, error: { code: -32602, message: "Pass id or ids" } };
+                }
+                const patch: any = {};
+                if (args.income_source !== undefined) {
+                    const src = String(args.income_source).toUpperCase();
+                    if (!['COD', 'PREPAID', 'NONE'].includes(src)) {
+                        return { jsonrpc: "2.0", id: reqId, error: { code: -32602, message: "income_source must be COD, PREPAID or NONE" } };
+                    }
+                    patch.income_source = src === 'NONE' ? null : src;
+                }
+                if (args.category !== undefined) patch.expense_category = args.category || null;
+                if (args.amount !== undefined) patch.amount = Number(args.amount);
+                if (args.type !== undefined) patch.type = String(args.type).toUpperCase();
+                if (args.description !== undefined) patch.description = args.description;
+                if (args.date !== undefined) patch.date = parseTimestamp(args.date);
+                if (args.account !== undefined) patch.source_account_id = await resolveAccountId(args.account);
+                if (args.destination_account !== undefined) patch.destination_account_id = await resolveAccountId(args.destination_account);
+                if (Object.keys(patch).length === 0) {
+                    return { jsonrpc: "2.0", id: reqId, error: { code: -32602, message: "Nothing to update" } };
+                }
+                const { data: updated, error: upErr } = await supabase.from('transactions')
+                    .update(patch).eq('workspace_id', WORKSPACE_ID).in('id', ids).select('id');
+                if (upErr) {
+                    return { jsonrpc: "2.0", id: reqId, error: { code: -32603, message: upErr.message } };
+                }
+                await supabase.from('workspaces').update({ last_synced: Date.now() }).eq('id', WORKSPACE_ID);
+                return {
+                    jsonrpc: "2.0",
+                    id: reqId,
+                    result: { content: [{ type: "text", text: `✅ Updated ${updated?.length || 0} of ${ids.length} transaction(s)` }] }
+                };
             }
 
             return {
