@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Wallet, Landmark, CreditCard, PiggyBank, TrendingDown, DollarSign, ArrowDownLeft, Facebook, Truck, ShoppingBag, Box, TrendingUp, AlertCircle, Info, RefreshCw, Sparkles, Cloud } from 'lucide-react';
 declare const __BUILD_SHA__: string;
 declare const __BUILD_TIME__: string;
@@ -32,6 +32,7 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, categories, onBackup, profitPercent = 5, privacyMode = false }) => {
+  const [period, setPeriod] = useState<'TODAY' | '7D' | 'MONTH' | 'ALL'>('MONTH');
   // Privacy mask helper
   const m = (n: number, prefix = '₹') => privacyMode ? '₹ ••••••' : `${prefix}${n.toLocaleString('en-IN')}`;
   const mpct = (n: number) => privacyMode ? '••%' : `${Math.round(n)}%`;
@@ -104,6 +105,21 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
     }
     return { ...a, debt };
   });
+
+  // ── Sales / Ad Spend / Purchase for the selected period ──────────
+  const periodStart = (() => {
+    const n = new Date();
+    if (period === 'TODAY') return new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime();
+    if (period === '7D') return new Date(n.getFullYear(), n.getMonth(), n.getDate() - 6).getTime();
+    if (period === 'MONTH') return new Date(n.getFullYear(), n.getMonth(), 1).getTime();
+    return 0;
+  })();
+  const inPeriod = transactions.filter(t => Number(t.date) >= periodStart);
+  const periodSales = inPeriod.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0);
+  const periodAdSpend = inPeriod.filter(t => t.type === 'EXPENSE' && t.expenseCategory === 'FB_ADS').reduce((s, t) => s + t.amount, 0);
+  const periodPurchase = inPeriod.filter(t => t.type === 'EXPENSE' && t.expenseCategory === 'PRODUCT').reduce((s, t) => s + t.amount, 0);
+  const adPct = periodSales > 0 ? (periodAdSpend / periodSales) * 100 : 0;
+  const purchasePct = periodSales > 0 ? (periodPurchase / periodSales) * 100 : 0;
 
   const COLORS = ['#D97757', '#f59e0b', '#6F9150', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
   // ── Position snapshot values ─────────────────────────────────────
@@ -212,6 +228,60 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
           <div className="relative z-10">
             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Available Profit</p>
             <p className="text-xl font-black tracking-tight text-white">{m(availableToWithdraw)}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Bank-wise balances */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Bank-wise Balance</p>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {accounts.map(acc => {
+            const logo = getBankLogo(acc.name);
+            const isCredit = acc.type === 'OD' || acc.type === 'CREDIT_CARD';
+            return (
+              <div key={acc.id} className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <div className="flex items-center gap-2 mb-1.5">
+                  {logo && <img src={logo.url} alt={acc.name} className="w-4 h-4 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
+                  <span className="text-[10px] font-bold text-slate-600 truncate">{acc.name}</span>
+                </div>
+                <p className={`text-base font-bold tracking-tight ${acc.balance < 0 ? 'text-rose-600' : 'text-slate-900'}`}>{m(acc.balance)}</p>
+                {isCredit && acc.limit ? (
+                  <p className="text-[9px] font-medium text-slate-400 mt-0.5">Limit {m(acc.limit)}</p>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Sales / Ad Spend / Purchase */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div className="flex items-center justify-between mb-3 gap-2">
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Sales · Ad Spend · Purchase</p>
+          <div className="flex bg-slate-100 rounded-lg p-0.5">
+            {([['TODAY', 'Today'], ['7D', '7 Days'], ['MONTH', 'This Month'], ['ALL', 'All']] as const).map(([k, label]) => (
+              <button key={k} onClick={() => setPeriod(k)}
+                className={`px-2.5 py-1 rounded-md text-[10px] font-semibold transition-all ${period === k ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-500 hover:text-slate-700'}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-100">
+            <div className="flex items-center gap-1.5 text-emerald-700 mb-1"><TrendingUp size={13} /><span className="text-[10px] font-bold uppercase tracking-wide">Sales</span></div>
+            <p className="text-xl font-bold text-emerald-700 tracking-tight">{m(periodSales)}</p>
+          </div>
+          <div className="p-3.5 rounded-xl bg-indigo-50/70 border border-indigo-100">
+            <div className="flex items-center gap-1.5 text-indigo-700 mb-1"><Facebook size={13} /><span className="text-[10px] font-bold uppercase tracking-wide">Ad Spend</span></div>
+            <p className="text-xl font-bold text-indigo-700 tracking-tight">{m(periodAdSpend)}</p>
+            <p className="text-[10px] font-medium text-slate-500 mt-0.5">{mpct(adPct)} of sales</p>
+          </div>
+          <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-100">
+            <div className="flex items-center gap-1.5 text-amber-700 mb-1"><ShoppingBag size={13} /><span className="text-[10px] font-bold uppercase tracking-wide">Purchase</span></div>
+            <p className="text-xl font-bold text-amber-700 tracking-tight">{m(periodPurchase)}</p>
+            <p className="text-[10px] font-medium text-slate-500 mt-0.5">{mpct(purchasePct)} of sales</p>
           </div>
         </div>
       </div>

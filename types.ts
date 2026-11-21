@@ -1,9 +1,10 @@
-export const APP_VERSION = "2.2.13";
+export const APP_VERSION = "2.2.14";
 export const APP_RELEASE_NOTES = {
-  version: "v2.2.13",
-  title: "Claude-style calm theme, tag-based COD/Prepaid pools, version on dashboard",
+  version: "v2.2.14",
+  title: "Bank-wise balances, Sales / Ad Spend / Purchase on dashboard",
   date: "21 Nov 2026",
   highlights: [
+    "📊 Dashboard: bank-wise balance cards and Sales / Ad Spend / Purchase with Today / 7 Days / Month / All filter",
     "🎨 New calm theme: warm cream background, terracotta accent, soft sage/brick for income/expense",
     "🏷️ COD / Prepaid pools are per-entry tags, not linked to a bank account; bank balances match the statement",
     "🔖 Version and build id now shown on the Dashboard so you can confirm a push went live"
