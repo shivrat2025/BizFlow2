@@ -121,6 +121,9 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
   const adPct = periodSales > 0 ? (periodAdSpend / periodSales) * 100 : 0;
   const purchasePct = periodSales > 0 ? (periodPurchase / periodSales) * 100 : 0;
 
+  // OD parked funds: money sitting in an OD above its limit (own money, not debt)
+  const odAccounts = accounts.filter(a => a.type === 'OD');
+  const odParkedTotal = odAccounts.reduce((s, a) => s + Math.max(0, a.balance - (a.limit || 0)), 0);
   const COLORS = ['#D97757', '#f59e0b', '#6F9150', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
   // ── Position snapshot values ─────────────────────────────────────
   const snapshotBalance = accounts
@@ -183,6 +186,9 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Bank Balance</p>
           </div>
           <p className="text-xl font-black text-emerald-600 tracking-tight">{m(totalAssets)}</p>
+          {odParkedTotal > 0 && (
+            <p className="text-[10px] font-semibold text-emerald-700 mt-0.5">+ OD Parked {m(odParkedTotal)}</p>
+          )}
           <div className="mt-2 space-y-1 pt-2 border-t border-slate-100">
             {bankAccounts.map(acc => {
               const logo = getBankLogo(acc.name);
@@ -245,10 +251,20 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
                   {logo && <img src={logo.url} alt={acc.name} className="w-4 h-4 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
                   <span className="text-[10px] font-bold text-slate-600 truncate">{acc.name}</span>
                 </div>
-                <p className={`text-base font-bold tracking-tight ${acc.balance < 0 ? 'text-rose-600' : 'text-slate-900'}`}>{m(acc.balance)}</p>
-                {isCredit && acc.limit ? (
-                  <p className="text-[9px] font-medium text-slate-400 mt-0.5">Limit {m(acc.limit)}</p>
-                ) : null}
+                {acc.type === 'OD' ? (
+                  <>
+                    <p className="text-base font-bold tracking-tight text-emerald-700">{m(Math.max(0, acc.balance - (acc.limit || 0)))} <span className="text-[9px] font-semibold text-emerald-600 uppercase">Parked</span></p>
+                    <p className="text-[9px] font-medium text-slate-500 mt-0.5">Usable {m(acc.balance)} · Limit {m(acc.limit || 0)}</p>
+                    <p className="text-[9px] font-medium text-slate-400">Used (debt) {m(Math.max(0, (acc.limit || 0) - acc.balance))}</p>
+                  </>
+                ) : (
+                  <>
+                    <p className={`text-base font-bold tracking-tight ${acc.balance < 0 ? 'text-rose-600' : 'text-slate-900'}`}>{m(acc.balance)}</p>
+                    {isCredit && acc.limit ? (
+                      <p className="text-[9px] font-medium text-slate-400 mt-0.5">Limit {m(acc.limit)}</p>
+                    ) : null}
+                  </>
+                )}
               </div>
             );
           })}
