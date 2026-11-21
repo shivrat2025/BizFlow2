@@ -1,9 +1,10 @@
-export const APP_VERSION = "2.2.22";
+export const APP_VERSION = "2.2.23";
 export const APP_RELEASE_NOTES = {
-  version: "v2.2.22",
-  title: "Pools follow bank balances; negative Available Profit",
+  version: "v2.2.23",
+  title: "OD: Parked and Used shown separately",
   date: "21 Nov 2026",
   highlights: [
+    "💼 ICICI OD: Parked (own money moved in) and Used (debt) are now shown separately instead of netted; Used also counts in Total Debt",
     "🏦 COD pool = IDFC balance and Prepaid pool = IndusInd balance (bank-wise again), so pools match the bank statements and no longer go negative from tag mismatches",
     "💰 Available Profit now shows the real figure, in red with a minus sign, when withdrawals exceed the profit limit (was clamped to 0)",
     "🏦 IDFC FIRST Bank card now comes first in Bank-wise Balance and Total Bank Balance",

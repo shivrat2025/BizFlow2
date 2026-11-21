@@ -95,12 +95,17 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
     return { name: label, value };
   }).filter(item => item.value > 0);
 
+  // Parked = own money transferred in (gross); Used = limit + parked - balance, shown separately (not netted).
+  const odParkedIn = (id: string) => transactions.filter(t => t.type === 'TRANSFER' && t.destinationAccountId === id).reduce((s, t) => s + t.amount, 0);
+  const odUsed = (a: Account) => Math.max(0, (a.limit || 0) + odParkedIn(a.id) - a.balance);
   const debtAccounts = accounts.filter(a =>
-    ((a.type === 'OD' || a.type === 'CREDIT_CARD') && (a.limit || 0) > a.balance) ||
+    ((a.type === 'OD' && odUsed(a) > 0) || (a.type === 'CREDIT_CARD' && (a.limit || 0) > a.balance)) ||
     (['BANK', 'CURRENT'].includes(a.type) && a.balance < 0)
   ).map(a => {
     let debt = 0;
-    if (a.type === 'OD' || a.type === 'CREDIT_CARD') {
+    if (a.type === 'OD') {
+      debt = odUsed(a);
+    } else if (a.type === 'CREDIT_CARD') {
       debt = (a.limit || 0) - a.balance;
     } else {
       debt = Math.abs(a.balance);
@@ -129,7 +134,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
 
   // OD parked funds: money sitting in an OD above its limit (own money, not debt)
   const odAccounts = accounts.filter(a => a.type === 'OD');
-  const odParkedTotal = odAccounts.reduce((s, a) => s + Math.max(0, a.balance - (a.limit || 0)), 0);
+  const odParkedTotal = odAccounts.reduce((s, a) => s + odParkedIn(a.id), 0);
   const COLORS = ['#D97757', '#f59e0b', '#6F9150', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
   // ── Position snapshot values ─────────────────────────────────────
   const snapshotBalance = accounts
@@ -259,9 +264,9 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
                 </div>
                 {acc.type === 'OD' ? (
                   <>
-                    <p className="text-base font-bold tracking-tight text-emerald-700">{m(Math.max(0, acc.balance - (acc.limit || 0)))} <span className="text-[9px] font-semibold text-emerald-600 uppercase">Parked</span></p>
-                    <p className="text-[9px] font-medium text-slate-500 mt-0.5">Usable {m(acc.balance)} · Limit {m(acc.limit || 0)}</p>
-                    <p className="text-[9px] font-medium text-slate-400">Used (debt) {m(Math.max(0, (acc.limit || 0) - acc.balance))}</p>
+                    <p className="text-base font-bold tracking-tight text-emerald-700">{m(odParkedIn(acc.id))} <span className="text-[9px] font-semibold text-emerald-600 uppercase">Parked</span></p>
+                    <p className="text-[9px] font-medium text-slate-500 mt-0.5">Net balance {m(acc.balance)} · Limit {m(acc.limit || 0)}</p>
+                    <p className="text-[9px] font-medium text-slate-400">Used (debt) {m(odUsed(acc))}</p>
                   </>
                 ) : (
                   <>
