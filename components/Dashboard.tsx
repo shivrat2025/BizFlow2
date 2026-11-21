@@ -162,7 +162,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
           <p className="text-xl font-black text-slate-900 tracking-tight">{m(stats.codPool)}</p>
           <div className="mt-2 pt-2 border-t border-slate-100">
             <div className="flex justify-between items-center text-[8px] font-bold text-slate-400 uppercase tracking-tight">
-              <span>{(accounts.find(a => a.name.toUpperCase().includes('IDFC'))?.name || 'IDFC BANK') + ' (TAGGED)'}</span>
+              <span>BY TAG · NOT BANK-LINKED</span>
             </div>
           </div>
         </div>
@@ -177,7 +177,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
           <p className="text-xl font-black text-slate-900 tracking-tight">{m(stats.prepaidPool)}</p>
           <div className="mt-2 pt-2 border-t border-slate-100">
             <div className="flex justify-between items-center text-[8px] font-bold text-slate-400 uppercase tracking-tight">
-              <span>{(accounts.find(a => a.name.toUpperCase().includes('INDUSIND'))?.name || 'INDUSIND BANK') + ' + IDFC (TAGGED)'}</span>
+              <span>BY TAG · NOT BANK-LINKED</span>
             </div>
           </div>
         </div>

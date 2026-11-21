@@ -283,19 +283,25 @@ const App: React.FC = () => {
         const currentCodAcc = accs.find(a => a.name.toUpperCase().includes('IDFC'));
         const currentPrepaidAcc = accs.find(a => a.name.toUpperCase().includes('INDUSIND'));
 
-        // Pools are tag-based: money sitting in IDFC is split between COD and Prepaid by each
-        // entry's incomeSource tag, so a pool no longer needs its own dedicated bank account.
-        let idfcPrepaidNet = 0;
-        if (currentCodAcc) {
-            txs.forEach(t => {
-                if (t.sourceAccountId !== currentCodAcc.id || t.incomeSource !== 'PREPAID') return;
-                if (t.type === 'INCOME') idfcPrepaidNet += t.amount;
-                else if (t.type === 'EXPENSE') idfcPrepaidNet -= t.amount;
-            });
-        }
+        // Pools are purely tag-based (income_source on each entry), with no link to any bank account.
+        // Bank balances still follow the bank statement; the pools only split the same money by tag.
+        // Opening balances go to the bank's home pool (IDFC -> COD, IndusInd -> Prepaid); an untagged
+        // entry on a bank account falls back to that bank's home pool (never Debt).
+        let codPoolAmt = currentCodAcc ? (currentCodAcc.limit || 0) : 0;
+        let prepaidPoolAmt = currentPrepaidAcc ? (currentPrepaidAcc.limit || 0) : 0;
+        txs.forEach(t => {
+            const src = accs.find(a => a.id === t.sourceAccountId);
+            if (!src || !['BANK', 'CURRENT'].includes(src.type)) return;
+            const home = (currentPrepaidAcc && src.id === currentPrepaidAcc.id) ? 'PREPAID' : 'COD';
+            const pool = t.incomeSource === 'COD' || t.incomeSource === 'PREPAID' ? t.incomeSource : home;
+            let delta = 0;
+            if (t.type === 'INCOME') delta = t.amount;
+            else if (t.type === 'EXPENSE' || t.type === 'WITHDRAWAL' || t.type === 'REPAYMENT') delta = -t.amount;
+            if (pool === 'PREPAID') prepaidPoolAmt += delta; else codPoolAmt += delta;
+        });
         const s: DashboardStats = {
-            codPool: currentCodAcc ? ((currentCodAcc.balance || 0) - idfcPrepaidNet) : 0,
-            prepaidPool: (currentPrepaidAcc ? (currentPrepaidAcc.balance || 0) : 0) + idfcPrepaidNet,
+            codPool: codPoolAmt,
+            prepaidPool: prepaidPoolAmt,
             totalCodIncome: 0,
             totalPrepaidIncome: 0,
             totalExternalCap: 0,
