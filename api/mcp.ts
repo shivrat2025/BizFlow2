@@ -44,11 +44,12 @@ async function resolveAccountId(accountName?: string) {
     return (await resolveAccount(accountName))?.id || null;
 }
 
-// BizFlow fund-allocation model: COD Pool = IDFC, Prepaid Pool = IndusInd,
-// Debt (no pool) = ICICI OD and the credit cards. Entries on IDFC are never Debt.
-function poolForAccount(name?: string | null): 'COD' | 'PREPAID' | null {
+// BizFlow fund-allocation model: the pool is a per-entry tag (not tied to a bank account).
+// Defaults: IDFC entries are COD, except Razorpay income which is PREPAID; IndusInd is PREPAID;
+// Debt (no pool) is only for the ICICI OD / credit-card accounts. IDFC is never Debt.
+function poolForAccount(name?: string | null, type?: string, description?: string): 'COD' | 'PREPAID' | null {
     const n = (name || '').toUpperCase();
-    if (n.includes('IDFC')) return 'COD';
+    if (n.includes('IDFC')) return (type === 'INCOME' && /razorpay/i.test(description || '')) ? 'PREPAID' : 'COD';
     if (n.includes('INDUSIND')) return 'PREPAID';
     return null;
 }
@@ -111,7 +112,7 @@ async function handleRpc(body: any) {
                                 account: { type: "string", description: "Bank account name (IDFC, IndusInd, etc.)" },
                                 destination_account: { type: "string" },
                                 category: { type: "string", description: "Expense category (FB_ADS, SHIPPING, PRODUCT, etc.)" },
-                                income_source: { type: "string", enum: ["COD", "PREPAID"], description: "Fund allocation / pool for INCOME entries: COD (COD Pool) or PREPAID (Prepaid Pool). If omitted it follows the account: IDFC -> COD Pool, IndusInd -> PREPAID Pool, ICICI OD / credit cards -> no pool (Debt)." }
+                                income_source: { type: "string", enum: ["COD", "PREPAID"], description: "Fund allocation / pool for INCOME entries: COD (COD Pool) or PREPAID (Prepaid Pool). If omitted: IDFC -> COD (Razorpay income -> PREPAID), IndusInd -> PREPAID, ICICI OD / credit cards -> no pool (Debt)." }
                             },
                             required: ["amount", "type"]
                         }
@@ -177,7 +178,7 @@ async function handleRpc(body: any) {
                 let incomeSource: string | null = null;
                 if (txType === 'INCOME' || txType === 'EXPENSE') {
                     const given = args.income_source ? String(args.income_source).toUpperCase() : '';
-                    incomeSource = (given === 'COD' || given === 'PREPAID') ? given : poolForAccount(srcAcc?.name);
+                    incomeSource = (given === 'COD' || given === 'PREPAID') ? given : poolForAccount(srcAcc?.name, txType, String(args.description || ''));
                 }
 
                 const txDoc = {
