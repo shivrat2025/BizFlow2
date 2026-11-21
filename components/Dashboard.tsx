@@ -191,10 +191,10 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
             </div>
             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">COD Pool</p>
           </div>
-          <p className="text-xl font-black text-slate-900 tracking-tight">{m(stats.codPool)}</p>
+          <p className="text-xl font-black text-slate-900 tracking-tight">{m(stats.totalCodIncome)}</p>
           <div className="mt-2 pt-2 border-t border-slate-100">
             <div className="flex justify-between items-center text-[8px] font-bold text-slate-400 uppercase tracking-tight">
-              <span>BANK-WISE · IDFC / INDUSIND</span>
+              <span>REMITTANCE RECEIVED · BANK {m(stats.codPool)}</span>
             </div>
           </div>
         </div>
@@ -206,10 +206,10 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
             </div>
             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Prepaid Pool</p>
           </div>
-          <p className="text-xl font-black text-slate-900 tracking-tight">{m(stats.prepaidPool)}</p>
+          <p className="text-xl font-black text-slate-900 tracking-tight">{m(stats.totalPrepaidIncome)}</p>
           <div className="mt-2 pt-2 border-t border-slate-100">
             <div className="flex justify-between items-center text-[8px] font-bold text-slate-400 uppercase tracking-tight">
-              <span>BANK-WISE · IDFC / INDUSIND</span>
+              <span>REMITTANCE RECEIVED · BANK {m(stats.prepaidPool)}</span>
             </div>
           </div>
         </div>
