@@ -28,18 +28,29 @@ function parseTimestamp(dateInput: any) {
 }
 
 // Helper to resolve account IDs
-async function resolveAccountId(accountName?: string) {
+async function resolveAccount(accountName?: string): Promise<{ id: string; name: string } | null> {
     if (!accountName) return null;
     try {
         const { data: accounts } = await supabase.from('accounts').select('id, name').eq('workspace_id', WORKSPACE_ID);
         if (!accounts || accounts.length === 0) return null;
         const search = accountName.toLowerCase().trim();
         const match = accounts.find((a: any) => a.name.toLowerCase().includes(search) || search.includes(a.name.toLowerCase()));
-        if (match) return match.id;
-        return accounts[0]?.id || null;
+        return match || accounts[0] || null;
     } catch (e) {
         return null;
     }
+}
+async function resolveAccountId(accountName?: string) {
+    return (await resolveAccount(accountName))?.id || null;
+}
+
+// BizFlow fund-allocation model: COD Pool = IDFC, Prepaid Pool = IndusInd,
+// Debt (no pool) = ICICI OD and the credit cards. Entries on IDFC are never Debt.
+function poolForAccount(name?: string | null): 'COD' | 'PREPAID' | null {
+    const n = (name || '').toUpperCase();
+    if (n.includes('IDFC')) return 'COD';
+    if (n.includes('INDUSIND')) return 'PREPAID';
+    return null;
 }
 
 async function handleRpc(body: any) {
@@ -100,7 +111,7 @@ async function handleRpc(body: any) {
                                 account: { type: "string", description: "Bank account name (IDFC, IndusInd, etc.)" },
                                 destination_account: { type: "string" },
                                 category: { type: "string", description: "Expense category (FB_ADS, SHIPPING, PRODUCT, etc.)" },
-                                income_source: { type: "string", enum: ["COD", "PREPAID"], description: "Fund allocation / pool for INCOME entries: COD (COD Pool) or PREPAID (Prepaid Pool). Omit for no pool (Debt - only correct for the ICICI OD / credit-card accounts). EXPENSE from non-ICICI accounts defaults to COD. If omitted on INCOME, COD couriers/aggregators (Fixfeels, Expressfly, Shiprocket, Delhivery, COD remittance) are auto-detected as COD and Razorpay as PREPAID." }
+                                income_source: { type: "string", enum: ["COD", "PREPAID"], description: "Fund allocation / pool for INCOME entries: COD (COD Pool) or PREPAID (Prepaid Pool). If omitted it follows the account: IDFC -> COD Pool, IndusInd -> PREPAID Pool, ICICI OD / credit cards -> no pool (Debt)." }
                             },
                             required: ["amount", "type"]
                         }
@@ -158,24 +169,15 @@ async function handleRpc(body: any) {
             if (toolName === "add_transaction") {
                 const txId = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
                 const dateTs = parseTimestamp(args.date);
-                const sourceAccId = await resolveAccountId(args.account);
+                const srcAcc = await resolveAccount(args.account);
+                const sourceAccId = srcAcc?.id || null;
                 const destAccId = await resolveAccountId(args.destination_account);
 
                 const txType = String(args.type).toUpperCase();
                 let incomeSource: string | null = null;
-                if (txType === 'INCOME') {
+                if (txType === 'INCOME' || txType === 'EXPENSE') {
                     const given = args.income_source ? String(args.income_source).toUpperCase() : '';
-                    if (given === 'COD' || given === 'PREPAID') incomeSource = given;
-                    else if (!given && /fixfeel|expressfly|shiprocket|delhivery|cod\s*(remit|sale|pool)/i.test(String(args.description || ''))) incomeSource = 'COD';
-                    else if (!given && /razorpay/i.test(String(args.description || ''))) incomeSource = 'PREPAID';
-                }
-
-                // Debt applies only to the ICICI OD / credit-card accounts. Money spent from any other
-                // bank (IDFC etc.) comes out of the COD pool unless a pool is given explicitly.
-                if (txType === 'EXPENSE') {
-                    const given = args.income_source ? String(args.income_source).toUpperCase() : '';
-                    if (given === 'COD' || given === 'PREPAID') incomeSource = given;
-                    else if (!/icici|\bod\b|credit|card/i.test(String(args.account || ''))) incomeSource = 'COD';
+                    incomeSource = (given === 'COD' || given === 'PREPAID') ? given : poolForAccount(srcAcc?.name);
                 }
 
                 const txDoc = {

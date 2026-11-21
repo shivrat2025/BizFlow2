@@ -283,19 +283,9 @@ const App: React.FC = () => {
         const currentCodAcc = accs.find(a => a.name.toUpperCase().includes('IDFC'));
         const currentPrepaidAcc = accs.find(a => a.name.toUpperCase().includes('INDUSIND'));
 
-        // Pools are tag-based: money sitting in IDFC is split between COD and Prepaid by each
-        // entry's incomeSource tag, so a pool no longer needs its own dedicated bank account.
-        let idfcPrepaidNet = 0;
-        if (currentCodAcc) {
-            txs.forEach(t => {
-                if (t.sourceAccountId !== currentCodAcc.id || t.incomeSource !== 'PREPAID') return;
-                if (t.type === 'INCOME') idfcPrepaidNet += t.amount;
-                else if (t.type === 'EXPENSE') idfcPrepaidNet -= t.amount;
-            });
-        }
         const s: DashboardStats = {
-            codPool: currentCodAcc ? ((currentCodAcc.balance || 0) - idfcPrepaidNet) : 0,
-            prepaidPool: (currentPrepaidAcc ? (currentPrepaidAcc.balance || 0) : 0) + idfcPrepaidNet,
+            codPool: currentCodAcc ? (currentCodAcc.balance || 0) : 0,
+            prepaidPool: currentPrepaidAcc ? (currentPrepaidAcc.balance || 0) : 0,
             totalCodIncome: 0,
             totalPrepaidIncome: 0,
             totalExternalCap: 0,
