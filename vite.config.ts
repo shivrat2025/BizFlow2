@@ -19,8 +19,8 @@ export default defineConfig(({ mode }) => {
           name: 'BizFlow',
           short_name: 'BizFlow',
           description: 'Advanced Business Management & Analytics Platform',
-          theme_color: '#4f46e5',
-          background_color: '#ffffff',
+          theme_color: '#C6613F',
+          background_color: '#F5F4ED',
           display: 'standalone',
           orientation: 'portrait',
           scope: '/',
@@ -66,6 +66,8 @@ export default defineConfig(({ mode }) => {
       })
     ],
     define: {
+      '__BUILD_SHA__': JSON.stringify((process.env.VERCEL_GIT_COMMIT_SHA || 'local').slice(0, 7)),
+      '__BUILD_TIME__': JSON.stringify(new Date().toISOString()),
       'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || ''),
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || '')
     },

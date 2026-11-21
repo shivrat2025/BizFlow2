@@ -1,6 +1,9 @@
 
 import React from 'react';
 import { Wallet, Landmark, CreditCard, PiggyBank, TrendingDown, DollarSign, ArrowDownLeft, Facebook, Truck, ShoppingBag, Box, TrendingUp, AlertCircle, Info, RefreshCw, Sparkles, Cloud } from 'lucide-react';
+declare const __BUILD_SHA__: string;
+declare const __BUILD_TIME__: string;
+import { APP_VERSION } from '../types';
 import { DashboardStats, Account, Transaction, ExpenseCategory } from '../types';
 import { getBankLogo } from '../utils/bankLogos';
 import {
@@ -102,7 +105,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
     return { ...a, debt };
   });
 
-  const COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
+  const COLORS = ['#D97757', '#f59e0b', '#6F9150', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
   // ── Position snapshot values ─────────────────────────────────────
   const snapshotBalance = accounts
     .filter(a => ['BANK', 'CURRENT'].includes(a.type) && !a.name.toUpperCase().includes('OD'))
@@ -237,12 +240,12 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
               <AreaChart data={trendData}>
                 <defs>
                   <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.1} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#6F9150" stopOpacity={0.1} />
+                    <stop offset="95%" stopColor="#6F9150" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1} />
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#D97757" stopOpacity={0.1} />
+                    <stop offset="95%" stopColor="#D97757" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="name" fontSize={7} fontWeight="900" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8' }} hide={window.innerWidth < 768} />
@@ -250,8 +253,8 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
                 <Tooltip
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', fontWeight: '900', fontSize: '8px' }}
                 />
-                <Area type="monotone" dataKey="income" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorIncome)" />
-                <Area type="monotone" dataKey="expense" stroke="#6366f1" strokeWidth={2} fillOpacity={1} fill="url(#colorExpense)" />
+                <Area type="monotone" dataKey="income" stroke="#6F9150" strokeWidth={2} fillOpacity={1} fill="url(#colorIncome)" />
+                <Area type="monotone" dataKey="expense" stroke="#D97757" strokeWidth={2} fillOpacity={1} fill="url(#colorExpense)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -427,6 +430,11 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
           </div>
         </div>
       </div>
+
+      {/* Deploy stamp: confirms which version/commit is live */}
+      <p className="text-center text-[10px] font-medium text-slate-400 tracking-wide pt-2">
+        BizFlow v{APP_VERSION} · build {__BUILD_SHA__} · {new Date(__BUILD_TIME__).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+      </p>
     </div>
   );
 };

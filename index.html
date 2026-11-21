@@ -8,7 +8,7 @@
     <title>BizFlow Ledger</title>
 
     <!-- PWA primary color -->
-    <meta name="theme-color" content="#4f46e5">
+    <meta name="theme-color" content="#C6613F">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -41,6 +41,25 @@
         tailwind.config = {
             theme: {
                 extend: {
+                colors: {
+                    // Claude-inspired calm palette: warm neutrals + terracotta accent
+                    slate: {50:'#FAF9F5',100:'#F0EEE6',200:'#E8E6DC',300:'#D1CFC5',400:'#B0AEA5',500:'#87867F',600:'#5E5D59',700:'#3D3D3A',800:'#262624',900:'#141413',950:'#0D0D0C'},
+                    gray: {50:'#FAF9F5',100:'#F0EEE6',200:'#E8E6DC',300:'#D1CFC5',400:'#B0AEA5',500:'#87867F',600:'#5E5D59',700:'#3D3D3A',800:'#262624',900:'#141413'},
+                    indigo: {50:'#FBF1EC',100:'#F6E1D7',200:'#EDC4B0',300:'#E4A68B',400:'#DD8D6D',500:'#D97757',600:'#C6613F',700:'#A84E31',800:'#873F28',900:'#6B3321',950:'#3B1B11'},
+                    purple: {50:'#F6F1F5',100:'#EBE2EA',200:'#D9C7D6',300:'#C3A6BE',400:'#AA86A3',500:'#8F6B88',600:'#765670',700:'#5F445A',800:'#4A3547',900:'#382937'},
+                    violet: {50:'#F6F1F5',100:'#EBE2EA',200:'#D9C7D6',400:'#AA86A3',500:'#8F6B88',600:'#765670',700:'#5F445A'},
+                    emerald: {50:'#F2F5EC',100:'#E2EAD5',200:'#C8D7B2',300:'#ABC08C',400:'#8DAB6B',500:'#6F9150',600:'#5B7A41',700:'#486234',800:'#394E2A',900:'#2C3C21'},
+                    green: {50:'#F2F5EC',100:'#E2EAD5',200:'#C8D7B2',400:'#8DAB6B',500:'#6F9150',600:'#5B7A41',700:'#486234'},
+                    teal: {50:'#EFF5F3',100:'#DCEAE6',200:'#BCD4CE',400:'#7FA89F',500:'#5E8C82',600:'#4A726A',700:'#3B5B55'},
+                    cyan: {50:'#EFF5F3',100:'#DCEAE6',400:'#7FA89F',500:'#5E8C82',600:'#4A726A'},
+                    rose: {50:'#FBF0ED',100:'#F5DDD7',200:'#EBBFB5',300:'#DE9C8F',400:'#CF7967',500:'#BF5A48',600:'#A64739',700:'#88382D',800:'#6C2D25',900:'#52231D'},
+                    red: {50:'#FBF0ED',100:'#F5DDD7',200:'#EBBFB5',400:'#CF7967',500:'#BF5A48',600:'#A64739',700:'#88382D'},
+                    orange: {50:'#FCF3EA',100:'#F7E3CF',200:'#EFC8A2',400:'#E3A06F',500:'#D98A52',600:'#BC7140',700:'#995A33'},
+                    amber: {50:'#FBF6E8',100:'#F5EACB',200:'#EBD698',400:'#D8AF58',500:'#C99B3C',600:'#A87F2C',700:'#876523'},
+                    blue: {50:'#F0F4F8',100:'#E0E8F0',200:'#C2D0DF',400:'#7F9BB8',500:'#6283A6',600:'#4D6C8C',700:'#3E5671'},
+                    sky: {50:'#F0F4F8',100:'#E0E8F0',400:'#7F9BB8',500:'#6283A6',600:'#4D6C8C'},
+                },
+                fontFamily: { serif: ['Newsreader','Georgia','serif'] },
                     animation: {
                         blob: "blob 7s infinite",
                         'slide-in-from-bottom-2': 'slideInFromBottom2 0.5s ease-out forwards',
@@ -84,11 +103,17 @@
             },
         }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Newsreader:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            background: #F5F4ED;
+            -webkit-font-smoothing: antialiased;
         }
+        h1, h2 { font-family: 'Newsreader', Georgia, serif; font-weight: 500; letter-spacing: -0.01em; }
+        /* calmer weights: no ultra-heavy text */
+        .font-black { font-weight: 700 !important; }
+        .font-extrabold { font-weight: 650 !important; }
 
         .glass-panel {
             background: rgba(255, 255, 255, 0.7);
@@ -98,7 +123,7 @@
         }
 
         .text-glow {
-            text-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+            text-shadow: 0 0 15px rgba(217, 119, 87, 0.4);
         }
 
         ::-webkit-scrollbar {
@@ -110,12 +135,12 @@
         }
 
         ::-webkit-scrollbar-thumb {
-            background: #e2e8f0;
+            background: #E0DDD2;
             border-radius: 10px;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: #cbd5e1;
+            background: #C9C6BA;
         }
 
         .pb-safe-area {
@@ -161,7 +186,7 @@
     <link rel="stylesheet" href="/index.css">
 </head>
 
-<body class="bg-slate-50 text-slate-900 selection:bg-indigo-100 selection:text-indigo-900">
+<body class="text-slate-900 selection:bg-indigo-100 selection:text-indigo-900">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
 </body>

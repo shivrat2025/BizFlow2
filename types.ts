@@ -1,14 +1,12 @@
-export const APP_VERSION = "2.2.12";
+export const APP_VERSION = "2.2.13";
 export const APP_RELEASE_NOTES = {
-  version: "v2.2.12",
-  title: "100% Decoupled from BizFlow 1 & Dedicated Supabase Isolation",
-  date: "17 Sep 2026",
+  version: "v2.2.13",
+  title: "Claude-style calm theme, tag-based COD/Prepaid pools, version on dashboard",
+  date: "21 Nov 2026",
   highlights: [
-    "🔒 100% Decoupled from BizFlow 1: Zero shared database connections or cross-talk with BizFlow 1 Firestore",
-    "🤖 Claude MCP Dedicated to BizFlow 2: Claude AI integration writes strictly and exclusively to BizFlow 2's PostgreSQL database",
-    "🛡️ Self-Contained Local Snapshots: Protection points and backups manage snapshots in local device storage without touching legacy Firestore",
-    "⚡ Fully Autonomous Database Operations: Trash, restores, exports, and batch modifications route solely through Supabase and local cache",
-    "🚀 Pure Independent Cloud Sync: Clean architecture guarantees absolute isolation between BizFlow 1 and BizFlow 2"
+    "🎨 New calm theme: warm cream background, terracotta accent, soft sage/brick for income/expense",
+    "🏷️ COD / Prepaid pools are per-entry tags, not linked to a bank account; bank balances match the statement",
+    "🔖 Version and build id now shown on the Dashboard so you can confirm a push went live"
   ]
 };
 
