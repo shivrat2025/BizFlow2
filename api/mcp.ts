@@ -100,7 +100,7 @@ async function handleRpc(body: any) {
                                 account: { type: "string", description: "Bank account name (IDFC, IndusInd, etc.)" },
                                 destination_account: { type: "string" },
                                 category: { type: "string", description: "Expense category (FB_ADS, SHIPPING, PRODUCT, etc.)" },
-                                income_source: { type: "string", enum: ["COD", "PREPAID"], description: "Fund allocation / pool for INCOME entries: COD (COD Pool) or PREPAID (Prepaid Pool). Omit for no pool (Debt). If omitted on INCOME, COD couriers/aggregators (Fixfeels, Expressfly, Shiprocket, Delhivery, COD remittance) are auto-detected as COD." }
+                                income_source: { type: "string", enum: ["COD", "PREPAID"], description: "Fund allocation / pool for INCOME entries: COD (COD Pool) or PREPAID (Prepaid Pool). Omit for no pool (Debt). If omitted on INCOME, COD couriers/aggregators and Razorpay (Fixfeels, Expressfly, Razorpay, Shiprocket, Delhivery, COD remittance) are auto-detected as COD." }
                             },
                             required: ["amount", "type"]
                         }
@@ -166,7 +166,7 @@ async function handleRpc(body: any) {
                 if (txType === 'INCOME') {
                     const given = args.income_source ? String(args.income_source).toUpperCase() : '';
                     if (given === 'COD' || given === 'PREPAID') incomeSource = given;
-                    else if (!given && /fixfeel|expressfly|shiprocket|delhivery|cod\s*(remit|sale|pool)/i.test(String(args.description || ''))) incomeSource = 'COD';
+                    else if (!given && /fixfeel|expressfly|razorpay|shiprocket|delhivery|cod\s*(remit|sale|pool)/i.test(String(args.description || ''))) incomeSource = 'COD';
                 }
 
                 const txDoc = {
