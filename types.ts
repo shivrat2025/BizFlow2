@@ -1,6 +1,6 @@
-export const APP_VERSION = "2.2.19";
+export const APP_VERSION = "2.2.20";
 export const APP_RELEASE_NOTES = {
-  version: "v2.2.19",
+  version: "v2.2.20",
   title: "IDFC card first on dashboard; pools purely tag-based",
   date: "21 Nov 2026",
   highlights: [

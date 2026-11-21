@@ -36,7 +36,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, accounts, transactions, ca
   // Privacy mask helper
   const m = (n: number, prefix = '₹') => privacyMode ? '₹ ••••••' : `${prefix}${n.toLocaleString('en-IN')}`;
   // IDFC is the most-used bank, so it always comes first
-  const idfcFirst = <T extends { name: string }>(list: T[]) => [...list].sort((a, b) => Number(b.name.toUpperCase().includes('IDFC')) - Number(a.name.toUpperCase().includes('IDFC')));
+  const idfcFirst = (list: Account[]): Account[] => [...list].sort((a, b) => Number(b.name.toUpperCase().includes('IDFC')) - Number(a.name.toUpperCase().includes('IDFC')));
   const mpct = (n: number) => privacyMode ? '••%' : `${Math.round(n)}%`;
   if (accounts.length === 0 && transactions.length === 0) {
     return (
