@@ -1,9 +1,10 @@
-export const APP_VERSION = "2.2.21";
+export const APP_VERSION = "2.2.22";
 export const APP_RELEASE_NOTES = {
-  version: "v2.2.21",
-  title: "Available Profit shows negative when over-withdrawn",
+  version: "v2.2.22",
+  title: "Pools follow bank balances; negative Available Profit",
   date: "21 Nov 2026",
   highlights: [
+    "🏦 COD pool = IDFC balance and Prepaid pool = IndusInd balance (bank-wise again), so pools match the bank statements and no longer go negative from tag mismatches",
     "💰 Available Profit now shows the real figure, in red with a minus sign, when withdrawals exceed the profit limit (was clamped to 0)",
     "🏦 IDFC FIRST Bank card now comes first in Bank-wise Balance and Total Bank Balance",
     "🏷️ COD and Prepaid pools are now calculated only from each entry's tag, independent of which bank it is in; bank balances still match the statements",

@@ -283,22 +283,9 @@ const App: React.FC = () => {
         const currentCodAcc = accs.find(a => a.name.toUpperCase().includes('IDFC'));
         const currentPrepaidAcc = accs.find(a => a.name.toUpperCase().includes('INDUSIND'));
 
-        // Pools are purely tag-based (income_source on each entry), with no link to any bank account.
-        // Bank balances still follow the bank statement; the pools only split the same money by tag.
-        // Opening balances go to the bank's home pool (IDFC -> COD, IndusInd -> Prepaid); an untagged
-        // entry on a bank account falls back to that bank's home pool (never Debt).
-        let codPoolAmt = currentCodAcc ? (currentCodAcc.limit || 0) : 0;
-        let prepaidPoolAmt = currentPrepaidAcc ? (currentPrepaidAcc.limit || 0) : 0;
-        txs.forEach(t => {
-            const src = accs.find(a => a.id === t.sourceAccountId);
-            if (!src || !['BANK', 'CURRENT'].includes(src.type)) return;
-            const home = (currentPrepaidAcc && src.id === currentPrepaidAcc.id) ? 'PREPAID' : 'COD';
-            const pool = t.incomeSource === 'COD' || t.incomeSource === 'PREPAID' ? t.incomeSource : home;
-            let delta = 0;
-            if (t.type === 'INCOME') delta = t.amount;
-            else if (t.type === 'EXPENSE' || t.type === 'WITHDRAWAL' || t.type === 'REPAYMENT') delta = -t.amount;
-            if (pool === 'PREPAID') prepaidPoolAmt += delta; else codPoolAmt += delta;
-        });
+        // Pools follow the bank: COD pool = IDFC balance, Prepaid pool = IndusInd balance (always matches the statements).
+        const codPoolAmt = currentCodAcc ? currentCodAcc.balance : 0;
+        const prepaidPoolAmt = currentPrepaidAcc ? currentPrepaidAcc.balance : 0;
         const s: DashboardStats = {
             codPool: codPoolAmt,
             prepaidPool: prepaidPoolAmt,
